@@ -5,8 +5,9 @@ Note that this is the place to include the right LTL-Wrapper for each environmen
 
 
 import gym
-import gym_minigrid
-import envs.gym_letters
+# import gym_minigrid
+# import envs.gym_letters
+import envs
 import ltl_wrappers
 
 def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False):

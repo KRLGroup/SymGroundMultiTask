@@ -30,7 +30,8 @@ def get_status_path(model_dir):
 
 def get_status(model_dir):
     path = get_status_path(model_dir)
-    return torch.load(path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    device_str = "cpu" #"cuda" if torch.cuda.is_available() else "cpu"
+    return torch.load(path, map_location=torch.device(device_str))
 
 
 def save_status(status, model_dir):

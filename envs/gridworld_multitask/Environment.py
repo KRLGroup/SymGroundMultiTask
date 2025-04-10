@@ -15,6 +15,7 @@ transforms = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
     resize,
 ])
+
 # tutta la griglia
 class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
@@ -358,3 +359,30 @@ class GridWorldEnv_multitask(gym.Env):
         if self.window is not None:
             pygame.display.quit()
             pygame.quit()
+
+
+# implements the interface needed by ltl2action and integrates the learned
+# symbol grounding
+class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sym_grounder = torch.load('sym_grounder.pth')
+        self.current_obs = None
+
+    def reset(self):
+        obs, _ = super().reset()
+        self.current_obs = obs
+        return obs
+
+    def step(self, action):
+        obs, rew, done = super().step(action)
+        self.current_obs = obs
+        return obs, rew, done, {}
+
+    def get_propositions(self):
+        return self.dictionary_symbols.copy()
+
+    def get_events(self):
+        img = self.current_obs
+        pred_sym = torch.argmax(self.sym_grounder(img.unsqueeze(0)), dim=-1)[0]
+        return [pred_sym]

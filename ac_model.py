@@ -42,7 +42,8 @@ class ACModel(nn.Module, torch_ac.ACModel):
         self.use_text = not ignoreLTL and (gnn_type == "GRU" or gnn_type == "LSTM") and "text" in obs_space
         self.use_ast = not ignoreLTL and ("GCN" in gnn_type) and "text" in obs_space
         self.gnn_type = gnn_type
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         self.action_space = action_space
         self.dumb_ac = dumb_ac
 
