@@ -1,6 +1,6 @@
 import torch
 from DeepAutoma import MultiTaskProbabilisticAutoma
-from Environment import GridWorldEnv_multitask
+from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 from NN_models import CNN_grounder, GridworldClassifier
 from utils import EarlyStopping
 import matplotlib.pyplot as plt

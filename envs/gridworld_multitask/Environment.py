@@ -5,7 +5,7 @@ import random
 import numpy as np
 import torch, torchvision
 from FiniteStateMachine import MooreMachine
-from formula_sampling import EventuallySampler
+# from formula_sampling import EventuallySampler
 from itertools import product
 from UnremovableReasoningShurtcuts import find_reasoning_shortcuts
 import pickle
@@ -21,7 +21,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7):
         self.dictionary_symbols = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5' ]
-        self.ltl_sampler = EventuallySampler(self.dictionary_symbols[:-1])
+        # self.ltl_sampler = EventuallySampler(self.dictionary_symbols[:-1])
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
