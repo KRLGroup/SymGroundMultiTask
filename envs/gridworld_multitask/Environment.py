@@ -4,11 +4,15 @@ import pygame
 import random
 import numpy as np
 import torch, torchvision
+import torch.nn as nn
 from FiniteStateMachine import MooreMachine
 # from formula_sampling import EventuallySampler
 from itertools import product
-from UnremovableReasoningShurtcuts import find_reasoning_shortcuts
+# from UnremovableReasoningShurtcuts import find_reasoning_shortcuts
 import pickle
+
+from ltl_wrappers import LTLEnv
+import env_model
 
 resize = torchvision.transforms.Resize((64,64))
 transforms = torchvision.transforms.Compose([
@@ -20,18 +24,19 @@ transforms = torchvision.transforms.Compose([
 class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7):
-        self.dictionary_symbols = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5' ]
+    def __init__(self, render_mode="rgb_array", state_type = "image", train=True, size=7):
+        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f' ]
         # self.ltl_sampler = EventuallySampler(self.dictionary_symbols[:-1])
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
-        self._PICKAXE = "imgs/pickaxe.png"
-        self._GEM = "imgs/gem.png"
-        self._DOOR = "imgs/door.png"
-        self._ROBOT = "imgs/robot.png"
-        self._LAVA = "imgs/lava.png"
-        self._EGG = "imgs/turtle_egg.png"
+        img_dir = "../envs/gridworld_multitask/imgs"
+        self._PICKAXE = f"{img_dir}/pickaxe.png"
+        self._GEM = f"{img_dir}/gem.png"
+        self._DOOR = f"{img_dir}/door.png"
+        self._ROBOT = f"{img_dir}/robot.png"
+        self._LAVA = f"{img_dir}/lava.png"
+        self._EGG = f"{img_dir}/turtle_egg.png"
 
         self._train = train
         self.max_num_steps = 70
@@ -48,9 +53,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.clock = None
 
         #load automata and formulas
-        with open("formulas.pkl", "rb") as f:
+        with open("../formulas.pkl", "rb") as f:
             self.formulas = pickle.load(f)
-        with open("automata.pkl", "rb") as f:
+        with open("../automata.pkl", "rb") as f:
             self.automata = pickle.load(f)
 
         for i in range(len(self.formulas)):
@@ -70,7 +75,7 @@ class GridWorldEnv_multitask(gym.Env):
         '''
 
 
-        print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         #calculate the maximum reward:
         '''
@@ -132,6 +137,7 @@ class GridWorldEnv_multitask(gym.Env):
                     #print(norm_img)
                     self.image_locations[r,c] = norm_img
             #assert False
+            self.observation_space = spaces.Box(low=0, high=1, shape=self.image_locations[0,0].shape, dtype=np.float32)
 
 
     def reset(self):
@@ -351,6 +357,7 @@ class GridWorldEnv_multitask(gym.Env):
             pygame.display.update()
             self.clock.tick(self.metadata["render_fps"])
         else:
+            self.window = canvas
             return np.transpose(
                 np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
             )
@@ -366,7 +373,7 @@ class GridWorldEnv_multitask(gym.Env):
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sym_grounder = torch.load('sym_grounder.pth')
+        self.sym_grounder = torch.load('../sym_grounder.pth')
         self.current_obs = None
 
     def reset(self):
@@ -385,4 +392,13 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def get_events(self):
         img = self.current_obs
         pred_sym = torch.argmax(self.sym_grounder(img.unsqueeze(0)), dim=-1)[0]
-        return [pred_sym]
+        return self.dictionary_symbols[pred_sym]
+
+
+class LTLWrapper(LTLEnv):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.sampler = None # make sure we don't use this
+
+    def sample_ltl_goal(self):
+        return self.env.current_formula

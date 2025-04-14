@@ -3,9 +3,10 @@ from gym.envs.registration import register
 from envs.gym_letters.letter_env import LetterEnv
 from envs.gym_letters.simple_ltl_env import SimpleLTLEnv
 from envs.minigrid.minigrid_env import MinigridEnv
+from envs.gridworld_multitask.Environment import GridWorldEnv_LTL2Action
 # from envs.safety.zones_env import ZonesEnv
 
-__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv",] #"ZonesEnv"]
+__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action"] #"ZonesEnv"]
 
 
 ### GridWorld multi-task Envs

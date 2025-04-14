@@ -1,7 +1,7 @@
 from train_agent import Args
 
 
-test = Args(
+test_ltl2action = Args(
     algo="ppo",
     env="Letter-7x7-v3",
     log_interval=5,
@@ -9,6 +9,20 @@ test = Args(
     frames=20000000,
     discount=0.94,
     ltl_sampler="Eventually_1_5_1_4",
+    epochs=4,
+    lr=0.0003
+)
+
+
+# TODO num_envs should be 1 since we use shared pool of formulas?
+test_gridworld = Args(
+    algo="ppo",
+    env="GridWorld-v0",
+    log_interval=5,
+    save_interval=20,
+    frames=20000000,
+    discount=0.94,
+    ltl_sampler="None",
     epochs=4,
     lr=0.0003
 )

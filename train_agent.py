@@ -22,7 +22,7 @@ class Args:
     # General parameters
     algo: str # a2c or ppo
     env: str
-    ltl_sampler: str = "Default"
+    ltl_sampler: str = "Default" # Must be None for GridWorld
     model: Optional[str] = None
     seed: int = 1
     log_interval: int = 10

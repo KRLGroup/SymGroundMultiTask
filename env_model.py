@@ -17,7 +17,8 @@ def getEnvModel(env, obs_space):
     if isinstance(env, PendulumEnv):
         return PendulumEnvModel(obs_space)
     # Add your EnvModel here...
-
+    if isinstance(env, GridWorldEnv_LTL2Action):
+        return GridWorldEnvModel(obs_space)
 
     # The default case (No environment observations) - SimpleLTLEnv uses this
     return EnvModel(obs_space)
@@ -142,6 +143,34 @@ class PendulumEnvModel(EnvModel):
             x = obs.image
             # x = torch.cat((x, x * x), 1)
             x = self.net_(x)
+            return x
+
+        return super().forward(obs)
+
+
+class GridWorldEnvModel(EnvModel):
+    def __init__(self, obs_space):
+        super().__init__(obs_space)
+
+        if "image" in obs_space.keys():
+            n = obs_space["image"][0]
+            m = obs_space["image"][1]
+            k = obs_space["image"][2]
+            self.image_conv = nn.Sequential(
+                nn.Conv2d(k, 16, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, (2, 2)),
+                nn.ReLU()
+            )
+            self.embedding_size = (n-3)*(m-3)*64
+
+    def forward(self, obs):
+        if "image" in obs.keys():
+            x = obs.image.transpose(1, 3).transpose(2, 3)
+            x = self.image_conv(x)
+            x = x.reshape(x.shape[0], -1)
             return x
 
         return super().forward(obs)

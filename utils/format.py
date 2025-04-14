@@ -22,7 +22,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
 
     if isinstance(env, LTLEnv): #LTLEnv Wrapped env
         env = env.unwrapped
-        if isinstance(env, LetterEnv) or isinstance(env, MinigridEnv): #or isinstance(env, ZonesEnv):
+        if isinstance(env, LetterEnv) or isinstance(env, MinigridEnv) or isinstance(env, GridWorldEnv_LTL2Action): #or isinstance(env, ZonesEnv):
             if progression_mode == "partial":
                 obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space)}
                 def preprocess_obss(obss, device=None):
