@@ -50,6 +50,38 @@ class GridworldClassifier(nn.Module):
 
         return x
 
+class ObjectCNN(nn.Module):
+    def __init__(self, num_classes=2):
+        super(ObjectCNN, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 64x64 -> 64x64
+            #nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # -> 32x32
+
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x32
+            #nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # -> 16x16
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 16x16
+            nn.ReLU(),
+            nn.MaxPool2d(2)  # -> 8x8
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64 * 8 * 8, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_classes),
+            nn.Softmax()
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+
 class Linear_grounder_no_droput(nn.Module):
     def __init__(self, num_inputs, hidden_size, num_output):
         super(Linear_grounder_no_droput, self).__init__()
