@@ -373,7 +373,7 @@ class GridWorldEnv_multitask(gym.Env):
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sym_grounder = torch.load('../sym_grounder.pth')
+        self.sym_grounder = torch.load('../sym_grounder_oldEnv.pth')
         self.current_obs = None
 
     def reset(self):
