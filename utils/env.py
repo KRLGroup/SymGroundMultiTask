@@ -11,8 +11,9 @@ import envs
 from envs.gridworld_multitask.Environment import LTLWrapper as GridWorldLTLWrapper
 import ltl_wrappers
 
-def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False):
-    env = gym.make(env_key)
+def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, device=None):
+    kwargs = {} if not "GridWorld" in env_key else {"device": device}
+    env = gym.make(env_key, **kwargs)
     env.seed(seed)
 
     # Adding LTL wrappers

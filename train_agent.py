@@ -62,8 +62,10 @@ class Args:
     freeze_ltl: bool = False
 
 
-def train_agent(args: Args):
+def train_agent(args: Args, device: str = None):
     use_mem = args.recurrence > 1
+
+    device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Set run dir
 
@@ -118,8 +120,6 @@ def train_agent(args: Args):
 
     # Set device
 
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
     txt_logger.info(f"Device: {device}\n")
 
     # Load environments
@@ -127,7 +127,7 @@ def train_agent(args: Args):
     envs = []
     progression_mode = args.progression_mode
     for i in range(args.procs):
-        envs.append(utils.make_env(args.env, progression_mode, args.ltl_sampler, args.seed, args.int_reward, args.noLTL))
+        envs.append(utils.make_env(args.env, progression_mode, args.ltl_sampler, args.seed, args.int_reward, args.noLTL, device))
 
     # Sync environments
     envs[0].reset()
@@ -141,14 +141,14 @@ def train_agent(args: Args):
     # Load training status
 
     try:
-        status = utils.get_status(model_dir + "/train")
+        status = utils.get_status(model_dir + "/train", device)
     except OSError:
         status = {"num_frames": 0, "update": 0}
     txt_logger.info("Training status loaded.\n")
 
     if pretrained_model_dir is not None:
         try:
-            pretrained_status = utils.get_status(pretrained_model_dir)
+            pretrained_status = utils.get_status(pretrained_model_dir, device)
         except:
             txt_logger.info("Failed to load pretrained model.\n")
             exit(1)
@@ -164,7 +164,7 @@ def train_agent(args: Args):
     if use_mem:
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl, device)
     if "model_state" in status:
         acmodel.load_state_dict(status["model_state"])
         txt_logger.info("Loading model from existing run.\n")

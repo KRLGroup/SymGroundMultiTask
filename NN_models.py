@@ -11,7 +11,7 @@ class CNN_grounder(nn.Module):
         self.flat = nn.Flatten()
         self.fc1 = nn.Linear(125, 50)
         self.fc2 = nn.Linear(50, num_symbols)
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=1) # TODO double check if correct (dim 0 should be batch size)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 3))

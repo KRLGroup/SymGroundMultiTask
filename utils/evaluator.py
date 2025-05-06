@@ -34,7 +34,7 @@ class Eval:
         # Load environments for evaluation
         eval_envs = []
         for i in range(self.num_procs):
-            eval_envs.append(utils.make_env(env, progression_mode, ltl_sampler, seed, 0, False))
+            eval_envs.append(utils.make_env(env, progression_mode, ltl_sampler, seed, 0, False, device))
 
         eval_envs[0].reset()
         if isinstance(eval_envs[0].env, LetterEnv):

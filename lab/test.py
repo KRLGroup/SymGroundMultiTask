@@ -10,7 +10,8 @@ test_ltl2action = Args(
     discount=0.94,
     ltl_sampler="Eventually_1_5_1_4",
     epochs=4,
-    lr=0.0003
+    lr=0.0003,
+    procs=1,
 )
 
 
@@ -24,5 +25,6 @@ test_gridworld = Args(
     discount=0.94,
     ltl_sampler="None",
     epochs=4,
-    lr=0.0003
+    lr=0.0003,
+    procs=1
 )

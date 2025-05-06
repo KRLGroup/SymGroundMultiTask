@@ -135,7 +135,7 @@ class GridWorldEnv_multitask(gym.Env):
                 for c in range(size):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-5)
                     #print(norm_img)
-                    self.image_locations[r,c] = norm_img
+                    self.image_locations[r,c] = norm_img.numpy()
             #assert False
             self.observation_space = spaces.Box(low=0, high=1, shape=self.image_locations[0,0].shape, dtype=np.float32)
 
@@ -371,9 +371,10 @@ class GridWorldEnv_multitask(gym.Env):
 # implements the interface needed by ltl2action and integrates the learned
 # symbol grounding
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sym_grounder = torch.load('sym_grounder_oldEnv.pth')
+        self.device = device
+        self.sym_grounder = torch.load('sym_grounder_oldEnv_fix.pth', map_location=self.device)
         self.current_obs = None
 
     def reset(self):
@@ -391,7 +392,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def get_events(self):
         img = self.current_obs
-        pred_sym = torch.argmax(self.sym_grounder(img.unsqueeze(0)), dim=-1)[0]
+        pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
         return self.dictionary_symbols[pred_sym]
 
 
