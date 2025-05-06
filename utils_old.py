@@ -257,7 +257,7 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
     return accuracy
 
 class EarlyStopping:
-    def __init__(self, patience=10, min_delta=0.001):
+    def __init__(self, patience=5, min_delta=0.001):
         self.patience = patience
         self.min_delta = min_delta
         self.best_loss = float('inf')
