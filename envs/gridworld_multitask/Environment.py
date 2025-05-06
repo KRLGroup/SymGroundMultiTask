@@ -30,7 +30,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
-        img_dir = "../envs/gridworld_multitask/imgs"
+        img_dir = "envs/gridworld_multitask/imgs"
         self._PICKAXE = f"{img_dir}/pickaxe.png"
         self._GEM = f"{img_dir}/gem.png"
         self._DOOR = f"{img_dir}/door.png"
@@ -53,9 +53,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.clock = None
 
         #load automata and formulas
-        with open("../formulas.pkl", "rb") as f:
+        with open("formulas.pkl", "rb") as f:
             self.formulas = pickle.load(f)
-        with open("../automata.pkl", "rb") as f:
+        with open("automata.pkl", "rb") as f:
             self.automata = pickle.load(f)
 
         for i in range(len(self.formulas)):
@@ -373,7 +373,7 @@ class GridWorldEnv_multitask(gym.Env):
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sym_grounder = torch.load('../sym_grounder_oldEnv.pth')
+        self.sym_grounder = torch.load('sym_grounder_oldEnv.pth')
         self.current_obs = None
 
     def reset(self):
