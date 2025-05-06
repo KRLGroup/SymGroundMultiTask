@@ -400,5 +400,41 @@ class LTLWrapper(LTLEnv):
         super().__init__(*args, **kwargs)
         self.sampler = None # make sure we don't use this
 
+    def step(self, action):
+        int_reward = 0
+        # executing the action in the environment
+        next_obs, original_reward, env_done, info = self.env.step(action)
+
+        # progressing the ltl formula
+        truth_assignment = self.get_events(self.obs, action, next_obs)
+        self.ltl_goal = self.progression(self.ltl_goal, truth_assignment)
+        self.obs      = next_obs
+
+        # Computing the LTL reward and done signal
+        ltl_reward = 0.0
+        ltl_done   = False
+        if self.ltl_goal == 'True':
+            ltl_reward = 1.0
+            ltl_done   = True
+        elif self.ltl_goal == 'False':
+            ltl_reward = -1.0
+            ltl_done   = True
+        else:
+            ltl_reward = int_reward
+
+        # Computing the new observation and returning the outcome of this action
+        if self.progression_mode == "full":
+            ltl_obs = {'features': self.obs,'text': self.ltl_goal}
+        elif self.progression_mode == "none":
+            ltl_obs = {'features': self.obs,'text': self.ltl_original}
+        elif self.progression_mode == "partial":
+            ltl_obs = {'features': self.obs, 'progress_info': self.progress_info(self.ltl_goal)}
+        else:
+            raise NotImplementedError
+
+        reward  = original_reward #+ ltl_reward
+        done    = env_done or ltl_done
+        return ltl_obs, reward, done, info
+
     def sample_ltl_goal(self):
         return self.env.current_formula
