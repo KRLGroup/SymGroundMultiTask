@@ -374,7 +374,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
-        self.sym_grounder = torch.load('sym_grounder_oldEnv_fix.pth', map_location=self.device)
+        self.sym_grounder = torch.load('sym_grounder_oldEnv.pth', map_location=self.device)
         self.current_obs = None
 
     def reset(self):
