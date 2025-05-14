@@ -3,9 +3,11 @@ import random
 import os
 import numpy as np
 from numpy.random import RandomState
+from pythomata import SymbolicAutomaton, SimpleDFA
 
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
+
 
 def set_seed(seed: int) -> RandomState:
     """ Method to set seed across runs to ensure reproducibility.
@@ -26,6 +28,7 @@ def set_seed(seed: int) -> RandomState:
     random_state = random.getstate()
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     return random_state
+
 
 def dot2pythomata(dot_file_name, action_alphabet):
 
@@ -89,8 +92,8 @@ def dot2pythomata(dot_file_name, action_alphabet):
 
         automaton.set_initial_state(state_dict['0'])
 
-   
         return automaton
+
 
 def transacc2pythomata(trans, acc, action_alphabet):
     accepting_states = set()
@@ -155,7 +158,6 @@ def eval_acceptance(classifier, automa, alphabet, dataset, automa_implementation
                 print("INVALID AUTOMA IMPLEMENTATION: ", automa_implementation)
         
             total += labels.size()[0]
-
           
             correct += (output==labels).sum().item()
         test_accuracy = 100. * correct/(float)(total)
@@ -196,9 +198,7 @@ def eval_learnt_DFA_acceptance(automa, dataset, automa_implementation='logic_cir
                 print("INVALID AUTOMA IMPLEMENTATION: ", automa_implementation)
             total += output.size()[0]
 
-
             correct += sum(output==label).item()
-
 
             accuracy = 100. * correct/(float)(total)
 
@@ -250,13 +250,14 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
                             errors = torch.cat((errors, pred_symbols[eq_i,:].unsqueeze(0)), dim=0)
                 total += torch.numel(output_sym)
 
-
     accuracy = 100. * correct / (float)(total)
     if return_errors:
         return accuracy, errors
     return accuracy
 
+
 class EarlyStopping:
+
     def __init__(self, patience=5, min_delta=0.001):
         self.patience = patience
         self.min_delta = min_delta
