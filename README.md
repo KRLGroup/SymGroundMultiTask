@@ -29,8 +29,7 @@
 5. Install the CUDA version of DGL (GNN library):
 
     ```bash
-    wget https://anaconda.org/dglteam/dgl-cuda10.2/0.4.3post2/download/linux-64/dgl-cuda10.2-0.4.3post2-py37_0.tar.bz2
-    conda install dgl-cuda10.2-0.4.3post2-py37_0.tar.bz2
+    conda install -c dglteam dgl-cuda10.2=0.4.3post2
     ```
 
 6. Install the CUDA 10.2 toolkit (needed by the CUDA version of DGL):
