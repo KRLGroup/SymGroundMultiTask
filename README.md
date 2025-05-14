@@ -2,27 +2,39 @@
 
 ## Installing requirements (conda)
 
-1. create a new conda env with python 3.7
+1. Create a new conda environment with Python 3.7:
 
-    `conda create -n symgroundmultitask python=3.7`
+    ```bash
+    conda create -n symgroundmultitask python=3.7
+    ```
 
-2. install all packages from `requirements_ltl2action.txt` with
+2. Install all packages from `requirements_ltl2action.txt`:
 
-    `pip install -r requirements_ltl2action.txt`
+    ```bash
+    pip install -r requirements_ltl2action.txt
+    ```
 
-3. install Spot 2.9 with
+3. Install Spot 2.9:
 
-    `conda install -c conda-forge spot=2.9`
+    ```bash
+    conda install -c conda-forge spot=2.9
+    ```
 
-4. install some libraries missing from ltl2action:
+4. Install some libraries missing from ltl2action:
 
-    `pip install ring pygame pythomata flloat graphviz torchvision`
+    ```bash
+    pip install ring pygame pythomata flloat graphviz torchvision
+    ```
 
-5. install CUDA version of dgl (GNN library, from https://anaconda.org/dglteam/dgl-cuda10.2/files?page=6) with:
+5. Install the CUDA version of DGL (GNN library):
 
-    `conda install dgl-cuda10.2-0.4.3post2-py37_0.tar.bz2`
+    ```bash
+    wget https://anaconda.org/dglteam/dgl-cuda10.2/0.4.3post2/download/linux-64/dgl-cuda10.2-0.4.3post2-py37_0.tar.bz2
+    conda install dgl-cuda10.2-0.4.3post2-py37_0.tar.bz2
+    ```
 
-6. install CUDA 10.2 toolkit (needed by CUDA version of dgl)
+6. Install the CUDA 10.2 toolkit (needed by the CUDA version of DGL):
 
-    `conda install cudatoolkit=10.2 -c pytorch`
-
+    ```bash
+    conda install cudatoolkit=10.2 -c pytorch
+    ```
