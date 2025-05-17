@@ -4,15 +4,17 @@ import pygame
 import random
 import numpy as np
 import torch, torchvision
-import torch.nn as nn
 from FiniteStateMachine import MooreMachine
-# from formula_sampling import EventuallySampler
 from itertools import product
-# from UnremovableReasoningShurtcuts import find_reasoning_shortcuts
 import pickle
+import cv2
 
 from ltl_wrappers import LTLEnv
 import env_model
+
+
+
+
 
 resize = torchvision.transforms.Resize((64,64))
 transforms = torchvision.transforms.Compose([
@@ -20,26 +22,26 @@ transforms = torchvision.transforms.Compose([
     resize,
 ])
 
+
 # tutta la griglia
 class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode="rgb_array", state_type = "image", train=True, size=7):
-        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f' ]
-        # self.ltl_sampler = EventuallySampler(self.dictionary_symbols[:-1])
+    def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7, max_num_steps = 70, reset_loc = False, img_dir="imgs"):
+        self.dictionary_symbols = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5' ]
+        self.reset_locations = reset_loc
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
-        img_dir = "envs/gridworld_multitask/imgs"
-        self._PICKAXE = f"{img_dir}/pickaxe.png"
-        self._GEM = f"{img_dir}/gem.png"
-        self._DOOR = f"{img_dir}/door.png"
-        self._ROBOT = f"{img_dir}/robot.png"
-        self._LAVA = f"{img_dir}/lava.png"
-        self._EGG = f"{img_dir}/turtle_egg.png"
+        self._PICKAXE = img_dir+"/pickaxe.png"
+        self._GEM = img_dir+"/gem.png"
+        self._DOOR = img_dir+"/door.png"
+        self._ROBOT = img_dir+"/robot.png"
+        self._LAVA = img_dir+"/lava.png"
+        self._EGG = img_dir+"/turtle_egg.png"
 
         self._train = train
-        self.max_num_steps = 70
+        self.max_num_steps = max_num_steps
         self.curr_step = 0
 
         self.state_type = state_type
@@ -75,7 +77,7 @@ class GridWorldEnv_multitask(gym.Env):
         '''
 
 
-        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         #calculate the maximum reward:
         '''
@@ -105,18 +107,32 @@ class GridWorldEnv_multitask(gym.Env):
         self._exit_location =[ np.array([3, 0]), np.array([3,5])]
         self._lava_location =[ np.array([3, 3]) , np.array([1,4])]
         self._egg_location = [np.array([2,1]), np.array([5,6])]
-
+        self._initial_agent_location = np.array([0,0])
         self._gem_display = True
         self._pickaxe_display = True
         self._robot_display = True
 
         if state_type == "image":
+            #*******************************
+            # Load images using OpenCV; note that OpenCV loads images as BGR by default.
+            self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
+            self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
+            self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
+            self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
+            self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
+            self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
+            print(self.window_size)
+            print(self.size)
+            self.pix_square_size = int(self.window_size/self.size)
+            print(self.pix_square_size)
+            #cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+            #cv2.resizeWindow("Frame", self.window_size, self.window_size)
+            #*********************************
             self.image_locations = {}
             self.image_labels = {}
             for r in range(size):
                 for c in range(size):
                     self._agent_location = np.array([r, c])
-                    self._render_frame()
                     obss = self._get_obs(1)
                     obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
                     obss = torch.permute(obss, (2, 0, 1))
@@ -124,20 +140,32 @@ class GridWorldEnv_multitask(gym.Env):
                     self.image_locations[r,c] = obss
                     self.image_labels[r,c] = self._current_symbol()
             #normalization
-            all_images = list(self.image_locations.values())
-            all_img_tens = torch.stack(all_images)
+            #all_images = list(self.image_locations.values())
+            #all_img_tens = torch.stack(all_images)
             #print(all_img_tens.size())
-            stdev, mean = torch.std_mean(all_img_tens, dim=0)
+            stdev, mean = torch.std_mean(self.image_locations[0,0])
+
+
+            #print(mean.size())
             #print(mean)
             #print(stdev)
             #print(stdev.sum())
+
             for r in range(size):
                 for c in range(size):
-                    norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-5)
-                    #print(norm_img)
-                    self.image_locations[r,c] = norm_img.numpy()
-            #assert False
-            self.observation_space = spaces.Box(low=0, high=1, shape=self.image_locations[0,0].shape, dtype=np.float32)
+                    #print("original: ", self.image_locations[r,c])
+                    norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
+                    #print("normalized:", norm_img)
+                    self.image_locations[r,c] = norm_img
+
+            #visualize images after normalizations
+            '''
+            for r in range(size):
+                for c in range(size):
+                    cv2.imshow("Frame", self.image_locations[r,c].permute(1, 2, 0).numpy())
+                    cv2.waitKey(100)
+            '''
+        self._agent_location = self._initial_agent_location
 
 
     def reset(self):
@@ -146,9 +174,9 @@ class GridWorldEnv_multitask(gym.Env):
         '''
         #reset the task
         #self.current_formula = self.ltl_sampler.sample()
-        self.current_formula = self.formulas[self.produced_tasks]
+        self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
         #print(f"Current task: {self.current_formula}")
-        current_automa = self.automata[self.produced_tasks]
+        current_automa = self.automata[self.produced_tasks % len(self.automata)]
         self.automaton = MooreMachine(current_automa.transitions,current_automa.acceptance, f"random_task_{self.produced_tasks}", reward="acceptance", dictionary_symbols=self.dictionary_symbols)
         self.produced_tasks+=1
 
@@ -159,24 +187,57 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_automaton_state = 0
         self.curr_step = 0
 
-        #reset item locations
-        '''
-        all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
+        #reset item location
+        if self.reset_locations:
+            all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
-        # Seleziona casualmente 10 posizioni senza ripetizioni
-        num_items = 10
-        item_positions = random.sample(all_positions, num_items+1)
+            # Seleziona casualmente 10 posizioni senza ripetizioni
+            num_items = 10
+            item_positions = random.sample(all_positions, num_items+1)
+            if self.produced_tasks % 10 == 0:
+                self._gem_location = [np.array(item_positions[0]), np.array(item_positions[1])]
+                self._pickaxe_location =[ np.array(item_positions[2]), np.array(item_positions[3])]
+                self._exit_location =[ np.array(item_positions[4]), np.array(item_positions[5])]
+                self._lava_location =[ np.array(item_positions[6]) , np.array(item_positions[7])]
+                self._egg_location = [np.array(item_positions[8]), np.array(item_positions[9])]
+                self._initial_agent_location = np.array(item_positions[10])
 
-        self._gem_location = [np.array(item_positions[0]), np.array(item_positions[1])]
-        self._pickaxe_location =[ np.array(item_positions[2]), np.array(item_positions[3])]
-        self._exit_location =[ np.array(item_positions[4]), np.array(item_positions[5])]
-        self._lava_location =[ np.array(item_positions[6]) , np.array(item_positions[7])]
-        self._egg_location = [np.array(item_positions[8]), np.array(item_positions[9])]
+            #reinizialize self.image_locations and normalizations
+            if self.produced_tasks % 10 == 0:
 
-        #reset the agent location
-        self._agent_location = np.array(item_positions[10])
-        '''
-        self._agent_location = np.array([0, 0])
+                self.image_locations = {}
+                self.image_labels = {}
+                for r in range(self.size):
+                        for c in range(self.size):
+                            self._agent_location = np.array([r, c])
+                            self._render_frame()
+                            obss = self._get_obs(1)
+                            obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
+                            obss = torch.permute(obss, (2, 0, 1))
+                            obss = resize(obss)
+                            self.image_locations[r,c] = obss
+                            self.image_labels[r,c] = self._current_symbol()
+                #normalization
+                #all_images = list(self.image_locations.values())
+                #all_img_tens = torch.stack(all_images)
+                #print(all_img_tens.size())
+                stdev, mean = torch.std_mean(self.image_locations[self._agent_location[0],self._agent_location[1]])
+
+
+                #print(mean.size())
+                #print(mean)
+                #print(stdev)
+                #print(stdev.sum())
+
+                for r in range(self.size):
+                        for c in range(self.size):
+                            #print("original: ", self.image_locations[r,c])
+                            norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
+                            #print("normalized:", norm_img)
+                            self.image_locations[r,c] = norm_img
+
+        # reset the agent location
+        self._agent_location = self._initial_agent_location
 
         #if self.render_mode == "human":
         #    self._render_frame()
@@ -191,7 +252,14 @@ class GridWorldEnv_multitask(gym.Env):
         else:
             raise Exception("environment with state_type = {} NOT IMPLEMENTED".format(self.state_type))
 
-        return observation, self.automaton
+        # visualize images after normalizations
+        '''
+        for r in range(self.size):
+            for c in range(self.size):
+                cv2.imshow("Frame", self.image_locations[r, c].permute(1, 2, 0).numpy())
+                cv2.waitKey(100)
+        '''
+        return observation, self.automaton, self.image_locations, self.image_labels
 
     def _current_symbol(self):
         if any(np.array_equal(self._agent_location, loc) for loc in self._exit_location):
@@ -264,26 +332,10 @@ class GridWorldEnv_multitask(gym.Env):
         return observation, reward, done
 
     def render(self):
-        if self.render_mode == "rgb_array":
-            return self._render_frame()
-        else:
             return self.image_locations[self._agent_location[0], self._agent_location[1]]
 
     def _get_obs(self, full = 1):
-        img = np.transpose(
-            np.array(pygame.surfarray.pixels3d(self.window)), axes=(1, 0, 2)
-        )
-        img = img[:, :, ::-1]
-        obs = None
-        if full == 1:
-            obs = img
-        else: 
-            pix_square_size = (self.window_size/self.size)
-            pix_square_size = int(pix_square_size)
-            x = self._agent_location[0]
-            y = self._agent_location[1]
-            obs = img[int(y*pix_square_size):int((y+1)*pix_square_size), int(x*pix_square_size):int((x+1)*pix_square_size)]
-        return obs
+        return self._render_frame()
 
     def _get_info(self):
         info = {
@@ -299,68 +351,57 @@ class GridWorldEnv_multitask(gym.Env):
         return info
 
     def _render_frame(self):
-        if self.window is None and self.render_mode == "human":
-            pygame.init()
-            pygame.display.init()
-            self.window = pygame.display.set_mode((self.window_size, self.window_size))
-        if self.clock is None and self.render_mode == "human":
-            self.clock = pygame.time.Clock()
+            # Create a white canvas.
+            canvas = 255 * np.ones((self.window_size, self.window_size, 3), dtype=np.uint8)
 
-        canvas = pygame.Surface((self.window_size, self.window_size))
-        canvas.fill((255, 255, 255))
+            # Draw grid lines.
+            '''
+            for i in range(0, self.window_size + 1, self.pix_square_size):
+                # Horizontal line
+                cv2.line(canvas, (0, i), (self.window_size, i), color=(0, 0, 0), thickness=3)
+                # Vertical line
+                cv2.line(canvas, (i, 0), (i, self.window_size), color=(0, 0, 0), thickness=3)
+            '''
+            # Helper function to overlay an image with transparency if available.
+            def overlay_image(bg, fg, top_left):
+                x, y = top_left
+                h, w = fg.shape[:2]
+                # If the foreground has an alpha channel, use it for blending.
+                if fg.shape[2] == 4:
+                    alpha_fg = fg[:, :, 3] / 255.0
+                    alpha_bg = 1.0 - alpha_fg
+                    for c in range(0, 3):
+                        bg[y:y + h, x:x + w, c] = (alpha_fg * fg[:, :, c] +
+                                                   alpha_bg * bg[y:y + h, x:x + w, c])
+                else:
+                    bg[y:y + h, x:x + w] = fg
+                return bg
 
-        pix_square_size = (self.window_size / self.size)
+            # Calculate pixel positions for each grid item.
+            def blit_item(item_img, locations, display=True):
+                if display:
+                    for loc in locations:
+                        # loc is assumed to be a numpy array [col, row] or [x, y]
+                        x = int(loc[0] * self.pix_square_size)
+                        y = int(loc[1] * self.pix_square_size)
+                        overlay_image(canvas, item_img, (x, y))
 
-        for x in range(self.size + 1):
-            pygame.draw.line(
-                canvas,
-                0,
-                (0, pix_square_size * x),
-                (self.window_size, pix_square_size * x),
-                width=3,
-            )
-            pygame.draw.line(
-                canvas,
-                0,
-                (pix_square_size * x, 0),
-                (pix_square_size * x, self.window_size),
-                width=3,
-            )
+            # Blit each type of item.
+            blit_item(self.pickaxe_img, self._pickaxe_location, self._pickaxe_display)
+            blit_item(self.gem_img, self._gem_location, self._gem_display)
+            blit_item(self.door_img, self._exit_location)
+            blit_item(self.lava_img, self._lava_location)
+            blit_item(self.egg_img, self._egg_location)
+            blit_item(self.robot_img, [self._agent_location], self._robot_display)
 
-        if self.render_mode == "human":
-            pickaxe = pygame.image.load(self._PICKAXE)
-            gem = pygame.image.load(self._GEM)
-            door = pygame.image.load(self._DOOR)
-            robot = pygame.image.load(self._ROBOT)
-            lava = pygame.image.load(self._LAVA)
-            egg = pygame.image.load(self._EGG)
-            self.window.blit(canvas, canvas.get_rect())
-
-            if self._pickaxe_display:
-                for pickaxe_loc in self._pickaxe_location:
-                    self.window.blit(pickaxe, (pix_square_size * pickaxe_loc[0], pix_square_size * pickaxe_loc[1]))
-            if self._gem_display:
-                for gem_loc in self._gem_location:
-                    self.window.blit(gem, (pix_square_size * gem_loc[0], pix_square_size * gem_loc[1]))
-            for door_loc in self._exit_location:
-                self.window.blit(door, (pix_square_size * door_loc[0], pix_square_size * door_loc[1]))
-            for lava_loc in self._lava_location:
-                self.window.blit(lava, (pix_square_size * lava_loc[0] , pix_square_size * lava_loc[1]))
-            for egg_loc in self._egg_location:
-                self.window.blit(egg, (pix_square_size * egg_loc[0], pix_square_size * egg_loc[1]))
-
-            if self._robot_display:
-                self.window.blit(robot,
-                                 (pix_square_size * self._agent_location[0], pix_square_size * self._agent_location[1]))
-
-            pygame.event.pump()
-            pygame.display.update()
-            self.clock.tick(self.metadata["render_fps"])
-        else:
-            self.window = canvas
-            return np.transpose(
-                np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
-            )
+            #if self.render_mode == "human":
+            #    cv2.imshow("Frame", canvas)
+                # WaitKey delay is set based on desired render FPS.
+                #key = cv2.waitKey(1)
+                # Optionally, handle key input if needed.
+            #else:
+                # In "rgb_array" mode, return the canvas converted from BGR to RGB.
+            return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
     def close(self):
         if self.window is not None:
@@ -368,13 +409,14 @@ class GridWorldEnv_multitask(gym.Env):
             pygame.quit()
 
 
-# implements the interface needed by ltl2action and integrates the learned
-# symbol grounding
+
+# interface needed by ltl2action with the learned symbol grounding
+# sym_grounder_oldEnv is a trained grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
     def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
-        self.sym_grounder = torch.load('sym_grounder_oldEnv.pth', map_location=self.device)
+        self.sym_grounder = torch.load('sym_grounder.pth', map_location=self.device)
         self.current_obs = None
 
     def reset(self):
@@ -394,6 +436,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         img = self.current_obs
         pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
         return self.dictionary_symbols[pred_sym]
+
 
 
 class LTLWrapper(LTLEnv):
