@@ -41,7 +41,9 @@ for exp in range(num_experiments):
                                5, 5, 5, 2, 5, 5, 5,
                                5, 5, 5, 5, 5, 4, 5
                                ]).to(device)
-    train_images = torch.stack(train_images, dim=0).to(device)
+    train_images = np.array(train_images)
+    train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
+    # train_images = torch.stack(train_images, dim=0).to(device)
 
 
     #sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
@@ -90,7 +92,9 @@ for exp in range(num_experiments):
                         episode_rews.append(last_rew)
                         episode_obss.append(last_obs)
 
-                obss = torch.stack(episode_obss, dim=0)
+                obss = np.array(episode_obss)
+                obss = torch.tensor(obss, device=device, dtype=torch.float64)
+                # obss = torch.stack(episode_obss, dim=0)
                 dfa_trans = task.transitions
                 dfa_rew = task.rewards
                 rews = torch.LongTensor(episode_rews)
@@ -101,7 +105,9 @@ for exp in range(num_experiments):
                     for r in range(7):
                         test_images.append(test_images_env[r, c])
                         test_labels.append(test_labels_env[r, c])
-                test_images = torch.stack(test_images, dim=0).to(device)
+                test_images = np.array(test_images)
+                test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
+                # test_images = torch.stack(test_images, dim=0).to(device)
                 test_labels = torch.LongTensor(test_labels).to(device)
 
         if len(buffer) >= 10 * batch_size:

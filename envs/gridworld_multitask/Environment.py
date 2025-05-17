@@ -25,8 +25,8 @@ class GridWorldEnv_multitask(gym.Env):
     
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
-        self.dictionary_symbols = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5' ]
+    def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
+        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
         self.randomize_locations = randomize_loc
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
@@ -154,7 +154,7 @@ class GridWorldEnv_multitask(gym.Env):
                     #print("original: ", self.image_locations[r,c])
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
                     #print("normalized:", norm_img)
-                    self.image_locations[r,c] = norm_img
+                    self.image_locations[r,c] = norm_img.numpy() # CONVERTED IN NUMPY
 
             #visualize images after normalizations
             '''
@@ -163,6 +163,10 @@ class GridWorldEnv_multitask(gym.Env):
                     cv2.imshow("Frame", self.image_locations[r,c].permute(1, 2, 0).numpy())
                     cv2.waitKey(100)
             '''
+
+            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
+
+
         self._agent_location = self._initial_agent_location
 
 
@@ -409,8 +413,7 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 
-# interface needed by ltl2action with the learned symbol grounding
-# sym_grounder_oldEnv is a trained grounder
+# interface needed by ltl2action to build the ltl_wrapper with the learned symbol grounding
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, device, *args, **kwargs):
@@ -421,7 +424,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
     def reset(self):
-        obs, _ = super().reset()
+        obs, _, _, _ = super().reset()
         self.current_obs = obs
         return obs
 
