@@ -17,6 +17,7 @@ transforms = torchvision.transforms.Compose([
     resize,
 ])
 
+ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class GridWorldEnv_multitask(gym.Env):
@@ -28,12 +29,12 @@ class GridWorldEnv_multitask(gym.Env):
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
-        self._PICKAXE = img_dir+"/pickaxe.png"
-        self._GEM = img_dir+"/gem.png"
-        self._DOOR = img_dir+"/door.png"
-        self._ROBOT = img_dir+"/robot.png"
-        self._LAVA = img_dir+"/lava.png"
-        self._EGG = img_dir+"/turtle_egg.png"
+        self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
+        self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
+        self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
+        self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
+        self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
+        self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
 
         self._train = train
         self.max_num_steps = max_num_steps
@@ -50,9 +51,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.clock = None
 
         #load automata and formulas
-        with open("formulas.pkl", "rb") as f:
+        with open(os.path.join(ENV_DIR, "tasks/formulas.pkl"), "rb") as f:
             self.formulas = pickle.load(f)
-        with open("automata.pkl", "rb") as f:
+        with open(os.path.join(ENV_DIR, "tasks/automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
         for i in range(len(self.formulas)):
