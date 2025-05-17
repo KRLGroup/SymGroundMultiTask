@@ -5,7 +5,6 @@ from NN_models import CNN_grounder, GridworldClassifier, ObjectCNN
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 from ReplayBuffer import ReplayBuffer
-import torchvision.transforms.v2 as T
 
 if torch.cuda.is_available():
     device = 'cuda'
@@ -17,11 +16,15 @@ num_experiments = 5
 batch_size = 32
 epoch = 0
 buffer = ReplayBuffer()
-affine_transform = T.RandomAffine(degrees=0, translate=(0.2, 0.2))
+
 
 for exp in range(num_experiments):
+
+    # environment used for training
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
-    env_test = GridWorldEnv_multitask(state_type="image", max_num_steps=50, img_dir ="test_imgs")
+
+    # environent used for testing and logging about the symbol grounder
+    test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
 
     #try to classify images
     test_images = []
@@ -61,11 +64,14 @@ for exp in range(num_experiments):
         i_task += 1
 
         obs, task, _, _ = env.reset()
-        _, _, test_images_env, test_labels_env = env_test.reset()
+        _, _, test_images_env, test_labels_env = test_env.reset()
 
         done = False
-        episode_obss = []
-        episode_rews = []
+
+        # initial state has always reward 0, agent starts in an empty cell
+        episode_obss = [obs]
+        episode_rews = [0]
+
         while not done:
             obs, rw, done = env.step(env.action_space.sample())
             env.render()
@@ -172,4 +178,3 @@ for exp in range(num_experiments):
                 plt.clf()
 
                 torch.save(sym_grounder, f"sym_grounder_exp_{exp}.pth")
-
