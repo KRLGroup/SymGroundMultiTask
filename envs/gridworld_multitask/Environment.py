@@ -8,6 +8,7 @@ from FiniteStateMachine import MooreMachine
 from itertools import product
 import pickle
 import cv2
+import os
 from ltl_wrappers import LTLEnv
 
 
