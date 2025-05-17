@@ -82,11 +82,11 @@ for exp in range(num_experiments):
                 won+= 1
                 print(f"won {won} tasks over {i_task}")
 
-                if len(episode_rews) < env.max_num_steps:
+                if len(episode_rews) < env.max_num_steps+1:
                     old_len = len(episode_rews)
                     last_rew = episode_rews[-1]
                     last_obs = episode_obss[-1]
-                    for _ in range(old_len, env.max_num_steps):
+                    for _ in range(old_len, env.max_num_steps+1):
                         episode_rews.append(last_rew)
                         episode_obss.append(last_obs)
 
@@ -125,7 +125,7 @@ for exp in range(num_experiments):
             epoch +=1
             optimizer.zero_grad()
             symbols = sym_grounder(obss.view(-1, 3, 64, 64))
-            symbols = symbols.view(-1, env.max_num_steps, task.num_of_symbols)
+            symbols = symbols.view(-1, env.max_num_steps+1, task.num_of_symbols)
             pred_states, pred_rew = mt_deepDFA(symbols)
             pred = pred_rew.squeeze(0)
             #with class weigths
