@@ -74,7 +74,7 @@ class ObjectCNN(nn.Module):
             nn.Linear(64 * 8 * 8, 64),
             nn.ReLU(),
             nn.Linear(64, num_classes),
-            nn.Softmax()
+            nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
@@ -89,7 +89,7 @@ class Linear_grounder_no_droput(nn.Module):
             nn.Linear(num_inputs, hidden_size),
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
-            nn.Softmax(),
+            nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
     def forward(self, x):
@@ -104,7 +104,7 @@ class Linear_grounder(nn.Module):
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
             nn.Dropout(0.2),
-            nn.Softmax(),
+            nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
     def forward(self, x):
