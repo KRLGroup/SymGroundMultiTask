@@ -8,12 +8,7 @@ from FiniteStateMachine import MooreMachine
 from itertools import product
 import pickle
 import cv2
-
 from ltl_wrappers import LTLEnv
-import env_model
-
-
-
 
 
 resize = torchvision.transforms.Resize((64,64))
@@ -23,13 +18,13 @@ transforms = torchvision.transforms.Compose([
 ])
 
 
-# tutta la griglia
+
 class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7, max_num_steps = 70, reset_loc = False, img_dir="imgs"):
+    def __init__(self, render_mode="human", state_type = "symbolic", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
         self.dictionary_symbols = ['c0', 'c1', 'c2', 'c3', 'c4', 'c5' ]
-        self.reset_locations = reset_loc
+        self.randomize_locations = randomize_loc
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
@@ -45,7 +40,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         self.state_type = state_type
-        self.size = size  # 4x4 world
+        self.size = size  # 7x7 world
         self.window_size = 896  # size of the window
 
         assert render_mode in self.metadata["render_modes"]
@@ -75,7 +70,6 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
         '''
-
 
         print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
@@ -188,7 +182,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         #reset item location
-        if self.reset_locations:
+        if self.randomize_locations:
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
             # Seleziona casualmente 10 posizioni senza ripetizioni
@@ -261,18 +255,21 @@ class GridWorldEnv_multitask(gym.Env):
         '''
         return observation, self.automaton, self.image_locations, self.image_labels
 
+
     def _current_symbol(self):
-        if any(np.array_equal(self._agent_location, loc) for loc in self._exit_location):
-            return 2
         if any(np.array_equal(self._agent_location, loc) for loc in self._pickaxe_location):
             return 0
-        if any(np.array_equal(self._agent_location, loc) for loc in self._gem_location):
-            return 3
-        if any(np.array_equal(self._agent_location, loc) for loc in self._lava_location):
+        elif any(np.array_equal(self._agent_location, loc) for loc in self._lava_location):
             return 1
-        if any(np.array_equal(self._agent_location, loc) for loc in self._egg_location):
+        elif any(np.array_equal(self._agent_location, loc) for loc in self._exit_location):
+            return 2
+        elif any(np.array_equal(self._agent_location, loc) for loc in self._gem_location):
+            return 3
+        elif any(np.array_equal(self._agent_location, loc) for loc in self._egg_location):
             return 4
-        return 5
+        else:
+            return 5
+
 
     def step(self, action):
 
@@ -331,24 +328,22 @@ class GridWorldEnv_multitask(gym.Env):
 
         return observation, reward, done
 
+
     def render(self):
             return self.image_locations[self._agent_location[0], self._agent_location[1]]
+
 
     def _get_obs(self, full = 1):
         return self._render_frame()
 
+
     def _get_info(self):
         info = {
             "robot location": self._agent_location,
-            "inventory": "empty"
+            "inventory": "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
         }
-        if self._has_gem:
-            info["inventory"] = "gem"
-        elif self._has_pickaxe:
-            info["inventory"] = "pickaxe"
-        else:
-            info["inventory"] = "empty"
         return info
+
 
     def _render_frame(self):
             # Create a white canvas.
@@ -403,6 +398,8 @@ class GridWorldEnv_multitask(gym.Env):
                 # In "rgb_array" mode, return the canvas converted from BGR to RGB.
             return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
+
+    # still uses pygame?
     def close(self):
         if self.window is not None:
             pygame.display.quit()
@@ -413,24 +410,29 @@ class GridWorldEnv_multitask(gym.Env):
 # interface needed by ltl2action with the learned symbol grounding
 # sym_grounder_oldEnv is a trained grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
+
     def __init__(self, device, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
         self.sym_grounder = torch.load('sym_grounder.pth', map_location=self.device)
         self.current_obs = None
 
+
     def reset(self):
         obs, _ = super().reset()
         self.current_obs = obs
         return obs
+
 
     def step(self, action):
         obs, rew, done = super().step(action)
         self.current_obs = obs
         return obs, rew, done, {}
 
+
     def get_propositions(self):
         return self.dictionary_symbols.copy()
+
 
     def get_events(self):
         img = self.current_obs
@@ -440,9 +442,11 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
 class LTLWrapper(LTLEnv):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sampler = None # make sure we don't use this
+
 
     def step(self, action):
         int_reward = 0
@@ -479,6 +483,7 @@ class LTLWrapper(LTLEnv):
         reward  = original_reward #+ ltl_reward
         done    = env_done or ltl_done
         return ltl_obs, reward, done, info
+
 
     def sample_ltl_goal(self):
         return self.env.current_formula
