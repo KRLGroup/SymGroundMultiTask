@@ -62,15 +62,16 @@ class Args:
     freeze_ltl: bool = False
 
 
+
 def train_agent(args: Args, device: str = None):
+
+    # SETUP
+
     use_mem = args.recurrence > 1
-
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Set run dir
-
     # date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M-%S")
 
+    # Set run dir
     gnn_name = args.gnn
     if args.ignoreLTL:
         gnn_name = "IgnoreLTL"
@@ -90,7 +91,6 @@ def train_agent(args: Args, device: str = None):
     model_dir = utils.get_model_dir(model_name, storage_dir)
 
     pretrained_model_dir = None
-
     if args.pretrained_gnn:
         assert(args.progression_mode == "full")
         default_dir = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
@@ -100,30 +100,25 @@ def train_agent(args: Args, device: str = None):
             raise Exception("Pretraining directory not found.")
         elif len(model_dirs) > 1:
             raise Exception("More than 1 candidate pretraining directory found.")
-
         pretrained_model_dir = model_dirs[0]
-    # Load loggers and Tensorboard writer
 
+    # Load loggers and Tensorboard writer
     txt_logger = utils.get_txt_logger(model_dir + "/train")
     csv_file, csv_logger = utils.get_csv_logger(model_dir + "/train")
     tb_writer = tensorboardX.SummaryWriter(model_dir + "/train")
     utils.save_config(model_dir + "/train", args)
 
     # Log command and all script arguments
-
     txt_logger.info("{}\n".format(" ".join(sys.argv)))
     txt_logger.info("{}\n".format(args))
 
     # Set seed for all randomness sources
-
     utils.seed(args.seed)
 
     # Set device
-
     txt_logger.info(f"Device: {device}\n")
 
     # Load environments
-
     envs = []
     progression_mode = args.progression_mode
     for i in range(args.procs):
@@ -139,7 +134,6 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("Environments loaded\n")
 
     # Load training status
-
     try:
         status = utils.get_status(model_dir + "/train", device)
     except OSError:
@@ -165,10 +159,10 @@ def train_agent(args: Args, device: str = None):
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
     else:
         acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl, device)
+
     if "model_state" in status:
         acmodel.load_state_dict(status["model_state"])
         txt_logger.info("Loading model from existing run.\n")
-
     elif args.pretrained_gnn:
         acmodel.load_pretrained_gnn(pretrained_status["model_state"])
         txt_logger.info("Pretrained model loaded.\n")
@@ -205,16 +199,15 @@ def train_agent(args: Args, device: str = None):
             evals.append(utils.Eval(eval_env, model_name, eval_sampler,
                         seed=args.seed, device=device, num_procs=eval_procs, ignoreLTL=args.ignoreLTL, progression_mode=progression_mode, gnn=args.gnn, dumb_ac = args.dumb_ac))
 
-
-    # Train model
+    # TRAINING
 
     num_frames = status["num_frames"]
     update = status["update"]
     start_time = time.time()
 
     while num_frames < args.frames:
-        # Update model parameters
 
+        # Update model parameters
         update_start_time = time.time()
         exps, logs1 = algo.collect_experiences()
         logs2 = algo.update_parameters(exps)
@@ -247,6 +240,9 @@ def train_agent(args: Args, device: str = None):
             header += ["entropy", "value", "policy_loss", "value_loss", "grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
 
+            # μ: mean | σ: std | m: min | M: max
+            # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
+            # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
                 "U {} | F {:06} | FPS {:04.0f} | D {} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:.1f} {:.1f} {} {} | H {:.3f} | V {:.3f} | pL {:.3f} | vL {:.3f} | ∇ {:.3f}"
                 .format(*data))
