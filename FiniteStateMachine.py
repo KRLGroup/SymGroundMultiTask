@@ -32,6 +32,7 @@ class DFA:
         self.calculate_absorbing_states()
         self.calculate_live_states()
 
+
     def calculate_absorbing_states(self):
         self.absorbing_states = []
         for q in range(self.num_of_states):
@@ -169,7 +170,7 @@ class DFA:
         return self.accepts_from_state(0, string)
 
 
-    def accepts_from_state(self, state,string):
+    def accepts_from_state(self, state, string):
         assert string != ''
 
         a = string[0]
@@ -269,6 +270,16 @@ class MooreMachine(DFA):
             for s in range(self.num_of_states):
                 if self.acceptance[s]:
                     self.rewards[s] = 1
+                else:
+                    self.rewards[s] = 0
+
+        # ternary reward: 1 for "final state", -1 for dead states, 0 otherwise
+        elif reward == "ternary":
+            for s in range(self.num_of_states):
+                if self.acceptance[s]:
+                    self.rewards[s] = 1
+                elif not self.liveliness[s]:
+                    self.rewards[s] = -1
                 else:
                     self.rewards[s] = 0
 
