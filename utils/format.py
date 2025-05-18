@@ -93,7 +93,6 @@ def preprocess_images(images, device=None):
     return torch.tensor(images, device=device, dtype=torch.float)
 
 
-
 def preprocess_texts(texts, vocab, vocab_space, gnn=False, device=None, **kwargs):
     if (gnn):
         return preprocess4gnn(texts, kwargs["ast"], device)
