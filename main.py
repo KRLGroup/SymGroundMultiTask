@@ -5,25 +5,31 @@ from NN_models import CNN_grounder, GridworldClassifier, ObjectCNN
 from utils import EarlyStopping
 import matplotlib.pyplot as plt
 from ReplayBuffer import ReplayBuffer
+import numpy as np
+import os
 
 if torch.cuda.is_available():
     device = 'cuda'
 else:
     device = 'cpu'
 
+
+# parameters
 num_samples = 90000
 num_experiments = 5
 batch_size = 32
 epoch = 0
-buffer = ReplayBuffer()
 sym_grounder_model = "ObjectCNN"
 
 output_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
 
+buffer = ReplayBuffer()
 
+
+# experiment loop (each experiment trains a different sym_grounder)
 for exp in range(num_experiments):
 
-    # environment used for training
+    # environment used for training (fixed)
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
 
     # environent used for testing and logging about the symbol grounder
@@ -42,7 +48,6 @@ for exp in range(num_experiments):
     # train_images = torch.stack(train_images, dim=0).to(device)
     train_labels = torch.LongTensor(train_labels).to(device)
 
-
     # choose the model for the sym_grounder
     if sym_grounder_model == "CNN_grounder":
         sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
@@ -53,21 +58,22 @@ for exp in range(num_experiments):
     else:
         raise Exception("Symbol Grounder Model '{}' NOT RECOGNIZED".format(sym_grounder_model))
 
-
+    # setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
-    won = 0
-    i_task = 0
 
+    n_won = 0
+    n_total = 0
     loss_values =[]
     test_classification_accuracy = []
     train_classification_accuracy = []
 
+    # training loop
+    while n_total < num_samples:
+        n_total += 1
 
-    while i_task < num_samples:
-        i_task += 1
-
+        # reset environments
         obs, task, _, _ = env.reset()
         _, _, test_images_env, test_labels_env = test_env.reset()
 
@@ -77,45 +83,56 @@ for exp in range(num_experiments):
         episode_obss = [obs]
         episode_rews = [0]
 
+        # play the episode until termination
         while not done:
             obs, rw, done = env.step(env.action_space.sample())
             env.render()
             #print(rw)
             episode_obss.append(obs)
             episode_rews.append(rw)
+
+        # if the episode terminates succesfully (reward 1) add it to the buffer
         if rw == 1:
-                won+= 1
-                print(f"won {won} tasks over {i_task}")
+            n_won += 1
+            print(f"won {n_won} tasks over {n_total}")
 
-                if len(episode_rews) < env.max_num_steps+1:
-                    old_len = len(episode_rews)
-                    last_rew = episode_rews[-1]
-                    last_obs = episode_obss[-1]
-                    for _ in range(old_len, env.max_num_steps+1):
-                        episode_rews.append(last_rew)
-                        episode_obss.append(last_obs)
+            # extend shorter vectors to the max lenght
+            if len(episode_rews) < env.max_num_steps+1:
+                old_len = len(episode_rews)
+                last_rew = episode_rews[-1]
+                last_obs = episode_obss[-1]
+                for _ in range(old_len, env.max_num_steps+1):
+                    episode_rews.append(last_rew)
+                    episode_obss.append(last_obs)
 
-                obss = np.array(episode_obss)
-                obss = torch.tensor(obss, device=device, dtype=torch.float64)
-                # obss = torch.stack(episode_obss, dim=0)
-                dfa_trans = task.transitions
-                dfa_rew = task.rewards
-                rews = torch.LongTensor(episode_rews)
-                buffer.push(obss, rews, dfa_trans, dfa_rew)
-                test_images = []
-                test_labels = []
-                for c in range(7):
-                    for r in range(7):
-                        test_images.append(test_images_env[r, c])
-                        test_labels.append(test_labels_env[r, c])
-                test_images = np.array(test_images)
-                test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
-                # test_images = torch.stack(test_images, dim=0).to(device)
-                test_labels = torch.LongTensor(test_labels).to(device)
+            # add to the buffer
+            obss = np.array(episode_obss)
+            obss = torch.tensor(obss, device=device, dtype=torch.float64)
+            # obss = torch.stack(episode_obss, dim=0)
+            dfa_trans = task.transitions
+            dfa_rew = task.rewards
+            rews = torch.LongTensor(episode_rews)
+            buffer.push(obss, rews, dfa_trans, dfa_rew)
 
+            # collect data to compute accuracy on the test enviornment (only for logging)
+            test_images = []
+            test_labels = []
+            for c in range(7):
+                for r in range(7):
+                    test_images.append(test_images_env[r, c])
+                    test_labels.append(test_labels_env[r, c])
+            test_images = np.array(test_images)
+            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
+            # test_images = torch.stack(test_images, dim=0).to(device)
+            test_labels = torch.LongTensor(test_labels).to(device)
+
+        # at each iteration train the sym_grounder after the buffer is full enough
         if len(buffer) >= 10 * batch_size:
+
+            # sample from the buffer
             obss, rews, dfa_trans, dfa_rew = buffer.sample(batch_size)
 
+            # build the differentiable reward machine for the task
             mt_deepDFA = MultiTaskProbabilisticAutoma(batch_size, task.num_of_symbols, max([len(tr.keys()) for tr in dfa_trans]), 2)
             mt_deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
@@ -130,27 +147,39 @@ for exp in range(num_experiments):
             train_images = torch.stack(train_images, dim=0).to(device)
             train_labels = torch.LongTensor(train_labels).to(device)
             '''
-            print(f"Epoch {epoch}")
+
+            print(f"\nEpoch {epoch}")
             epoch +=1
+
+            # TRAINING
+
             optimizer.zero_grad()
+
+            # predict symbols from observations with sym_grounder
             symbols = sym_grounder(obss.view(-1, 3, 64, 64))
             symbols = symbols.view(-1, env.max_num_steps+1, task.num_of_symbols)
+
+            # predict state and reward from predicted symbols with DeepDFA
             pred_states, pred_rew = mt_deepDFA(symbols)
             pred = pred_rew.squeeze(0)
-            #with class weigths
 
+            # count occurences of reward 0 and 1
             labels = rews.view(-1)  # lista o array delle label
             class_counts = torch.bincount(labels)  # es: tensor([900, 100])
             total = class_counts.sum().item()
-            print("class_counts: ", class_counts)
-            # Calcolo pesi inversamente proporzionali
+            print(f"class_counts: {class_counts.tolist()}")
+
+            # compute class weights (inversely proportional)
             class_weights = total / (2.0 * class_counts.float())
 
             loss = cross_entr(pred.view(-1, 2), labels)
             #loss = cross_entr(pred[:,-1,:], y[:,-1])
 
+            # update sym_grounder
             loss.backward()
             optimizer.step()
+
+            old_loss_value = loss
 
             # LOGGING
 
