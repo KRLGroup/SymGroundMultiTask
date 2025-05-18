@@ -16,6 +16,7 @@ num_experiments = 5
 batch_size = 32
 epoch = 0
 buffer = ReplayBuffer()
+sym_grounder_model = "ObjectCNN"
 
 
 for exp in range(num_experiments):
@@ -46,9 +47,15 @@ for exp in range(num_experiments):
     # train_images = torch.stack(train_images, dim=0).to(device)
 
 
-    #sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
-    #sym_grounder = GridworldClassifier(len(env.dictionary_symbols)).double().to(device)
-    sym_grounder = ObjectCNN(len(env.dictionary_symbols)).double().to(device)
+    # choose the model for the sym_grounder
+    if sym_grounder_model == "CNN_grounder":
+        sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
+    elif sym_grounder_model == "GridWorldClassifier":
+        sym_grounder = GridworldClassifier(len(env.dictionary_symbols)).double().to(device)
+    elif sym_grounder_model == "ObjectCNN":
+        sym_grounder = ObjectCNN(len(env.dictionary_symbols)).double().to(device)
+    else:
+        raise Exception("Symbol Grounder Model '{}' NOT RECOGNIZED".format(sym_grounder_model))
 
 
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
