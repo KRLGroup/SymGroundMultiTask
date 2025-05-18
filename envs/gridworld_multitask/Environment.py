@@ -1,6 +1,5 @@
 import gym
 from gym import spaces
-import pygame
 import random
 import numpy as np
 import torch, torchvision
@@ -50,6 +49,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.render_mode = render_mode
 
         self.window = None
+        self.has_window = False
         self.clock = None
 
         # load automata and formulas
@@ -120,10 +120,10 @@ class GridWorldEnv_multitask(gym.Env):
             self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
-            # print(self.window_size)
-            # print(self.size)
+            #print(self.window_size)
+            #print(self.size)
             self.pix_square_size = int(self.window_size/self.size)
-            # print(self.pix_square_size)
+            #print(self.pix_square_size)
             #cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
             #cv2.resizeWindow("Frame", self.window_size, self.window_size)
             #*********************************
@@ -404,11 +404,24 @@ class GridWorldEnv_multitask(gym.Env):
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
 
-    # still uses pygame?
+    def show(self):
+
+        assert self.render_mode == "human"
+
+        if not self.has_window:
+            self.has_window = True
+            cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Frame", self.window_size, self.window_size)
+
+        canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
+        cv2.imshow("Frame", canvas)
+        key = cv2.waitKey(1)
+
+
     def close(self):
-        if self.window is not None:
-            pygame.display.quit()
-            pygame.quit()
+        if self.has_window:
+            self.has_window = False
+            cv2.destroyWindow("Frame")
 
 
 
