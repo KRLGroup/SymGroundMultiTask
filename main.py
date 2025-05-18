@@ -150,29 +150,34 @@ for exp in range(num_experiments):
             loss.backward()
             optimizer.step()
 
+            # LOGGING
+
             pred_sym_test = torch.argmax(sym_grounder(test_images), dim=-1)
             test_class_acc = torch.sum((pred_sym_test == test_labels).long())
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
             train_class_acc = torch.sum((pred_sym_train == train_labels).long())
-            #print(pred_sym)
-            #print(sym_labels)
+
             print(f"loss: {loss.item()}")
-            print(f"TRAIN correct symbols= {train_class_acc.item()}/ 49")
-            print(f"TEST correct symbols= {test_class_acc.item()}/ 49")
+            print(f"grounder TRAIN accuracy = {train_class_acc.item()} / {pred_sym_train.shape[0]}")
+            print(f"grounder TEST accuracy = {test_class_acc.item()} / {pred_sym_test.shape[0]}")
 
             loss_values.append(loss.item())
             test_classification_accuracy.append(test_class_acc.item())
             train_classification_accuracy.append(train_class_acc.item())
 
-            old_loss_value = loss
+            # every 10 epochs print comparison between true and predicted labels
             if epoch % 10 == 0:
-                print("TRAIN TARGET/PREDICTIONS")
-                print(train_labels)
-                print(pred_sym_train)
+                print("\n---")
+                print("Comparison:")
+                print("Train")
+                print(f"true: {train_labels.tolist()}")
+                print(f"pred: {pred_sym_train.tolist()}")
                 print("TEST TARGET/PREDICTIONS")
-                print(test_labels)
-                print(pred_sym_test)
+                print(f"true: {test_labels.tolist()}")
+                print(f"pred: {pred_sym_test.tolist()}")
+                print("---")
+
             if epoch % 100 == 0:
                 plt.plot(loss_values)
                 plt.savefig(f"loss_values_exp_{exp}.png")
