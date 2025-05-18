@@ -120,10 +120,10 @@ class GridWorldEnv_multitask(gym.Env):
             self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
-            print(self.window_size)
-            print(self.size)
+            # print(self.window_size)
+            # print(self.size)
             self.pix_square_size = int(self.window_size/self.size)
-            print(self.pix_square_size)
+            # print(self.pix_square_size)
             #cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
             #cv2.resizeWindow("Frame", self.window_size, self.window_size)
             #*********************************
@@ -165,7 +165,6 @@ class GridWorldEnv_multitask(gym.Env):
             '''
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
-
 
         self._agent_location = self._initial_agent_location
 
