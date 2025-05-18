@@ -66,9 +66,10 @@ for exp in range(num_experiments):
 
     n_won = 0
     n_total = 0
-    loss_values =[]
-    test_classification_accuracy = []
-    train_classification_accuracy = []
+
+    loss_values = []
+    test_class_accs = []
+    train_class_accs = []
 
     # training loop
     while n_total < num_samples:
@@ -183,19 +184,21 @@ for exp in range(num_experiments):
 
             # LOGGING
 
-            pred_sym_test = torch.argmax(sym_grounder(test_images), dim=-1)
-            test_class_acc = torch.sum((pred_sym_test == test_labels).long())
-
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
-            train_class_acc = torch.sum((pred_sym_train == train_labels).long())
+            train_correct_preds = torch.sum((pred_sym_train == train_labels).long())
+            train_class_acc = torch.mean((pred_sym_train == train_labels).float())
 
-            print(f"loss: {loss.item()}")
-            print(f"grounder TRAIN accuracy = {train_class_acc.item()} / {pred_sym_train.shape[0]}")
-            print(f"grounder TEST accuracy = {test_class_acc.item()} / {pred_sym_test.shape[0]}")
+            pred_sym_test = torch.argmax(sym_grounder(test_images), dim=-1)
+            test_correct_preds = torch.sum((pred_sym_test == test_labels).long())
+            test_class_acc = torch.mean((pred_sym_test == test_labels).float())
+
+            print(f"loss: {loss.item():.4e}")
+            print(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {pred_sym_train.shape[0]} ({train_class_acc.item():.4f})")
+            print(f"grounder TEST accuracy = {test_correct_preds.item()} / {pred_sym_test.shape[0]} ({test_class_acc.item():.4f})")
 
             loss_values.append(loss.item())
-            test_classification_accuracy.append(test_class_acc.item())
-            train_classification_accuracy.append(train_class_acc.item())
+            test_class_accs.append(test_class_acc.item())
+            train_class_accs.append(train_class_acc.item())
 
             # every 10 epochs print comparison between true and predicted labels
             if epoch % 10 == 0:
