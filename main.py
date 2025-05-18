@@ -44,7 +44,7 @@ for exp in range(num_experiments):
         for r in range(7):
             train_images.append(env.image_locations[r,c])
             train_labels.append(env.image_labels[r,c])
-    train_images = np.array(train_images)
+    train_images = np.stack(train_images)
     train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
     # train_images = torch.stack(train_images, dim=0).to(device)
     train_labels = torch.LongTensor(train_labels).to(device)
@@ -65,50 +65,48 @@ for exp in range(num_experiments):
     optimizer.zero_grad()
 
     n_won = 0
-    n_total = 0
+    n_episodes = 0
 
     loss_values = []
     test_class_accs = []
     train_class_accs = []
 
     # training loop
-    while n_total < num_samples:
-        n_total += 1
+    while n_episodes < num_samples:
+        n_episodes += 1
 
         # reset environments
         obs, task, _, _ = env.reset()
         _, _, test_images_env, test_labels_env = test_env.reset()
 
+        # agent starts in an empty cell (never terminates in 0 actions)
         done = False
-
-        # initial state has always reward 0, agent starts in an empty cell
         episode_obss = [obs]
         episode_rews = [0]
 
         # play the episode until termination
         while not done:
-            obs, rw, done = env.step(env.action_space.sample())
-            env.render()
-            #print(rw)
+            action = env.action_space.sample()
+            obs, rw, done = env.step(action)
             episode_obss.append(obs)
             episode_rews.append(rw)
 
         # if the episode terminates succesfully (reward 1) add it to the buffer
         if rw == 1:
-            n_won += 1
-            print(f"won {n_won} tasks over {n_total}")
 
-            # extend shorter vectors to the max lenght
+            n_won += 1
+            print(f"won {n_won} tasks over {n_episodes}")
+
+            # extend shorter vectors to the max length
             if len(episode_rews) < env.max_num_steps+1:
-                old_len = len(episode_rews)
                 last_rew = episode_rews[-1]
                 last_obs = episode_obss[-1]
-                for _ in range(old_len, env.max_num_steps+1):
-                    episode_rews.append(last_rew)
-                    episode_obss.append(last_obs)
+                extension_length = env.max_num_steps+1 - len(episode_rews)
+                episode_rews.extend([last_rew] * extension_length)
+                episode_obss.extend([last_obs] * extension_length)
 
             # add to the buffer
-            obss = np.array(episode_obss)
+            obss = np.stack(episode_obss)
             obss = torch.tensor(obss, device=device, dtype=torch.float64)
             # obss = torch.stack(episode_obss, dim=0)
             dfa_trans = task.transitions
@@ -123,7 +121,7 @@ for exp in range(num_experiments):
                 for r in range(7):
                     test_images.append(test_images_env[r, c])
                     test_labels.append(test_labels_env[r, c])
-            test_images = np.array(test_images)
+            test_images = np.stack(test_images)
             test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
             # test_images = torch.stack(test_images, dim=0).to(device)
             test_labels = torch.LongTensor(test_labels).to(device)
@@ -170,7 +168,7 @@ for exp in range(num_experiments):
             total = class_counts.sum().item()
             print(f"class_counts: {class_counts.tolist()}")
 
-            # compute class weights (inversely proportional)
+            # compute class weights (inversely proportional) [not used]
             class_weights = total / (2.0 * class_counts.float())
 
             loss = cross_entr(pred.view(-1, 2), labels)
@@ -180,6 +178,7 @@ for exp in range(num_experiments):
             loss.backward()
             optimizer.step()
 
+            # for early stopping [not used]
             old_loss_value = loss
 
             # LOGGING
