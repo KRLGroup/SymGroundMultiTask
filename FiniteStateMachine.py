@@ -30,7 +30,7 @@ class DFA:
             raise Exception("Uncorrect type for the argument initializing th DFA: {}".format(type(arg1)))
 
         self.calculate_absorbing_states()
-
+        self.calculate_live_states()
 
     def calculate_absorbing_states(self):
         self.absorbing_states = []
@@ -40,6 +40,23 @@ class DFA:
                 absorbing = absorbing & (self.transitions[q][s] == q)
             if absorbing:
                 self.absorbing_states.append(q)
+
+
+    def calculate_live_states(self):
+
+        self.liveliness = [self.acceptance[q] for q in range(self.num_of_states)]
+        
+        changed = True
+        while changed:
+            changed = False
+            for q in range(self.num_of_states):
+                if not self.liveliness[q]:
+                    for s in self.transitions[q]:
+                        next_q = self.transitions[q][s]
+                        if self.liveliness[next_q]:
+                            self.liveliness[q] = True
+                            changed = True
+                            break
 
 
     def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols):
