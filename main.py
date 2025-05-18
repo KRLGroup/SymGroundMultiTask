@@ -27,24 +27,18 @@ for exp in range(num_experiments):
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
 
-    #try to classify images
-    test_images = []
+    # collect data to compute accuracy on the train enviornment (only for logging)
+    # (done here because the training environment is fixed)
     train_images = []
     train_labels = []
     for c in range(7):
         for r in range(7):
-            train_images.append(env.image_locations[r, c])
-    train_labels = torch.tensor([5, 5, 5, 2, 5, 5, 5,
-                               5, 0, 4, 5, 5, 5, 5,
-                               5, 5, 5, 5, 5, 0, 5,
-                               3, 5, 5, 1, 5, 5, 5,
-                               5, 1, 5, 5, 5, 5, 3,
-                               5, 5, 5, 2, 5, 5, 5,
-                               5, 5, 5, 5, 5, 4, 5
-                               ]).to(device)
+            train_images.append(env.image_locations[r,c])
+            train_labels.append(env.image_labels[r,c])
     train_images = np.array(train_images)
     train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
     # train_images = torch.stack(train_images, dim=0).to(device)
+    train_labels = torch.LongTensor(train_labels).to(device)
 
 
     # choose the model for the sym_grounder
