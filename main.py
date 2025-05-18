@@ -148,7 +148,7 @@ for exp in range(num_experiments):
             '''
 
             print(f"\nEpoch {epoch}")
-            epoch +=1
+            epoch += 1
 
             # TRAINING
 

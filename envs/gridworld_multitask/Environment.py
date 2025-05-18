@@ -25,6 +25,7 @@ class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
+        
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
         self.randomize_locations = randomize_loc
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
@@ -42,8 +43,8 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         self.state_type = state_type
-        self.size = size  # 7x7 world
-        self.window_size = 896  # size of the window
+        self.size = size
+        self.window_size = 896
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -173,7 +174,7 @@ class GridWorldEnv_multitask(gym.Env):
         '''
         TUTTO IL RESET
         '''
-        #reset the task
+
         #self.current_formula = self.ltl_sampler.sample()
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
         #print(f"Current task: {self.current_formula}")
@@ -283,14 +284,7 @@ class GridWorldEnv_multitask(gym.Env):
         done = False
 
         # MOVEMENT
-        if action == 0:
-            direction = np.array([0, 1])
-        elif action == 1:
-            direction = np.array([1, 0])
-        elif action == 2:
-            direction = np.array([0, -1])
-        elif action == 3:
-            direction = np.array([-1, 0])
+        direction = self.action_to_direction[action]
 
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
 
@@ -362,6 +356,7 @@ class GridWorldEnv_multitask(gym.Env):
             # Vertical line
             cv2.line(canvas, (i, 0), (i, self.window_size), color=(0, 0, 0), thickness=3)
         '''
+
         # Helper function to overlay an image with transparency if available.
         def overlay_image(bg, fg, top_left):
             x, y = top_left
@@ -372,7 +367,7 @@ class GridWorldEnv_multitask(gym.Env):
                 alpha_bg = 1.0 - alpha_fg
                 for c in range(0, 3):
                     bg[y:y + h, x:x + w, c] = (alpha_fg * fg[:, :, c] +
-                                                alpha_bg * bg[y:y + h, x:x + w, c])
+                                               alpha_bg * bg[y:y + h, x:x + w, c])
             else:
                 bg[y:y + h, x:x + w] = fg
             return bg
@@ -401,11 +396,11 @@ class GridWorldEnv_multitask(gym.Env):
             # Optionally, handle key input if needed.
         #else:
             # In "rgb_array" mode, return the canvas converted from BGR to RGB.
+
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
 
     def show(self):
-
         assert self.render_mode == "human"
 
         if not self.has_window:
@@ -477,13 +472,13 @@ class LTLWrapper(LTLEnv):
 
         # Computing the LTL reward and done signal
         ltl_reward = 0.0
-        ltl_done   = False
+        ltl_done = False
         if self.ltl_goal == 'True':
             ltl_reward = 1.0
-            ltl_done   = True
+            ltl_done = True
         elif self.ltl_goal == 'False':
             ltl_reward = -1.0
-            ltl_done   = True
+            ltl_done = True
         else:
             ltl_reward = int_reward
 
@@ -497,8 +492,8 @@ class LTLWrapper(LTLEnv):
         else:
             raise NotImplementedError
 
-        reward  = original_reward #+ ltl_reward
-        done    = env_done or ltl_done
+        reward = original_reward #+ ltl_reward
+        done = env_done or ltl_done
         return ltl_obs, reward, done, info
 
 
