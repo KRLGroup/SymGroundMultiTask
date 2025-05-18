@@ -214,12 +214,28 @@ for exp in range(num_experiments):
 
             # every 100 epochs plot loss and accuracies and save the sym_grounder model
             if epoch % 100 == 0:
-                plt.plot(loss_values)
+
+                plt.figure(figsize=(8, 5))
+                plt.plot(loss_values, label='Loss', color='blue')
+                plt.title("Training Loss Over Epochs")
+                plt.xlabel("Epoch")
+                plt.ylabel("Loss")
+                plt.grid(True)
+                plt.legend()
+                plt.tight_layout()
                 plt.savefig(os.path.join(output_folder, f"loss_values_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
-                plt.plot(test_classification_accuracy, color="red")
-                plt.plot(train_classification_accuracy, color="green")
+
+                plt.figure(figsize=(8, 5))
+                plt.plot(test_class_accs, label="Test Accuracy", color="red")
+                plt.plot(train_class_accs, label="Train Accuracy", color="green")
+                plt.title("Classification Accuracy Over Epochs")
+                plt.xlabel("Epoch")
+                plt.ylabel("Accuracy")
+                plt.grid(True)
+                plt.legend()
+                plt.tight_layout()
                 plt.savefig(os.path.join(output_folder, f"class_acc_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
