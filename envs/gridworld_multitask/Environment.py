@@ -284,7 +284,7 @@ class GridWorldEnv_multitask(gym.Env):
         done = False
 
         # MOVEMENT
-        direction = self.action_to_direction[action]
+        direction = self._action_to_direction[action]
 
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
 
@@ -410,7 +410,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
         cv2.imshow("Frame", canvas)
-        key = cv2.waitKey(1)
+        cv2.waitKey(1)
 
 
     def close(self):
