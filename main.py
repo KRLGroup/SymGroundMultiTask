@@ -22,6 +22,7 @@ epoch = 0
 sym_grounder_model = "ObjectCNN"
 
 output_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
+os.makedirs(output_folder, exist_ok=True)
 
 buffer = ReplayBuffer()
 
@@ -136,7 +137,6 @@ for exp in range(num_experiments):
             mt_deepDFA = MultiTaskProbabilisticAutoma(batch_size, task.num_of_symbols, max([len(tr.keys()) for tr in dfa_trans]), 2)
             mt_deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-            #collect images and labels from the last environment won
             '''
             train_images = []
             train_labels = []
