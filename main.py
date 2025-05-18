@@ -18,6 +18,8 @@ epoch = 0
 buffer = ReplayBuffer()
 sym_grounder_model = "ObjectCNN"
 
+output_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
+
 
 for exp in range(num_experiments):
 
@@ -178,15 +180,16 @@ for exp in range(num_experiments):
                 print(f"pred: {pred_sym_test.tolist()}")
                 print("---")
 
+            # every 100 epochs plot loss and accuracies and save the sym_grounder model
             if epoch % 100 == 0:
                 plt.plot(loss_values)
-                plt.savefig(f"loss_values_exp_{exp}.png")
+                plt.savefig(os.path.join(output_folder, f"loss_values_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
                 plt.plot(test_classification_accuracy, color="red")
                 plt.plot(train_classification_accuracy, color="green")
-                plt.savefig(f"class_acc_exp_{exp}.png")
+                plt.savefig(os.path.join(output_folder, f"class_acc_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
 
-                torch.save(sym_grounder, f"sym_grounder_exp_{exp}.pth")
+                torch.save(sym_grounder, os.path.join(output_folder, f"sym_grounder_exp_{exp}.pth"))
