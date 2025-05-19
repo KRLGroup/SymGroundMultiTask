@@ -80,7 +80,6 @@ class ObjectCNN(nn.Module):
         )
 
     def forward(self, x):
-        print(x.shape)
         x = self.features(x)
         x = self.classifier(x)
         return x
