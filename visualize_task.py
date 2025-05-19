@@ -31,6 +31,5 @@ elif args.mode == "sampler":
     raise NotImplementedError
 
 
-
 print(formula)
 automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"))

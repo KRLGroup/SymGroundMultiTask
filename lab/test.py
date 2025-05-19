@@ -26,6 +26,7 @@ test_gridworld = Args(
     save_interval=20,
     procs=1,
     frames=20000000,
+    gnn = "RGCN_8x32_ROOT_SHARED",
 
     # Parameters for main algorithm
     epochs=4,
