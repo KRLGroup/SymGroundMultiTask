@@ -225,6 +225,7 @@ for exp in range(num_experiments):
                 plt.savefig(os.path.join(output_folder, f"loss_values_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
+                plt.close()
 
                 plt.figure(figsize=(8, 5))
                 plt.plot(test_class_accs, label="Test Accuracy", color="red")
@@ -232,11 +233,13 @@ for exp in range(num_experiments):
                 plt.title("Classification Accuracy Over Epochs")
                 plt.xlabel("Epoch")
                 plt.ylabel("Accuracy")
+                plt.ylim(0, 1)
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
                 plt.savefig(os.path.join(output_folder, f"class_acc_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
+                plt.close()
 
                 torch.save(sym_grounder, os.path.join(output_folder, f"sym_grounder_exp_{exp}.pth"))
