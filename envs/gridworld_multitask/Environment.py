@@ -189,52 +189,49 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         #reset item location
-        if self.randomize_locations:
+        if self.randomize_locations and self.produced_tasks % 100 == 0:
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
             # Seleziona casualmente 10 posizioni senza ripetizioni
             num_items = 10
             item_positions = random.sample(all_positions, num_items+1)
-            if self.produced_tasks % 10 == 0:
-                self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
-                self._pickaxe_locations = [np.array(item_positions[2]), np.array(item_positions[3])]
-                self._exit_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
-                self._lava_locations = [np.array(item_positions[6]), np.array(item_positions[7])]
-                self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
-                self._initial_agent_location = np.array(item_positions[10])
+            self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
+            self._pickaxe_locations = [np.array(item_positions[2]), np.array(item_positions[3])]
+            self._exit_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
+            self._lava_locations = [np.array(item_positions[6]), np.array(item_positions[7])]
+            self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
+            self._initial_agent_location = np.array(item_positions[10])
 
-            #reinizialize self.image_locations and normalizations
-            if self.produced_tasks % 10 == 0:
+            # reinizialize self.image_locations and normalizations
+            self.image_locations = {}
+            self.image_labels = {}
+            for r in range(self.size):
+                for c in range(self.size):
+                    self._agent_location = np.array([r, c])
+                    self._render_frame()
+                    obss = self._get_obs(1)
+                    obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
+                    obss = torch.permute(obss, (2, 0, 1))
+                    obss = resize(obss)
+                    self.image_locations[r,c] = obss
+                    self.image_labels[r,c] = self._current_symbol()
+            #normalization
+            #all_images = list(self.image_locations.values())
+            #all_img_tens = torch.stack(all_images)
+            #print(all_img_tens.size())
+            stdev, mean = torch.std_mean(self.image_locations[self._agent_location[0],self._agent_location[1]])
 
-                self.image_locations = {}
-                self.image_labels = {}
-                for r in range(self.size):
-                    for c in range(self.size):
-                        self._agent_location = np.array([r, c])
-                        self._render_frame()
-                        obss = self._get_obs(1)
-                        obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
-                        obss = torch.permute(obss, (2, 0, 1))
-                        obss = resize(obss)
-                        self.image_locations[r,c] = obss
-                        self.image_labels[r,c] = self._current_symbol()
-                #normalization
-                #all_images = list(self.image_locations.values())
-                #all_img_tens = torch.stack(all_images)
-                #print(all_img_tens.size())
-                stdev, mean = torch.std_mean(self.image_locations[self._agent_location[0],self._agent_location[1]])
+            #print(mean.size())
+            #print(mean)
+            #print(stdev)
+            #print(stdev.sum())
 
-                #print(mean.size())
-                #print(mean)
-                #print(stdev)
-                #print(stdev.sum())
-
-                for r in range(self.size):
-                    for c in range(self.size):
-                        #print("original: ", self.image_locations[r,c])
-                        norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                        #print("normalized:", norm_img)
-                        self.image_locations[r,c] = norm_img
+            for r in range(self.size):
+                for c in range(self.size):
+                    #print("original: ", self.image_locations[r,c])
+                    norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
+                    #print("normalized:", norm_img)
+                    self.image_locations[r,c] = norm_img
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
