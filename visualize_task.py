@@ -5,7 +5,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", default="file", choices=["file", "manual", "sampler"])
 parser.add_argument("--folder", default="envs/gridworld_multitask/tasks")
-parser.add_argument("--id", default=0)
+parser.add_argument("--id", default=0, type=int)
 parser.add_argument("--sampler", default="keyboard", choices=["keyboard", "terminal"])
 args = parser.parse_args()
 
