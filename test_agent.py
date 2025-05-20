@@ -16,6 +16,7 @@ device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available(
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--agent_dir", default="storage/RGCN_8x32_ROOT_SHARED_None_GridWorld-v0_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
+parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -68,6 +69,7 @@ acmodel.to(device)
 
 # TEST
 
+env.env.produced_tasks = args.formula_id
 obs = env.reset()
 done = False
 step = 0
