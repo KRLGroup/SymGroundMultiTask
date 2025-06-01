@@ -135,8 +135,6 @@ class GridWorldEnv_multitask(gym.Env):
             #print(self.size)
             self.pix_square_size = int(self.window_size/self.size)
             #print(self.pix_square_size)
-            #cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-            #cv2.resizeWindow("Frame", self.window_size, self.window_size)
             #*********************************
             self.image_locations = {}
             self.image_labels = {}
@@ -246,8 +244,6 @@ class GridWorldEnv_multitask(gym.Env):
         # reset the agent location
         self._agent_location = self._initial_agent_location
 
-        #if self.render_mode == "human":
-        #    self._render_frame()
         if self.state_type == "symbolic":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
@@ -310,9 +306,6 @@ class GridWorldEnv_multitask(gym.Env):
         reward = self.automaton.rewards[self.new_automaton_state]
 
         self.curr_automaton_state = self.new_automaton_state
-
-        #if self.render_mode == "human":
-        #    self._render_frame()
 
         if self.state_type == "symbolic":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
@@ -395,14 +388,6 @@ class GridWorldEnv_multitask(gym.Env):
         blit_item(self.lava_img, self._lava_locations)
         blit_item(self.egg_img, self._egg_locations)
         blit_item(self.robot_img, [self._agent_location], self._robot_display)
-
-        #if self.render_mode == "human":
-        #    cv2.imshow("Frame", canvas)
-            # WaitKey delay is set based on desired render FPS.
-            #key = cv2.waitKey(1)
-            # Optionally, handle key input if needed.
-        #else:
-            # In "rgb_array" mode, return the canvas converted from BGR to RGB.
 
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
