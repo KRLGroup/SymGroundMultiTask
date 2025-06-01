@@ -12,6 +12,7 @@ else:
 parser = argparse.ArgumentParser()
 parser.add_argument("--env", default="GridWorld-v0")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
+parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 
@@ -19,6 +20,7 @@ env = utils.make_env(args.env, progression_mode="full", ltl_sampler="None", seed
 input_type = args.input_type
 str_to_action = {"s":0,"d":1,"w":2,"a":3}
 
+env.env.produced_tasks = args.formula_id
 obs = env.reset()
 done = False
 step = 0
@@ -31,7 +33,6 @@ while not done:
     print(f"\n---")
     print(f"Step: {step}")
     print(f"Task: {env.translate_formula(obs['text'])}")
-
 
     print("\nAction: ", end="")
 
