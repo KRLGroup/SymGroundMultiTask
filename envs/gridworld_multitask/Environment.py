@@ -22,7 +22,8 @@ class GridWorldEnv_multitask(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs_16x16"):
+    def __init__(self, render_mode="human", state_type="image", train=True, size=7, max_num_steps=70,
+        randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
 
@@ -56,7 +57,10 @@ class GridWorldEnv_multitask(gym.Env):
         with open(os.path.join(ENV_DIR, "tasks/automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
-        # TODO: shuffle formulas and automata
+        if shuffle_tasks:
+            tasks = list(zip(self.formulas, self.automata))
+            random.shuffle(tasks)
+            self.formulas, self-automata = zip(*tasks)
 
         for i in range(len(self.formulas)):
             new_transitions = self.automata[i].transitions
