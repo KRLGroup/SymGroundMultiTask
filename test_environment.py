@@ -30,12 +30,7 @@ while not done:
 
     print(f"\n---")
     print(f"Step: {step}")
-
-    task = obs['text']
-    for key in env.symbol_to_meaning:
-        task = task.replace(f"'{key}'", env.symbol_to_meaning(key))
-
-    print(f"Task: {task}")
+    print(f"Task: {env.translate_formula(obs['text'])}")
 
 
     print("\nAction: ", end="")
