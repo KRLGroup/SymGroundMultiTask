@@ -93,7 +93,7 @@ class GridWorldEnv_multitask(gym.Env):
         self._initial_agent_location = np.array([0,0])
 
         # precompute symbols per location
-        self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
+        self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
         for loc in self._pickaxe_locations:
             self.loc_to_label[tuple(loc)] = 0
         for loc in self._lava_locations:
@@ -340,7 +340,27 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def show_to_terminal(self):
-        pass
+
+        label_to_icon = {
+            0: 'P',
+            1: 'L',
+            2: 'D',
+            3: 'G',
+            4: 'E',
+            5: '.',
+        }
+
+        for c in range(self.size):
+            row_str = ""
+            for r in range(self.size):
+                pos = (r, c)
+                label = self.loc_to_label.get(pos, 5)
+                symbol = label_to_icon.get(label, '?')
+                if tuple(self._agent_location) == pos:
+                    row_str += f"[{symbol}]"
+                else:
+                    row_str += f" {symbol} "
+            print(row_str)
 
 
     def show(self):
