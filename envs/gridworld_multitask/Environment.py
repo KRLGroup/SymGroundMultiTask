@@ -27,16 +27,17 @@ class GridWorldEnv_multitask(gym.Env):
     def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
         
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
+
         self.randomize_locations = randomize_loc
         self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
         self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
-        self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
-        self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
-        self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
         self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
+        self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
+        self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
+        self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
 
         self._train = train
         self.max_num_steps = max_num_steps
@@ -100,10 +101,10 @@ class GridWorldEnv_multitask(gym.Env):
             3: np.array([-1, 0]),  # LEFT
         }
 
-        self._gem_locations = [np.array([0,3]), np.array([6,4])]
         self._pickaxe_locations = [np.array([1,1]), np.array([5,2])]
-        self._exit_locations = [np.array([3,0]), np.array([3,5])]
         self._lava_locations = [np.array([3,3]), np.array([1,4])]
+        self._door_locations = [np.array([3,0]), np.array([3,5])]
+        self._gem_locations = [np.array([0,3]), np.array([6,4])]
         self._egg_locations = [np.array([2,1]), np.array([5,6])]
         self._initial_agent_location = np.array([0,0])
 
@@ -197,7 +198,7 @@ class GridWorldEnv_multitask(gym.Env):
             item_positions = random.sample(all_positions, num_items+1)
             self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
             self._pickaxe_locations = [np.array(item_positions[2]), np.array(item_positions[3])]
-            self._exit_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
+            self._door_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
             self._lava_locations = [np.array(item_positions[6]), np.array(item_positions[7])]
             self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
             self._initial_agent_location = np.array(item_positions[10])
@@ -264,7 +265,7 @@ class GridWorldEnv_multitask(gym.Env):
             return 0
         elif any(np.array_equal(self._agent_location, loc) for loc in self._lava_locations):
             return 1
-        elif any(np.array_equal(self._agent_location, loc) for loc in self._exit_locations):
+        elif any(np.array_equal(self._agent_location, loc) for loc in self._door_locations):
             return 2
         elif any(np.array_equal(self._agent_location, loc) for loc in self._gem_locations):
             return 3
@@ -381,7 +382,7 @@ class GridWorldEnv_multitask(gym.Env):
         # Blit each type of item.
         blit_item(self.pickaxe_img, self._pickaxe_locations, self._pickaxe_display)
         blit_item(self.gem_img, self._gem_locations, self._gem_display)
-        blit_item(self.door_img, self._exit_locations)
+        blit_item(self.door_img, self._door_locations)
         blit_item(self.lava_img, self._lava_locations)
         blit_item(self.egg_img, self._egg_locations)
         blit_item(self.robot_img, [self._agent_location], self._robot_display)
