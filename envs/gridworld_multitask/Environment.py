@@ -101,6 +101,15 @@ class GridWorldEnv_multitask(gym.Env):
             3: np.array([-1, 0]),  # LEFT
         }
 
+        self.symbol_to_meaning = {
+            'a': 'pickaxe',
+            'b': 'lava',
+            'c': 'door',
+            'd': 'gem',
+            'e': 'egg',
+            'f': 'nothing'
+        }
+
         self._pickaxe_locations = [np.array([1,1]), np.array([5,2])]
         self._lava_locations = [np.array([3,3]), np.array([1,4])]
         self._door_locations = [np.array([3,0]), np.array([3,5])]
