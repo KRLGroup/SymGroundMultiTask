@@ -115,12 +115,25 @@ class GridWorldEnv_multitask(gym.Env):
             'f': 'nothing'
         }
 
+        # default locations
         self._pickaxe_locations = [np.array([1,1]), np.array([5,2])]
         self._lava_locations = [np.array([3,3]), np.array([1,4])]
         self._door_locations = [np.array([3,0]), np.array([3,5])]
         self._gem_locations = [np.array([0,3]), np.array([6,4])]
         self._egg_locations = [np.array([2,1]), np.array([5,6])]
         self._initial_agent_location = np.array([0,0])
+
+        self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
+        for loc in self._pickaxe_locations:
+            self.loc_to_label[tuple(loc)] = 0
+        for loc in self._lava_locations:
+            self.loc_to_label[tuple(loc)] = 1
+        for loc in self._door_locations:
+            self.loc_to_label[tuple(loc)] = 2
+        for loc in self._gem_locations:
+            self.loc_to_label[tuple(loc)] = 3
+        for loc in self._egg_locations:
+            self.loc_to_label[tuple(loc)] = 4
 
         # ???
         self._gem_display = True
@@ -138,14 +151,13 @@ class GridWorldEnv_multitask(gym.Env):
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
 
             # dimensions of true canvas
-            self.cell_size = pickaxe_img.size[0]
+            self.cell_size = self.pickaxe_img.shape[0]
             self.canvas_size = self.size * self.cell_size
 
         # precompute observations
         if state_type == "image":
 
             self.image_locations = {}
-            self.image_labels = {}
 
             for r in range(size):
                 for c in range(size):
@@ -155,7 +167,6 @@ class GridWorldEnv_multitask(gym.Env):
                     obss = torch.permute(obss, (2, 0, 1))
                     obss = resize(obss)
                     self.image_locations[r,c] = obss
-                    self.image_labels[r,c] = self._current_symbol()
 
             #normalization
             #all_images = list(self.image_locations.values())
@@ -189,7 +200,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
         #print(f"Current task: {self.current_formula}")
         current_automa = self.automata[self.produced_tasks % len(self.automata)]
-        self.automaton = MooreMachine(current_automa.transitions,current_automa.acceptance, f"random_task_{self.produced_tasks}", reward="acceptance", dictionary_symbols=self.dictionary_symbols)
+        self.automaton = MooreMachine(current_automa.transitions,current_automa.acceptance, f"random_task_{self.produced_tasks}", reward="ternary", dictionary_symbols=self.dictionary_symbols)
         self.produced_tasks+=1
 
         #self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
@@ -212,9 +223,20 @@ class GridWorldEnv_multitask(gym.Env):
             self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
             self._initial_agent_location = np.array(item_positions[10])
 
+            self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
+            for loc in self._pickaxe_locations:
+                self.loc_to_label[tuple(loc)] = 0
+            for loc in self._lava_locations:
+                self.loc_to_label[tuple(loc)] = 1
+            for loc in self._door_locations:
+                self.loc_to_label[tuple(loc)] = 2
+            for loc in self._gem_locations:
+                self.loc_to_label[tuple(loc)] = 3
+            for loc in self._egg_locations:
+                self.loc_to_label[tuple(loc)] = 4
+
             # reinizialize self.image_locations and normalizations
             self.image_locations = {}
-            self.image_labels = {}
             for r in range(self.size):
                 for c in range(self.size):
                     self._agent_location = np.array([r, c])
@@ -224,7 +246,6 @@ class GridWorldEnv_multitask(gym.Env):
                     obss = torch.permute(obss, (2, 0, 1))
                     obss = resize(obss)
                     self.image_locations[r,c] = obss
-                    self.image_labels[r,c] = self._current_symbol()
             #normalization
             #all_images = list(self.image_locations.values())
             #all_img_tens = torch.stack(all_images)
@@ -257,29 +278,7 @@ class GridWorldEnv_multitask(gym.Env):
         else:
             raise Exception("environment with state_type = {} NOT IMPLEMENTED".format(self.state_type))
 
-        # visualize images after normalizations
-        '''
-        for r in range(self.size):
-            for c in range(self.size):
-                cv2.imshow("Frame", self.image_locations[r, c].permute(1, 2, 0).numpy())
-                cv2.waitKey(100)
-        '''
-        return observation, self.automaton, self.image_locations, self.image_labels
-
-
-    def _current_symbol(self):
-        if any(np.array_equal(self._agent_location, loc) for loc in self._pickaxe_locations):
-            return 0
-        elif any(np.array_equal(self._agent_location, loc) for loc in self._lava_locations):
-            return 1
-        elif any(np.array_equal(self._agent_location, loc) for loc in self._door_locations):
-            return 2
-        elif any(np.array_equal(self._agent_location, loc) for loc in self._gem_locations):
-            return 3
-        elif any(np.array_equal(self._agent_location, loc) for loc in self._egg_locations):
-            return 4
-        else:
-            return 5
+        return observation, self.automaton, self.image_locations, self.loc_to_label
 
 
     def step(self, action):
@@ -293,7 +292,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
 
-        sym = self._current_symbol()
+        sym = self.loc_to_label[tuple(self._agent_location)]
         #print("symbol:", sym)
         self.new_automaton_state = self.automaton.transitions[self.curr_automaton_state][sym]
         #print("state:", self.curr_automaton_state)
