@@ -267,6 +267,24 @@ def print_ltl_formula(formula, indentation=0):
         print('    '*indentation + formula)
 
 
+def ltl_ast2str(ast) -> str:
+    if not isinstance(ast, tuple):
+        assert isinstance(ast, str)
+        return ast
+    op, *args = ast
+    # one case for each type of sampler in src/ltl_samplers.py
+    if op == 'or':
+        return f"({ltl_ast2str(args[0])}) | ({ltl_ast2str(args[1])})"
+    elif op == 'until':
+        return f"({ltl_ast2str(args[0])}) U ({ltl_ast2str(args[1])})"
+    elif op == 'and':
+        return f"({ltl_ast2str(args[0])}) & ({ltl_ast2str(args[1])})"
+    elif op == 'not':
+        return f"!({ltl_ast2str(args[0])})"
+    elif op == 'eventually':
+        return f"F ({ltl_ast2str(args[0])})"
+
+
 class EarlyStopping:
 
     def __init__(self, patience=5, min_delta=0.001):
