@@ -336,6 +336,15 @@ class GridWorldEnv_multitask(gym.Env):
             return self.show_to_terminal()
 
 
+    def translate_formula(self, formula):
+        if isinstance(formula, tuple):
+            return tuple(self.translate_formula(item) for item in formula)
+        elif formula in self.symbol_to_meaning:
+            return self.symbol_to_meaning[formula]
+        else:
+            return formula
+
+
     def show_to_terminal(self):
         pass
 
