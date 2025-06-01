@@ -49,7 +49,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.size = size
 
         # dimensions in visualization windows
-        self.window_size = 896
+        self.window_size = 128 * self.size
         self.pix_square_size = int(self.window_size/self.size)
         self.has_window = False
 
@@ -63,6 +63,8 @@ class GridWorldEnv_multitask(gym.Env):
             self.formulas = pickle.load(f)
         with open(os.path.join(ENV_DIR, "tasks/automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
+
+        # TODO: shuffle formulas and automata
 
         for i in range(len(self.formulas)):
             new_transitions = self.automata[i].transitions
@@ -141,7 +143,7 @@ class GridWorldEnv_multitask(gym.Env):
                     self.image_locations[r,c] = self._get_obs()
 
             # normalize observations
-            stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
+            stdev, mean = torch.std_mean(self.image_locations[tuple(self._initial_agent_location)])
             for r in range(self.size):
                 for c in range(self.size):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
@@ -213,7 +215,7 @@ class GridWorldEnv_multitask(gym.Env):
                         self.image_locations[r,c] = self._get_obs()
 
                 # normalize observations
-                stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
+                stdev, mean = torch.std_mean(self.image_locations[tuple(self._initial_agent_location)])
                 for r in range(self.size):
                     for c in range(self.size):
                         norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
