@@ -59,7 +59,7 @@ class GridWorldEnv_multitask(gym.Env):
         if shuffle_tasks:
             tasks = list(zip(self.formulas, self.automata))
             random.shuffle(tasks)
-            self.formulas, self-automata = zip(*tasks)
+            self.formulas, self.automata = zip(*tasks)
 
         for i in range(len(self.formulas)):
             new_transitions = self.automata[i].transitions
@@ -280,11 +280,11 @@ class GridWorldEnv_multitask(gym.Env):
                 cv2.line(canvas, (0, i), (self.canvas_size, i), color=(0, 0, 0), thickness=3)
                 cv2.line(canvas, (i, 0), (i, self.canvas_size), color=(0, 0, 0), thickness=3)
 
-        # helper function to overlay an image with transparency if available.
+        # helper function to overlay an image with transparency if available
         def overlay_image(bg, fg, top_left):
             x, y = top_left
             h, w = fg.shape[:2]
-            # if the foreground has an alpha channel, use it for blending.
+            # if the foreground has an alpha channel, use it for blending
             if fg.shape[2] == 4:
                 alpha_fg = fg[:, :, 3] / 255.0
                 alpha_bg = 1.0 - alpha_fg
@@ -294,7 +294,7 @@ class GridWorldEnv_multitask(gym.Env):
                 bg[y:y + h, x:x + w] = fg
             return bg
 
-        # calculate pixel positions for each grid item.
+        # calculate pixel positions for each grid item
         def blit_item(item_img, locations, display=True):
             if display:
                 for loc in locations:
@@ -303,7 +303,7 @@ class GridWorldEnv_multitask(gym.Env):
                     y = int(loc[1] * self.cell_size)
                     overlay_image(canvas, item_img, (x, y))
 
-        # blit each type of item.
+        # blit each type of item
         blit_item(self.pickaxe_img, self._pickaxe_locations, self._pickaxe_display)
         blit_item(self.gem_img, self._gem_locations, self._gem_display)
         blit_item(self.door_img, self._door_locations)
