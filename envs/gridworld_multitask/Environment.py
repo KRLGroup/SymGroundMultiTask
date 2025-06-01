@@ -11,7 +11,9 @@ import os
 from ltl_wrappers import LTLEnv
 
 
-resize = torchvision.transforms.Resize((64,64))
+OBS_SIZE = 64
+resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
+
 transforms = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
     resize,
@@ -49,15 +51,12 @@ class GridWorldEnv_multitask(gym.Env):
         # dimensions in visualization windows
         self.window_size = 896
         self.pix_square_size = int(self.window_size/self.size)
+        self.has_window = False
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
-
-        self.window = None
-        self.has_window = False
-        self.clock = None
 
         # load automata and formulas
         with open(os.path.join(ENV_DIR, "tasks/formulas.pkl"), "rb") as f:
@@ -123,6 +122,7 @@ class GridWorldEnv_multitask(gym.Env):
         self._egg_locations = [np.array([2,1]), np.array([5,6])]
         self._initial_agent_location = np.array([0,0])
 
+        # precompute symbols per location
         self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
         for loc in self._pickaxe_locations:
             self.loc_to_label[tuple(loc)] = 0
@@ -154,41 +154,28 @@ class GridWorldEnv_multitask(gym.Env):
             self.cell_size = self.pickaxe_img.shape[0]
             self.canvas_size = self.size * self.cell_size
 
-        # precompute observations
+        # precompute observations per locations
         if state_type == "image":
 
+            # precompute observations per location
             self.image_locations = {}
-
-            for r in range(size):
-                for c in range(size):
+            for r in range(self.size):
+                for c in range(self.size):
                     self._agent_location = np.array([r, c])
-                    obss = self._get_obs(1)
-                    obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
-                    obss = torch.permute(obss, (2, 0, 1))
-                    obss = resize(obss)
-                    self.image_locations[r,c] = obss
+                    self.image_locations[r,c] = self._get_obs()
 
-            #normalization
-            #all_images = list(self.image_locations.values())
-            #all_img_tens = torch.stack(all_images)
-            #print(all_img_tens.size())
-            stdev, mean = torch.std_mean(self.image_locations[0,0])
-
-            #print(mean.size())
-            #print(mean)
-            #print(stdev)
-            #print(stdev.sum())
-
-            for r in range(size):
-                for c in range(size):
-                    #print("original: ", self.image_locations[r,c])
+            # normalize observations
+            stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
+            for r in range(self.size):
+                for c in range(self.size):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                    #print("normalized:", norm_img)
-                    self.image_locations[r,c] = norm_img.numpy() # CONVERTED IN NUMPY
+                    self.image_locations[r,c] = norm_img.numpy()
+
+            # reset the agent location
+            self._agent_location = self._initial_agent_location
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
 
-        self._agent_location = self._initial_agent_location
 
 
     def reset(self):
@@ -209,7 +196,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_automaton_state = 0
         self.curr_step = 0
 
-        #reset item location
+        # reset item location
         if self.randomize_locations and self.produced_tasks % 100 == 0:
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
@@ -223,6 +210,7 @@ class GridWorldEnv_multitask(gym.Env):
             self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
             self._initial_agent_location = np.array(item_positions[10])
 
+            # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
             for loc in self._pickaxe_locations:
                 self.loc_to_label[tuple(loc)] = 0
@@ -235,34 +223,19 @@ class GridWorldEnv_multitask(gym.Env):
             for loc in self._egg_locations:
                 self.loc_to_label[tuple(loc)] = 4
 
-            # reinizialize self.image_locations and normalizations
+            # precompute observations per location
             self.image_locations = {}
             for r in range(self.size):
                 for c in range(self.size):
                     self._agent_location = np.array([r, c])
-                    self._render_frame()
-                    obss = self._get_obs(1)
-                    obss = torch.tensor(obss.copy(), dtype=torch.float64) / 255
-                    obss = torch.permute(obss, (2, 0, 1))
-                    obss = resize(obss)
-                    self.image_locations[r,c] = obss
-            #normalization
-            #all_images = list(self.image_locations.values())
-            #all_img_tens = torch.stack(all_images)
-            #print(all_img_tens.size())
-            stdev, mean = torch.std_mean(self.image_locations[self._agent_location[0],self._agent_location[1]])
+                    self.image_locations[r,c] = self._get_obs()
 
-            #print(mean.size())
-            #print(mean)
-            #print(stdev)
-            #print(stdev.sum())
-
+            # normalize observations
+            stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
             for r in range(self.size):
                 for c in range(self.size):
-                    #print("original: ", self.image_locations[r,c])
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                    #print("normalized:", norm_img)
-                    self.image_locations[r,c] = norm_img
+                    self.image_locations[r,c] = norm_img.numpy()
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
@@ -329,12 +302,12 @@ class GridWorldEnv_multitask(gym.Env):
         return observation, reward, done
 
 
-    def render(self):
-        return self.image_locations[self._agent_location[0], self._agent_location[1]]
-
-
-    def _get_obs(self, full = 1):
-        return self._render_frame()
+    def _get_obs(self):
+        obs = self._render_frame()
+        obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
+        obs = torch.permute(obs, (2, 0, 1))
+        obs = resize(obs)
+        return obs
 
 
     def _get_info(self):
@@ -345,7 +318,7 @@ class GridWorldEnv_multitask(gym.Env):
         return info
 
 
-    # create the visualization of the environment (for rendering and for agent's observations)
+    # create the visualization of the environment (for rendering and for observations)
     def _render_frame(self):
         # Create a white canvas.
         canvas = 255 * np.ones((self.window_size, self.window_size, 3), dtype=np.uint8)
@@ -394,8 +367,20 @@ class GridWorldEnv_multitask(gym.Env):
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
 
+    def render(self):
+        if self.render_mode == "human":
+            return self.show()
+        elif self.render_mode == "rgb_array":
+            return self.image_locations[self._agent_location[0], self._agent_location[1]]
+        elif self.render_mode == "terminal":
+            return self.show_to_terminal()
+
+
+    def show_to_terminal():
+        pass
+
+
     def show(self):
-        assert self.render_mode == "human"
 
         if not self.has_window:
             self.has_window = True
