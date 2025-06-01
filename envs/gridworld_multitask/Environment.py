@@ -166,11 +166,10 @@ class GridWorldEnv_multitask(gym.Env):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
                     self.image_locations[r,c] = norm_img.numpy()
 
-            # reset the agent location
-            self._agent_location = self._initial_agent_location
-
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
 
+        # reset the agent location
+        self._agent_location = self._initial_agent_location
 
 
     def reset(self):
@@ -180,17 +179,24 @@ class GridWorldEnv_multitask(gym.Env):
         # extract task
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
         current_automa = self.automata[self.produced_tasks % len(self.automata)]
-        self.automaton = MooreMachine(current_automa.transitions,current_automa.acceptance, f"random_task_{self.produced_tasks}", reward="ternary", dictionary_symbols=self.dictionary_symbols)
-        self.produced_tasks+=1
+        self.produced_tasks += 1
+        self.automaton = MooreMachine(
+            current_automa.transitions,
+            current_automa.acceptance,
+            f"random_task_{self.produced_tasks}",
+            reward="ternary",
+            dictionary_symbols=self.dictionary_symbols
+        )
+        self.curr_automaton_state = 0
 
         #self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
         #print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
-        self.curr_automaton_state = 0
         self.curr_step = 0
 
         # randomize item locations and recompute
         if self.randomize_locations and self.produced_tasks % 100 == 0:
+
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
             # select 10 random locations
@@ -216,19 +222,21 @@ class GridWorldEnv_multitask(gym.Env):
             for loc in self._egg_locations:
                 self.loc_to_label[tuple(loc)] = 4
 
-            # precompute observations per location
-            self.image_locations = {}
-            for r in range(self.size):
-                for c in range(self.size):
-                    self._agent_location = np.array([r, c])
-                    self.image_locations[r,c] = self._get_obs()
+            if state_type == "image":
 
-            # normalize observations
-            stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
-            for r in range(self.size):
-                for c in range(self.size):
-                    norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                    self.image_locations[r,c] = norm_img.numpy()
+                # precompute observations per location
+                self.image_locations = {}
+                for r in range(self.size):
+                    for c in range(self.size):
+                        self._agent_location = np.array([r, c])
+                        self.image_locations[r,c] = self._get_obs()
+
+                # normalize observations
+                stdev, mean = torch.std_mean(self.image_locations[tuple(self._agent_location)])
+                for r in range(self.size):
+                    for c in range(self.size):
+                        norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
+                        self.image_locations[r,c] = norm_img.numpy()
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
@@ -246,14 +254,10 @@ class GridWorldEnv_multitask(gym.Env):
 
     def step(self, action):
 
-        reward = -1
-        self.curr_step += 1
-        done = False
-
-        # MOVEMENT
+        # execute action
         direction = self._action_to_direction[action]
-
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
+        self.curr_step += 1
 
         # update automaton
         sym = self.loc_to_label[tuple(self._agent_location)]
@@ -349,7 +353,7 @@ class GridWorldEnv_multitask(gym.Env):
         if self.render_mode == "human":
             return self.show()
         elif self.render_mode == "rgb_array":
-            return self.image_locations[self._agent_location[0], self._agent_location[1]]
+            return self.image_locations[tuple(self._agent_location)]
         elif self.render_mode == "terminal":
             return self.show_to_terminal()
 
