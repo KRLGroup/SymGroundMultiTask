@@ -22,7 +22,7 @@ ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class GridWorldEnv_multitask(gym.Env):
     
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
+    metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
         
@@ -39,16 +39,17 @@ class GridWorldEnv_multitask(gym.Env):
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
         self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
 
-        self._train = train
+        self._train = train # ???
         self.max_num_steps = max_num_steps
         self.curr_step = 0
 
-        self.state_type = state_type
         self.size = size
         self.window_size = 896
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
+        assert state_type in self.metadata["state_types"]
+        self.state_type = state_type
 
         self.window = None
         self.has_window = False
@@ -123,6 +124,7 @@ class GridWorldEnv_multitask(gym.Env):
         self._robot_display = True
 
         if state_type == "image":
+
             #*******************************
             # Load images using OpenCV; note that OpenCV loads images as BGR by default.
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
@@ -136,8 +138,10 @@ class GridWorldEnv_multitask(gym.Env):
             self.pix_square_size = int(self.window_size/self.size)
             #print(self.pix_square_size)
             #*********************************
+
             self.image_locations = {}
             self.image_labels = {}
+
             for r in range(size):
                 for c in range(size):
                     self._agent_location = np.array([r, c])
@@ -147,6 +151,7 @@ class GridWorldEnv_multitask(gym.Env):
                     obss = resize(obss)
                     self.image_locations[r,c] = obss
                     self.image_labels[r,c] = self._current_symbol()
+
             #normalization
             #all_images = list(self.image_locations.values())
             #all_img_tens = torch.stack(all_images)
@@ -164,14 +169,6 @@ class GridWorldEnv_multitask(gym.Env):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
                     #print("normalized:", norm_img)
                     self.image_locations[r,c] = norm_img.numpy() # CONVERTED IN NUMPY
-
-            #visualize images after normalizations
-            '''
-            for r in range(size):
-                for c in range(size):
-                    cv2.imshow("Frame", self.image_locations[r,c].permute(1, 2, 0).numpy())
-                    cv2.waitKey(100)
-            '''
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
 
@@ -244,7 +241,7 @@ class GridWorldEnv_multitask(gym.Env):
         # reset the agent location
         self._agent_location = self._initial_agent_location
 
-        if self.state_type == "symbolic":
+        if self.state_type == "symbol":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
@@ -307,7 +304,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.curr_automaton_state = self.new_automaton_state
 
-        if self.state_type == "symbolic":
+        if self.state_type == "symbol":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
@@ -344,6 +341,7 @@ class GridWorldEnv_multitask(gym.Env):
         return info
 
 
+    # create the visualization of the environment (for rendering and for agent's observations)
     def _render_frame(self):
         # Create a white canvas.
         canvas = 255 * np.ones((self.window_size, self.window_size, 3), dtype=np.uint8)
