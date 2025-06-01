@@ -93,11 +93,6 @@ class GridWorldEnv_multitask(gym.Env):
         '''
 
         self.action_space = spaces.Discrete(4)
-        # 0 = GO_DOWN
-        # 1 = GO_RIGHT
-        # 2 = GO_UP
-        # 3 = GO_LEFT
-
         self._action_to_direction = {
             0: np.array([0, 1]),  # DOWN
             1: np.array([1, 0]),  # RIGHT
@@ -179,13 +174,11 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def reset(self):
-        '''
-        TUTTO IL RESET
-        '''
 
         #self.current_formula = self.ltl_sampler.sample()
+
+        # extract task
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
-        #print(f"Current task: {self.current_formula}")
         current_automa = self.automata[self.produced_tasks % len(self.automata)]
         self.automaton = MooreMachine(current_automa.transitions,current_automa.acceptance, f"random_task_{self.produced_tasks}", reward="ternary", dictionary_symbols=self.dictionary_symbols)
         self.produced_tasks+=1
@@ -196,11 +189,11 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_automaton_state = 0
         self.curr_step = 0
 
-        # reset item location
+        # randomize item locations and recompute
         if self.randomize_locations and self.produced_tasks % 100 == 0:
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
-            # Seleziona casualmente 10 posizioni senza ripetizioni
+            # select 10 random locations
             num_items = 10
             item_positions = random.sample(all_positions, num_items+1)
             self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
@@ -240,16 +233,13 @@ class GridWorldEnv_multitask(gym.Env):
         # reset the agent location
         self._agent_location = self._initial_agent_location
 
+        # compute initial observation
         if self.state_type == "symbol":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
             one_hot_dfa_state[self.curr_automaton_state] = 1
-            #print("one_hot_dfa_state: ", one_hot_dfa_state)
-            #observation = [np.array(one_hot_dfa_state), self.image_locations[self._agent_location[0], self._agent_location[1]]] #1 FULL Img, 0 Just the square the robot is in
-            observation = self.image_locations[self._agent_location[0], self._agent_location[1]]
-        else:
-            raise Exception("environment with state_type = {} NOT IMPLEMENTED".format(self.state_type))
+            observation = self.image_locations[tuple(self._agent_location)]
 
         return observation, self.automaton, self.image_locations, self.loc_to_label
 
@@ -265,38 +255,26 @@ class GridWorldEnv_multitask(gym.Env):
 
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
 
+        # update automaton
         sym = self.loc_to_label[tuple(self._agent_location)]
-        #print("symbol:", sym)
         self.new_automaton_state = self.automaton.transitions[self.curr_automaton_state][sym]
-        #print("state:", self.curr_automaton_state)
-        #print(self.automaton.acceptance)
-
-        #if self.automaton.acceptance[self.curr_automaton_state]:
-        #    reward = 100
-        #    done = True
-        #if self.new_automaton_state == self.curr_automaton_state:
-        #    reward = -1
-        #else:
         reward = self.automaton.rewards[self.new_automaton_state]
-
         self.curr_automaton_state = self.new_automaton_state
 
+        # compute observation
         if self.state_type == "symbol":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
             one_hot_dfa_state[self.curr_automaton_state] = 1
-            #print("one_hot_dfa_state: ", one_hot_dfa_state)
-            #observation = [np.array(one_hot_dfa_state), self.image_locations[self._agent_location[0], self._agent_location[1]]]
-            observation =self.image_locations[self._agent_location[0], self._agent_location[1]]
-        else:
-            raise Exception("environment with state_type = {} NOT IMPLEMENTED".format(self.state_type))
+            observation =self.image_locations[tuple(self._agent_location)]
 
-        #          success            failure                  timeout
+        # compute completion state
         done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
 
         # info = self._get_info()
-        #if reward == 1:
+
+        # if reward == 1:
         #    self.multitask_urs = self.multitask_urs.intersection(self.singletask_urs)
 
         return observation, reward, done
