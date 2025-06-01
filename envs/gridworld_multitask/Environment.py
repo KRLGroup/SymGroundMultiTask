@@ -23,11 +23,11 @@ ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class GridWorldEnv_multitask(gym.Env):
-    
+
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
-        
+
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
 
         self.randomize_locations = randomize_loc
@@ -71,26 +71,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             self.automata[i].transitions = new_transitions
 
-        #self.current_formula = self.ltl_sampler.sample()
-        '''
-        print(f"current formula: {self.current_formula}")
-        self.automaton = MooreMachine(self.current_formula,len(self.dictionary_symbols), f"random_task_{self.produced_tasks}", reward="acceptance", dictionary_symbols=self.dictionary_symbols)
-        self.produced_tasks+=1
-
-        self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
-        '''
-
         print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
-
-        #calculate the maximum reward:
-        '''
-        set_rew = set()
-        for r in self.automaton.rewards:
-            if r >= 0:
-                set_rew.add(r)
-        self.max_reward = sum(set_rew) - self.max_num_steps
-        print("MAXIMUM REWARD:", self.max_reward)
-        '''
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -189,8 +170,8 @@ class GridWorldEnv_multitask(gym.Env):
         )
         self.curr_automaton_state = 0
 
-        #self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
-        #print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        # self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
+        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         self.curr_step = 0
 
@@ -287,7 +268,7 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_obs(self):
         obs = self._render_frame()
         obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
-        obs = torch.permute(obs, (2, 0, 1))
+        obs = torch.permute(obs, (2, 0, 1)) # isn't already converted into RGB?
         obs = resize(obs)
         return obs
 
@@ -301,35 +282,32 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     # create the visualization of the environment (for rendering and for observations)
-    def _render_frame(self):
-        # Create a white canvas.
+    def _render_frame(self, draw_grid = False):
+
+        # create a white canvas
         canvas = 255 * np.ones((self.window_size, self.window_size, 3), dtype=np.uint8)
 
-        # Draw grid lines.
-        '''
-        for i in range(0, self.window_size + 1, self.pix_square_size):
-            # Horizontal line
-            cv2.line(canvas, (0, i), (self.window_size, i), color=(0, 0, 0), thickness=3)
-            # Vertical line
-            cv2.line(canvas, (i, 0), (i, self.window_size), color=(0, 0, 0), thickness=3)
-        '''
+        # draw grid lines
+        if draw_grid:
+            for i in range(0, self.window_size + 1, self.pix_square_size):
+                cv2.line(canvas, (0, i), (self.window_size, i), color=(0, 0, 0), thickness=3)
+                cv2.line(canvas, (i, 0), (i, self.window_size), color=(0, 0, 0), thickness=3)
 
-        # Helper function to overlay an image with transparency if available.
+        # helper function to overlay an image with transparency if available.
         def overlay_image(bg, fg, top_left):
             x, y = top_left
             h, w = fg.shape[:2]
-            # If the foreground has an alpha channel, use it for blending.
+            # if the foreground has an alpha channel, use it for blending.
             if fg.shape[2] == 4:
                 alpha_fg = fg[:, :, 3] / 255.0
                 alpha_bg = 1.0 - alpha_fg
                 for c in range(0, 3):
-                    bg[y:y + h, x:x + w, c] = (alpha_fg * fg[:, :, c] +
-                                               alpha_bg * bg[y:y + h, x:x + w, c])
+                    bg[y:y + h, x:x + w, c] = (alpha_fg * fg[:, :, c] + alpha_bg * bg[y:y + h, x:x + w, c])
             else:
                 bg[y:y + h, x:x + w] = fg
             return bg
 
-        # Calculate pixel positions for each grid item.
+        # calculate pixel positions for each grid item.
         def blit_item(item_img, locations, display=True):
             if display:
                 for loc in locations:
@@ -338,7 +316,7 @@ class GridWorldEnv_multitask(gym.Env):
                     y = int(loc[1] * self.pix_square_size)
                     overlay_image(canvas, item_img, (x, y))
 
-        # Blit each type of item.
+        # blit each type of item.
         blit_item(self.pickaxe_img, self._pickaxe_locations, self._pickaxe_display)
         blit_item(self.gem_img, self._gem_locations, self._gem_display)
         blit_item(self.door_img, self._door_locations)
@@ -358,17 +336,15 @@ class GridWorldEnv_multitask(gym.Env):
             return self.show_to_terminal()
 
 
-    def show_to_terminal():
+    def show_to_terminal(self):
         pass
 
 
     def show(self):
-
         if not self.has_window:
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Frame", self.window_size, self.window_size)
-
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
         cv2.imshow("Frame", canvas)
         cv2.waitKey(1)
