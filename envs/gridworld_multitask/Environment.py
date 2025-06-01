@@ -43,8 +43,12 @@ class GridWorldEnv_multitask(gym.Env):
         self.max_num_steps = max_num_steps
         self.curr_step = 0
 
+        # environment map size
         self.size = size
+
+        # dimensions in visualization windows
         self.window_size = 896
+        self.pix_square_size = int(self.window_size/self.size)
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -123,21 +127,22 @@ class GridWorldEnv_multitask(gym.Env):
         self._pickaxe_display = True
         self._robot_display = True
 
-        if state_type == "image":
+        # load images using OpenCV (if used)
+        if state_type == 'image' or render_mode in ['human', 'rgb_array']:
 
-            #*******************************
-            # Load images using OpenCV; note that OpenCV loads images as BGR by default.
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
             self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
             self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
             self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
-            #print(self.window_size)
-            #print(self.size)
-            self.pix_square_size = int(self.window_size/self.size)
-            #print(self.pix_square_size)
-            #*********************************
+
+            # dimensions of true canvas
+            self.cell_size = pickaxe_img.size[0]
+            self.canvas_size = self.size * self.cell_size
+
+        # precompute observations
+        if state_type == "image":
 
             self.image_locations = {}
             self.image_labels = {}
