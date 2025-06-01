@@ -25,10 +25,9 @@ class GridWorldEnv_multitask(gym.Env):
     def __init__(self, render_mode="human", state_type="image", train=True, size=7, max_num_steps=70,
         randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False):
 
-        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
+        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
         self.randomize_locations = randomize_loc
-        self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
         self.produced_tasks = 0
 
         self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
@@ -69,7 +68,8 @@ class GridWorldEnv_multitask(gym.Env):
 
             self.automata[i].transitions = new_transitions
 
-        print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
+        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -77,15 +77,6 @@ class GridWorldEnv_multitask(gym.Env):
             1: np.array([1, 0]),  # RIGHT
             2: np.array([0, -1]),  # UP
             3: np.array([-1, 0]),  # LEFT
-        }
-
-        self.symbol_to_meaning = {
-            'a': 'pickaxe',
-            'b': 'lava',
-            'c': 'door',
-            'd': 'gem',
-            'e': 'egg',
-            'f': 'nothing'
         }
 
         # default locations
@@ -152,8 +143,6 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def reset(self):
-
-        #self.current_formula = self.ltl_sampler.sample()
 
         # extract task
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
@@ -335,10 +324,20 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def translate_formula(self, formula):
+
+        symbol_to_meaning = {
+            'a': 'pickaxe',
+            'b': 'lava',
+            'c': 'door',
+            'd': 'gem',
+            'e': 'egg',
+            'f': 'nothing'
+        }
+
         if isinstance(formula, tuple):
             return tuple(self.translate_formula(item) for item in formula)
-        elif formula in self.symbol_to_meaning:
-            return self.symbol_to_meaning[formula]
+        elif formula in symbol_to_meaning:
+            return symbol_to_meaning[formula]
         else:
             return formula
 
