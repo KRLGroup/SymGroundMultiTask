@@ -10,14 +10,10 @@ import cv2
 import os
 from ltl_wrappers import LTLEnv
 
-
 OBS_SIZE = 64
-resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
+obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
 
-transforms = torchvision.transforms.Compose([
-    torchvision.transforms.ToTensor(),
-    resize,
-])
+WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,7 +22,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs"):
+    def __init__(self, render_mode="human", state_type = "image", train=True, size=7, max_num_steps = 70, randomize_loc = False, img_dir="imgs_16x16"):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']  # CHANGED FROM ['c0', 'c1', 'c2', 'c3', 'c4', 'c5']
 
@@ -44,14 +40,10 @@ class GridWorldEnv_multitask(gym.Env):
         self._train = train # ???
         self.max_num_steps = max_num_steps
         self.curr_step = 0
+        self.has_window = False
 
         # environment map size
         self.size = size
-
-        # dimensions in visualization windows
-        self.window_size = 128 * self.size
-        self.pix_square_size = int(self.window_size/self.size)
-        self.has_window = False
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -147,7 +139,7 @@ class GridWorldEnv_multitask(gym.Env):
             for r in range(self.size):
                 for c in range(self.size):
                     norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                    self.image_locations[r,c] = norm_img.numpy()
+                    self.image_locations[r,c] = norm_img.numpy() # passing back to numpy?
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
 
@@ -237,7 +229,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def step(self, action):
 
-        # execute action
+        # update position
         direction = self._action_to_direction[action]
         self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
         self.curr_step += 1
@@ -271,7 +263,7 @@ class GridWorldEnv_multitask(gym.Env):
         obs = self._render_frame()
         obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
         obs = torch.permute(obs, (2, 0, 1)) # isn't already converted into RGB?
-        obs = resize(obs)
+        obs = obs_resize(obs) # resized to 64x64
         return obs
 
 
@@ -287,13 +279,13 @@ class GridWorldEnv_multitask(gym.Env):
     def _render_frame(self, draw_grid = False):
 
         # create a white canvas
-        canvas = 255 * np.ones((self.window_size, self.window_size, 3), dtype=np.uint8)
+        canvas = 255 * np.ones((self.canvas_size, self.canvas_size, 3), dtype=np.uint8)
 
         # draw grid lines
         if draw_grid:
-            for i in range(0, self.window_size + 1, self.pix_square_size):
-                cv2.line(canvas, (0, i), (self.window_size, i), color=(0, 0, 0), thickness=3)
-                cv2.line(canvas, (i, 0), (i, self.window_size), color=(0, 0, 0), thickness=3)
+            for i in range(0, self.canvas_size + 1, self.cell_size):
+                cv2.line(canvas, (0, i), (self.canvas_size, i), color=(0, 0, 0), thickness=3)
+                cv2.line(canvas, (i, 0), (i, self.canvas_size), color=(0, 0, 0), thickness=3)
 
         # helper function to overlay an image with transparency if available.
         def overlay_image(bg, fg, top_left):
@@ -314,8 +306,8 @@ class GridWorldEnv_multitask(gym.Env):
             if display:
                 for loc in locations:
                     # loc is assumed to be a numpy array [col, row] or [x, y]
-                    x = int(loc[0] * self.pix_square_size)
-                    y = int(loc[1] * self.pix_square_size)
+                    x = int(loc[0] * self.cell_size)
+                    y = int(loc[1] * self.cell_size)
                     overlay_image(canvas, item_img, (x, y))
 
         # blit each type of item.
@@ -355,8 +347,9 @@ class GridWorldEnv_multitask(gym.Env):
         if not self.has_window:
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("Frame", self.window_size, self.window_size)
+            cv2.resizeWindow("Frame", WIN_SIZE, WIN_SIZE)
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
+        canvas = cv2.resize(canvas, (WIN_SIZE, WIN_SIZE), interpolation=cv2.INTER_NEAREST)
         cv2.imshow("Frame", canvas)
         cv2.waitKey(1)
 
@@ -440,7 +433,7 @@ class LTLWrapper(LTLEnv):
         else:
             raise NotImplementedError
 
-        reward = original_reward #+ ltl_reward
+        reward = original_reward # + ltl_reward [not used?]
         done = env_done or ltl_done
         return ltl_obs, reward, done, info
 
