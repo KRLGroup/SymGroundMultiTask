@@ -123,28 +123,28 @@ class GridWorldEnv_multitask(gym.Env):
         if state_type == "image":
 
             # precompute observations per location
-            self.image_locations = {}
+            self.loc_to_obs = {}
             for r in range(self.size):
                 for c in range(self.size):
                     self._agent_location = np.array([r, c])
-                    self.image_locations[r,c] = self._get_obs()
+                    self.loc_to_obs[r,c] = self._get_obs()
 
             # save images as seen by the agent
             if save_obs:
                 for r in range(self.size):
                     for c in range(self.size):
-                        image = (obs.permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                        image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                         cv2.imwrite(f"env_obs/obs_{r}_{c}.jpg", image_bgr)
 
             # normalize observations
-            stdev, mean = torch.std_mean(self.image_locations[tuple(self._initial_agent_location)])
+            stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
             for r in range(self.size):
                 for c in range(self.size):
-                    norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                    self.image_locations[r,c] = norm_img.numpy() # passing back to numpy?
+                    norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
+                    self.loc_to_obs[r,c] = norm_img.numpy() # passing back to numpy?
 
-            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.image_locations[0,0].shape, dtype=np.float32)
+            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.loc_to_obs[0,0].shape, dtype=np.float32)
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
@@ -201,18 +201,18 @@ class GridWorldEnv_multitask(gym.Env):
             if state_type == "image":
 
                 # precompute observations per location
-                self.image_locations = {}
+                self.loc_to_obs = {}
                 for r in range(self.size):
                     for c in range(self.size):
                         self._agent_location = np.array([r, c])
-                        self.image_locations[r,c] = self._get_obs()
+                        self.loc_to_obs[r,c] = self._get_obs()
 
                 # normalize observations
-                stdev, mean = torch.std_mean(self.image_locations[tuple(self._initial_agent_location)])
+                stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
                 for r in range(self.size):
                     for c in range(self.size):
-                        norm_img = (self.image_locations[r,c] - mean) / (stdev + 1e-10)
-                        self.image_locations[r,c] = norm_img.numpy()
+                        norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
+                        self.loc_to_obs[r,c] = norm_img.numpy()
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
@@ -223,9 +223,9 @@ class GridWorldEnv_multitask(gym.Env):
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
             one_hot_dfa_state[self.curr_automaton_state] = 1
-            observation = self.image_locations[tuple(self._agent_location)]
+            observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        return observation, self.automaton, self.image_locations, self.loc_to_label
+        return observation, self.automaton, self.loc_to_obs, self.loc_to_label
 
 
     def step(self, action):
@@ -247,7 +247,7 @@ class GridWorldEnv_multitask(gym.Env):
         elif self.state_type == "image":
             one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
             one_hot_dfa_state[self.curr_automaton_state] = 1
-            observation =self.image_locations[tuple(self._agent_location)]
+            observation =self.loc_to_obs[tuple(self._agent_location)]
 
         # compute completion state
         done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
@@ -326,7 +326,7 @@ class GridWorldEnv_multitask(gym.Env):
         if self.render_mode == "human":
             return self.show()
         elif self.render_mode == "rgb_array":
-            return self.image_locations[tuple(self._agent_location)]
+            return self.loc_to_obs[tuple(self._agent_location)]
         elif self.render_mode == "terminal":
             return self.show_to_terminal()
 
