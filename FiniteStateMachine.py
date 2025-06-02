@@ -96,7 +96,7 @@ class DFA:
                         self.transitions[s][sym] = s
         #print("Complete transition function")
         #print(self.transitions)
-        self.write_dot_file("simpleDFAs/{}.dot".format(formula_name))
+        self.write_dot_file("symbolicDFAs/{}.dot".format(formula_name))
 
 
     def reduce_dfa(self, pythomata_dfa):
@@ -213,7 +213,7 @@ class DFA:
 
         s = Source.from_file(file_name)
         s.view()
-        
+
 
 
 class MooreMachine(DFA):
