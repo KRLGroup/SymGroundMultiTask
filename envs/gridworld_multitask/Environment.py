@@ -23,7 +23,7 @@ class GridWorldEnv_multitask(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type="image", train=True, size=7, max_num_steps=70,
-        randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False):
+        randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
@@ -128,6 +128,14 @@ class GridWorldEnv_multitask(gym.Env):
                 for c in range(self.size):
                     self._agent_location = np.array([r, c])
                     self.image_locations[r,c] = self._get_obs()
+
+            # save images as seen by the agent
+            if save_obs:
+                for r in range(self.size):
+                    for c in range(self.size):
+                        image = (obs.permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                        image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        cv2.imwrite(f"env_obs/obs_{r}_{c}.jpg", image_bgr)
 
             # normalize observations
             stdev, mean = torch.std_mean(self.image_locations[tuple(self._initial_agent_location)])
