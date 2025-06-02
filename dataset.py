@@ -6,7 +6,7 @@ from typing import List, Optional
 from tqdm import tqdm
 from dataclasses import dataclass
 
-from ltl2dfa import ltl2dfa
+from utils.ltl2dfa import ltl2dfa
 from ltl_samplers import getLTLSampler
 from utils.other import seed
 
