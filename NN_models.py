@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class CNN_grounder(nn.Module):
     def __init__(self, num_symbols):
         super(CNN_grounder, self).__init__()
@@ -50,37 +51,39 @@ class GridworldClassifier(nn.Module):
 
         return x
 
+
 class ObjectCNN(nn.Module):
     def __init__(self, num_classes=2):
         super(ObjectCNN, self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 64x64 -> 64x64
+            nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x64x64 -> 16x64x64
             #nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2),  # -> 32x32
+            nn.MaxPool2d(2),  # -> 16x32x32
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x32
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x32x32
             #nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2),  # -> 16x16
+            nn.MaxPool2d(2),  # -> 32x16x16
 
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 16x16
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 64x16x16
             nn.ReLU(),
-            nn.MaxPool2d(2)  # -> 8x8
+            nn.MaxPool2d(2)  # -> 64x8x8
         )
 
         self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * 8 * 8, 64),
+            nn.Flatten(),  # -> 4096
+            nn.Linear(64 * 8 * 8, 64),  # -> 64
             nn.ReLU(),
-            nn.Linear(64, num_classes),
-            nn.Softmax()
+            nn.Linear(64, num_classes),  # -> num_classes
+            nn.Softmax(dim=-1)
         )
 
     def forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
         return x
+
 
 class Linear_grounder_no_droput(nn.Module):
     def __init__(self, num_inputs, hidden_size, num_output):
@@ -89,11 +92,12 @@ class Linear_grounder_no_droput(nn.Module):
             nn.Linear(num_inputs, hidden_size),
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
-            nn.Softmax(),
+            nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
     def forward(self, x):
          return self.grounder(x)
+
 
 class Linear_grounder(nn.Module):
     def __init__(self, num_inputs, hidden_size, num_output):
@@ -104,7 +108,7 @@ class Linear_grounder(nn.Module):
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
             nn.Dropout(0.2),
-            nn.Softmax(),
+            nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
     def forward(self, x):
