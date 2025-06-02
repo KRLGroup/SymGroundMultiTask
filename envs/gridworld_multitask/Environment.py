@@ -135,7 +135,7 @@ class GridWorldEnv_multitask(gym.Env):
                     for c in range(self.size):
                         image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        cv2.imwrite(f"env_obs/obs_{r}_{c}.jpg", image_bgr)
+                        cv2.imwrite(f"saves/env_obs/obs_{r}_{c}.jpg", image_bgr)
 
             # normalize observations
             stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
