@@ -219,10 +219,9 @@ class GridWorldEnv_multitask(gym.Env):
 
         # compute initial observation
         if self.state_type == "symbol":
+            # doesn't see world and see automaton stata!
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
-            one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
-            one_hot_dfa_state[self.curr_automaton_state] = 1
             observation = self.loc_to_obs[tuple(self._agent_location)]
 
         return observation, self.automaton, self.loc_to_obs, self.loc_to_label
@@ -245,9 +244,7 @@ class GridWorldEnv_multitask(gym.Env):
         if self.state_type == "symbol":
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
-            one_hot_dfa_state = [0 for _ in range(self.automaton.num_of_states)]
-            one_hot_dfa_state[self.curr_automaton_state] = 1
-            observation =self.loc_to_obs[tuple(self._agent_location)]
+            observation = self.loc_to_obs[tuple(self._agent_location)]
 
         # compute completion state
         done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
