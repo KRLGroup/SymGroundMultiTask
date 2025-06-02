@@ -1,8 +1,13 @@
-# output LTL syntax is from http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax
-# with the addition of parenthesis for grouping
 from FiniteStateMachine import MooreMachine
+from pyparsing import Word, alphas, infixNotation, opAssoc, ParserElement
+import re
+
+ParserElement.enablePackrat()
 
 
+# input LTL syntax is from LTL2ACtion (https://github.com/LTL2Action/LTL2Action)
+# output LTL syntax is from LTL2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
+# with the addition of parenthesis for grouping
 def ltl_ast2str(ast) -> str:
     if not isinstance(ast, tuple):
         assert isinstance(ast, str)
@@ -21,6 +26,7 @@ def ltl_ast2str(ast) -> str:
         return f"F ({ltl_ast2str(args[0])})"
 
 
+# from LTL2Action formula to MooreMachine
 def ltl2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
     ltl = ltl_ast2str(ltl_ast)
     # print(f'converting {ltl} to DFA...')
@@ -33,16 +39,56 @@ def ltl2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
     )
 
 
+# input LTL syntax is from LTL2ACtion (https://github.com/LTL2Action/LTL2Action)
+# output LTL syntax is from LTL2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
+def ltl_str2ast(ltl_str: str):
+
+    var = Word(alphas)
+
+    def parse_not(tokens):
+        return ('not', tokens[0][1])
+    
+    def parse_and(tokens):
+        return ('and', tokens[0][0], tokens[0][2])
+
+    def parse_or(tokens):
+        return ('or', tokens[0][0], tokens[0][2])
+    
+    def parse_until(tokens):
+        return ('until', tokens[0][0], tokens[0][2])
+    
+    def parse_eventually(tokens):
+        return ('eventually', tokens[0][1])
+
+    expr = infixNotation(var, [
+        ('!', 1, opAssoc.RIGHT, parse_not),
+        ('F', 1, opAssoc.RIGHT, parse_eventually),
+        ('&', 2, opAssoc.LEFT, parse_and),
+        ('|', 2, opAssoc.LEFT, parse_or),
+        ('U', 2, opAssoc.LEFT, parse_until),
+    ])
+
+    parsed = expr.parseString(ltl_str, parseAll=True)
+    return parsed[0]
+
+
+
 def test():
     from ltl_samplers import DefaultSampler
     from pprint import pprint
-    for _ in range(5):
+    for i in range(5):
+        print(f"formula {i}")
         ast = DefaultSampler(['a', 'b', 'c', 'd', 'e', 'f']).sample()
         print('ast:')
         pprint(ast)
         print('ltl:')
-        print(ltl_ast2str(ast))
+        string = ltl_ast2str(ast)
+        print(string)
+        print('new ast:')
+        new_ast = ltl_str2ast(string)
+        pprint(new_ast)
+        print("\n")
+
 
 if __name__ == '__main__':
     test()
-
