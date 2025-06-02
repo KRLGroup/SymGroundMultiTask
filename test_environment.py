@@ -33,7 +33,7 @@ while not done:
     print(f"\n---")
     print(f"Step: {step}")
     print(f"Task:")
-    utils.print_ltl_formula(env.translate_formula(obs['text']))
+    utils.pprint_ltl_formula(env.translate_formula(obs['text']))
 
     print("\nAction: ", end="")
 

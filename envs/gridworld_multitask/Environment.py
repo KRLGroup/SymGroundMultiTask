@@ -65,7 +65,6 @@ class GridWorldEnv_multitask(gym.Env):
             new_transitions = self.automata[i].transitions
             for state in self.automata[i].transitions.keys():
                 new_transitions[state][5]= state
-
             self.automata[i].transitions = new_transitions
 
         # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
@@ -175,7 +174,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
-            # select 10 random locations
+            # select 11 random locations
             num_items = 10
             item_positions = random.sample(all_positions, num_items+1)
             self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
