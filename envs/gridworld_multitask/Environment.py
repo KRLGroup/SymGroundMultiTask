@@ -261,7 +261,7 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_obs(self):
         obs = self._render_frame()
         obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
-        obs = torch.permute(obs, (2, 0, 1)) # isn't already converted into RGB?
+        obs = torch.permute(obs, (2, 0, 1)) # from w*h*c to c*w*h
         obs = obs_resize(obs) # resized to 64x64
         return obs
 
@@ -377,6 +377,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Frame", WIN_SIZE, WIN_SIZE)
+            cv2.moveWindow('Frame', 100, 100)
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
         canvas = cv2.resize(canvas, (WIN_SIZE, WIN_SIZE), interpolation=cv2.INTER_NEAREST)
         cv2.imshow("Frame", canvas)
