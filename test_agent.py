@@ -7,10 +7,7 @@ from ac_model import ACModel
 from recurrent_model import RecurrentACModel
 import time
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 parser = argparse.ArgumentParser()

@@ -8,10 +8,7 @@ from ReplayBuffer import ReplayBuffer
 import numpy as np
 import os
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # parameters

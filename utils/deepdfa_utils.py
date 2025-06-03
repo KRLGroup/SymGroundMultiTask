@@ -5,8 +5,7 @@ import numpy as np
 from numpy.random import RandomState
 from pythomata import SymbolicAutomaton, SimpleDFA
 
-use_cuda = torch.cuda.is_available()
-device   = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def set_seed(seed: int) -> RandomState:
