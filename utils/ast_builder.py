@@ -12,7 +12,10 @@ A class that can take an LTL formula and generate the Abstract Syntax Tree (AST)
 code can generate trees in either Networkx or DGL formats. And uses caching to remember recently
 generated trees.
 """
+
+
 class ASTBuilder(object):
+
     def __init__(self, propositions):
         super(ASTBuilder, self).__init__()
 
@@ -27,9 +30,11 @@ class ASTBuilder(object):
         self._enc.fit([['next'], ['until'], ['and'], ['or'], ['eventually'],
             ['always'], ['not']] + np.array(terminals).reshape((-1, 1)).tolist())
 
+
     # To make the caching work.
     def __ring_key__(self):
         return "ASTBuilder"
+
 
     @ring.lru(maxsize=30000)
     def __call__(self, formula, library="dgl"):
@@ -43,8 +48,9 @@ class ASTBuilder(object):
         g.from_networkx(nxg, node_attrs=["feat", "is_root"], edge_attrs=["type"]) # dgl does not support string attributes (i.e., token)
         return g
 
+
     def _one_hot(self, token):
-        return self._enc.transform([[token]])[0][0].toarray()
+        return self._enc.transform([[token]]).toarray().flatten().tolist()
 
 
     def _get_edge_type(self, operator, parameter_num=None):
@@ -56,6 +62,7 @@ class ASTBuilder(object):
             return edge_types[operator + f"_{parameter_num}"]
 
         return edge_types[operator]
+
 
     # A helper function that recursively builds up the AST of the LTL formula
     @ring.lru(maxsize=60000) # Caching the formula->tree pairs in a Last Recently Used fashion
@@ -103,10 +110,11 @@ class ASTBuilder(object):
 
             return nxg
 
-
         assert False, "Format error in ast_builder.ASTBuilder._to_graph()"
 
         return None
+
+
 
 def draw(G, formula):
     from networkx.drawing.nx_agraph import graphviz_layout
@@ -120,6 +128,8 @@ def draw(G, formula):
     labels = nx.get_node_attributes(G,'token')
     nx.draw(G, pos, with_labels=True, arrows=True, labels=labels, node_shape='s', edgelist=list(nx.get_edge_attributes(G,'type')), node_size=500, node_color="white") #edge_color=edge_color
     plt.show()
+
+
 
 """
 A simple test to check if the ASTBuilder works fine. We do a preorder DFS traversal of the resulting
