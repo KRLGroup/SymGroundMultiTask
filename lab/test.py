@@ -11,7 +11,7 @@ test_ltl2action = Args(
     ltl_sampler="Eventually_1_5_1_4",
     epochs=4,
     lr=0.0003,
-    procs=1,
+    procs=1
 )
 
 
@@ -32,5 +32,25 @@ test_gridworld = Args(
     epochs=4,
     discount=0.94,
     lr=0.0003,
-    pretrained_gnn=False,
+    pretrained_gnn=False
+)
+
+
+# pretrain for GridWorld
+test_simple_ltl_6l = Args(
+
+    # General parameters
+    algo="ppo",
+    env="Simple-LTL-Env-6L-v0",
+    ltl_sampler="Eventually_1_5_1_4",
+    log_interval=5,
+    save_interval=20,
+    procs=1,
+    frames=20000000,
+    gnn = "RGCN_8x32_ROOT_SHARED",
+
+    # Parameters for main algorithm
+    epochs=4,
+    discount=0.94,
+    lr=0.0003
 )
