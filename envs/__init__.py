@@ -1,7 +1,7 @@
 from gym.envs.registration import register
 
 from envs.gym_letters.letter_env import LetterEnv
-from envs.gym_letters.simple_ltl_env import SimpleLTLEnv
+from envs.simple_ltl.simple_ltl_env import SimpleLTLEnv
 from envs.minigrid.minigrid_env import MinigridEnv
 from envs.gridworld_multitask.Environment import GridWorldEnv_LTL2Action
 # from envs.safety.zones_env import ZonesEnv
@@ -15,11 +15,18 @@ register(
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_LTL2Action'
 )
 
+
 ### Simple LTL Envs
 register(
     id='Simple-LTL-Env-v0',
-    entry_point='envs.gym_letters.simple_ltl_env:SimpleLTLEnvDefault'
+    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnvDefault'
 )
+
+register(
+    id='Simple-LTL-Env-6L-v0',
+    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnv6Letters'
+)
+
 
 ### Letter Envs
 register(

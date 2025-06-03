@@ -70,3 +70,10 @@ class SimpleLTLEnv(gym.Env):
 class SimpleLTLEnvDefault(SimpleLTLEnv):
     def __init__(self):
         super().__init__(letters="abcdefghijkl", timeout=75)
+
+
+
+# 6-letters environment
+class SimpleLTLEnv6Letters(SimpleLTLEnv):
+    def __init__(self):
+        super().__init__(letters="abcdef", timeout=75)
