@@ -223,6 +223,8 @@ class GridWorldEnv_multitask(gym.Env):
         elif self.state_type == "image":
             observation = self.loc_to_obs[tuple(self._agent_location)]
 
+        # TODO: add reward and done to reset?
+
         return observation, self.automaton, self.loc_to_obs, self.loc_to_label
 
 
@@ -388,7 +390,8 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 
-# interface needed by ltl2action to build the ltl_wrapper with the learned symbol grounding
+# interface needed by ltl2action to build the ltl_wrapper
+# incorporates the symbol grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, device, *args, **kwargs):
