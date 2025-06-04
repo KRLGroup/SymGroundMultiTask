@@ -7,6 +7,12 @@ given template(s).
 """
 
 import random
+import os
+import pickle
+import yaml
+
+import numpy as np
+
 
 class LTLSampler():
     def __init__(self, propositions):
@@ -179,7 +185,26 @@ def getLTLSampler(sampler_id, propositions):
         tokens = sampler_id.split("_")
 
     # Don't change the order of ifs here otherwise the OR sampler will fail
-    if (tokens[0] == "OrSampler"):
+    if (tokens[0] == "Dataset"):
+        formula = None
+        if 'formula' in tokens[-1]:
+            formula = int(tokens[-1].split(":")[1])
+            tokens = tokens[:-1]
+        shuffle = True
+        if tokens[-1] == "noshuffle":
+            shuffle = False
+            tokens = tokens[:-1]
+        train = True
+        if tokens[-1] == "test":
+            train = False
+            tokens = tokens[:-1]
+        curriculum = False
+        if tokens[-1] == "curriculum":
+            curriculum = True
+            shuffle = False
+            tokens = tokens[:-1]
+        return DatasetSampler(propositions, tokens[1], '_'.join(tokens[2:]), train=train, shuffle=shuffle, formula=formula, curriculum=curriculum)
+    elif (tokens[0] == "OrSampler"):
         return OrSampler(propositions)
     elif ("_OR_" in sampler_id): # e.g., Sequence_2_4_OR_UntilTask_3_3_1_1
         sampler_ids = sampler_id.split("_OR_")
@@ -196,4 +221,97 @@ def getLTLSampler(sampler_id, propositions):
         return EventuallySampler(propositions, tokens[1], tokens[2], tokens[3], tokens[4])
     else: # "Default"
         return DefaultSampler(propositions)
+
+
+class DatasetSampler(LTLSampler):
+
+    def __init__(self, propositions, dataset, kernel, train=True, shuffle=True, formula=None, curriculum=False):
+        if curriculum and shuffle:
+            raise ValueError("Curriculum mode and shuffle mode are mutually exclusive")
+        dirpath = os.path.join("datasets", dataset)
+        with open(os.path.join(dirpath, 'config.yaml'), 'r') as f:
+            params = yaml.full_load(f)
+        if params['propositions'] != propositions:
+            raise ValueError(f"The given propositions ({propositions}) do not match the propositions in the dataset ({params['propositions']})")
+        with open(os.path.join(dirpath, 'formulas.pkl'), 'rb') as f:
+            formulas = pickle.load(f)
+        with open(os.path.join(dirpath, 'automata.pkl'), 'rb') as f:
+            automata = pickle.load(f)
+        print(f'[DatasetSampler] loading kernel {kernel} from {dirpath}')
+        with open(os.path.join(dirpath, f'kernel_{kernel}.pkl'), 'rb') as f:
+            kernel_reprs = pickle.load(f)
+        assert len(formulas) == len(automata) == len(kernel_reprs) == params['n_formulas']
+        self.items = list(zip(formulas, automata, kernel_reprs))
+        if train:
+            self.items = self.items[:params['n_train_formulas']]
+        else:
+            self.items = self.items[params['n_train_formulas']:]
+        self.shuffle = shuffle
+        self.formula = formula
+        self.curriculum = curriculum
+        self.cycle = 0
+        if self.formula is not None:
+            assert self.shuffle == False
+            assert self.formula < len(self.items)
+        self.reset()
+        print(f'[DatasetSampler] Loaded {len(self.items)} {"train" if train else "test"} formulas')
+        print(f'[DatasetSampler] specific formula mode: {formula}')
+
+    def reset(self):
+        self.i = len(self.items)
+
+    def sample(self):
+        if self.formula is not None:
+            return self.items[self.formula][0]
+        if self.i == len(self.items):
+            if self.shuffle:
+                print(f'[DatasetSampler] Dataset exhausted, shuffling formulas and restarting...')
+                np.random.shuffle(self.items)
+            elif self.curriculum:
+                print(f'[DatasetSampler] Dataset exhausted, sorting formulas by difficulty and restarting...')
+                self.items.sort(key=lambda x: x[1].num_of_states)
+                assert self.items[0][1].num_of_states <= self.items[-1][1].num_of_states
+                self.advance_curriculum = True
+            else:
+                print(f'[DatasetSampler] Dataset exhausted, rewinding to first formula...')
+            self.i = 0
+        formula, self.automaton, self.kernel_representation = self.items[self.i]
+        if not self.curriculum or self.advance_curriculum:
+            self.i += 1
+            if self.i == len(self.items):
+                self.cycle += 1
+                print(f'[DatasetSampler] Finished cycle {self.cycle}')
+            if self.curriculum:
+                self.advance_curriculum = False
+                self.recent_returns = []
+        return formula
+
+    def get_last_automaton(self):
+        if self.formula is not None:
+            return self.items[self.formula][1]
+        return self.automaton
+    
+    def get_last_kernel_representation(self):
+        if self.formula is not None:
+            return self.items[self.formula][2]
+        return self.kernel_representation
+
+    # NOTE: this only works properly if this happens when the env is
+    # ABOUT to be reset; it does NOT work if the env has already been
+    # reset since the sampler will sample the same formula and report
+    # a spurious advancement (if the same formula gets > threshold
+    # return)
+    def update_curriculum(self, ret):
+        # print(f'[DatasetSampler] Updating curriculum with return {ret}')
+        min_episodes = 10
+        max_episodes = 5_000_000/len(self.items)
+        if not hasattr(self, 'recent_returns'):
+            self.recent_returns = []
+        self.recent_returns.append(ret)
+        if len(self.recent_returns) >= max_episodes:
+            print(f'Formula {self.i-1} was unsuccessful (reached {max_episodes} episodes), advancing curriculum...')
+            self.advance_curriculum = True
+        elif len(self.recent_returns) >= min_episodes and np.mean(self.recent_returns[-min_episodes:]) > 80.0:
+            print(f'Formula {self.i-1} was successful, advancing curriculum...')
+            self.advance_curriculum = True
 
