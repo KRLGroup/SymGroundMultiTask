@@ -83,6 +83,11 @@ def get_obss_preprocessor(env, gnn, progression_mode):
 
 
 def preprocess_images(images, device=None):
+
+    # if the environment returns torch.tensor observations
+    # return torch.stack(images).to(device=device, dtype=torch.float)
+
+    # if the environment returns np.array observations
     # Bug of Pytorch: very slow if not first converted to numpy array
     images = np.array(images)
     return torch.tensor(images, device=device, dtype=torch.float)

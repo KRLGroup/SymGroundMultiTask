@@ -17,14 +17,20 @@ test_ltl2action = Args(
 
 # TODO num_envs should be 1 since we use shared pool of formulas?
 test_gridworld = Args(
+
+    # General parameters
     algo="ppo",
     env="GridWorld-v0",
+    ltl_sampler="None",
     log_interval=5,
     save_interval=20,
+    procs=1,
     frames=20000000,
-    discount=0.94,
-    ltl_sampler="None",
+    gnn = "RGCN_8x32_ROOT_SHARED",
+
+    # Parameters for main algorithm
     epochs=4,
+    discount=0.94,
     lr=0.0003,
-    procs=1
+    pretrained_gnn=False,
 )
