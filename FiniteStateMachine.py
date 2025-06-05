@@ -71,10 +71,10 @@ class DFA:
         graph.render("symbolicDFAs/"+formula_name)
 
         #From symbolic DFA to simple DFA
-        print(dfa.__dict__)
+        # print(dfa.__dict__)
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
-        print(self.transitions)
+        # print(self.transitions)
         self.num_of_states = len(self.transitions)
         self.acceptance = []
         for s in range(self.num_of_states):
@@ -82,7 +82,7 @@ class DFA:
                 self.acceptance.append(True)
             else:
                 self.acceptance.append(False)
-        #print(self.acceptance)
+        # print(self.acceptance)
 
         #Complete the transition function with the symbols of the environment that ARE NOT in the formula
         self.num_of_symbols = len(dictionary_symbols)
