@@ -36,5 +36,5 @@ elif args.mode == "sampler":
     raise NotImplementedError
 
 
-print(formula)
+print(f"Formula: {formula}")
 automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"), show=True)
