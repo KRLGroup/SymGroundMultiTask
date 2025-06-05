@@ -131,7 +131,7 @@ class GridWorldEnv_multitask(gym.Env):
             # save images as seen by the agent
             if save_obs:
                 obs_folder = os.path.join(MAIN_DIR, 'saves/env_obs')
-                if not os.path.exists(obs_folder)):
+                if not os.path.exists(obs_folder):
                     os.makedirs(obs_folder)
                 for r in range(self.size):
                     for c in range(self.size):
