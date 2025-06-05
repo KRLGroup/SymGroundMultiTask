@@ -22,8 +22,8 @@ class GridWorldEnv_multitask(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type="image", train=True, size=7, max_num_steps=70,
-        randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
+    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
+        img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
@@ -37,7 +37,6 @@ class GridWorldEnv_multitask(gym.Env):
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
         self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
 
-        self._train = train # ???
         self.max_num_steps = max_num_steps
         self.curr_step = 0
         self.has_window = False
@@ -65,7 +64,6 @@ class GridWorldEnv_multitask(gym.Env):
             new_transitions = self.automata[i].transitions
             for state in self.automata[i].transitions.keys():
                 new_transitions[state][5]= state
-
             self.automata[i].transitions = new_transitions
 
         # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
@@ -135,7 +133,7 @@ class GridWorldEnv_multitask(gym.Env):
                     for c in range(self.size):
                         image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        cv2.imwrite(f"env_obs/obs_{r}_{c}.jpg", image_bgr)
+                        cv2.imwrite(f"saves/env_obs/obs_{r}_{c}.jpg", image_bgr)
 
             # normalize observations
             stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
@@ -175,7 +173,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
-            # select 10 random locations
+            # select 11 random locations
             num_items = 10
             item_positions = random.sample(all_positions, num_items+1)
             self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
@@ -224,6 +222,8 @@ class GridWorldEnv_multitask(gym.Env):
         elif self.state_type == "image":
             observation = self.loc_to_obs[tuple(self._agent_location)]
 
+        # TODO: add reward and done to reset?
+
         return observation, self.automaton, self.loc_to_obs, self.loc_to_label
 
 
@@ -260,7 +260,7 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_obs(self):
         obs = self._render_frame()
         obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
-        obs = torch.permute(obs, (2, 0, 1)) # isn't already converted into RGB?
+        obs = torch.permute(obs, (2, 0, 1)) # from w*h*c to c*w*h
         obs = obs_resize(obs) # resized to 64x64
         return obs
 
@@ -376,6 +376,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
             cv2.resizeWindow("Frame", WIN_SIZE, WIN_SIZE)
+            cv2.moveWindow('Frame', 100, 100)
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
         canvas = cv2.resize(canvas, (WIN_SIZE, WIN_SIZE), interpolation=cv2.INTER_NEAREST)
         cv2.imshow("Frame", canvas)
@@ -389,7 +390,8 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 
-# interface needed by ltl2action to build the ltl_wrapper with the learned symbol grounding
+# interface needed by ltl2action to build the ltl_wrapper
+# incorporates the symbol grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, device, *args, **kwargs):

@@ -3,6 +3,7 @@ import numpy as np
 import gym
 from gym import spaces
 
+
 class SimpleLTLEnv(gym.Env):
 
     def __init__(self, letters:str, timeout:int):
@@ -22,6 +23,7 @@ class SimpleLTLEnv(gym.Env):
         self.timeout = timeout
         self.proposition = None
 
+
     def step(self, action):
         """
         This function executes an action in the environment.
@@ -34,11 +36,14 @@ class SimpleLTLEnv(gym.Env):
 
         return obs, reward, done, {}
 
+
     def _get_observation(self):
         return self.observation_space.sample()
 
+
     def seed(self, seed=None):
         return
+
 
     def reset(self):
         self.time = 0
@@ -47,15 +52,28 @@ class SimpleLTLEnv(gym.Env):
 
         return obs
 
+
     def show(self):
         print("Events:", self.get_events(), "\tTimeout:", self.timeout - self.time)
+
 
     def get_events(self):
         return self.letter_types[self.proposition] if self.proposition != None else None
 
+
     def get_propositions(self):
         return self.letter_types
 
+
+
+# 12-letters environment
 class SimpleLTLEnvDefault(SimpleLTLEnv):
     def __init__(self):
         super().__init__(letters="abcdefghijkl", timeout=75)
+
+
+
+# 6-letters environment
+class SimpleLTLEnv6Letters(SimpleLTLEnv):
+    def __init__(self):
+        super().__init__(letters="abcdef", timeout=75)

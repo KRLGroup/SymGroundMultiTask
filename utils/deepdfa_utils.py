@@ -5,8 +5,7 @@ import numpy as np
 from numpy.random import RandomState
 from pythomata import SymbolicAutomaton, SimpleDFA
 
-use_cuda = torch.cuda.is_available()
-device   = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def set_seed(seed: int) -> RandomState:
@@ -256,12 +255,12 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
     return accuracy
 
 
-def print_ltl_formula(formula, indentation=0):
+def pprint_ltl_formula(formula, indentation=0):
     if isinstance(formula, tuple):
         print('    '*indentation + "(" + formula[0])
         formula = formula[1:]
         for item in formula:
-            print_ltl_formula(item, indentation+1)
+            pprint_ltl_formula(item, indentation+1)
         print('    '*indentation + ")")
     else:
         print('    '*indentation + formula)

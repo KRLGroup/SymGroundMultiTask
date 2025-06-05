@@ -8,10 +8,7 @@ from ReplayBuffer import ReplayBuffer
 import numpy as np
 import os
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # parameters
@@ -65,6 +62,7 @@ for exp in range(num_experiments):
     optimizer.zero_grad()
 
     n_won = 0
+    n_failed = 0
     n_episodes = 0
 
     loss_values = []
@@ -91,11 +89,15 @@ for exp in range(num_experiments):
             episode_obss.append(obs)
             episode_rews.append(rw)
 
-        # if the episode terminates succesfully (reward 1) add it to the buffer
-        if rw == 1:
+        # if the rewards are all 0 there is no supervision
+        if rw != 0:
 
-            n_won += 1
-            print(f"won {n_won} tasks over {n_episodes}")
+            if rw == 1:
+                n_won += 1
+            elif rw == -1:
+                n_failed += 1
+
+            print(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
 
             # extend shorter vectors to the max length
             if len(episode_rews) < env.max_num_steps+1:
