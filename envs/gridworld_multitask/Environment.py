@@ -222,7 +222,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         # compute initial observation
         if self.state_type == "symbol":
-            # doesn't see world and see automaton stata!
+            # doesn't see world and see automaton state!
             observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
         elif self.state_type == "image":
             observation = self.loc_to_obs[tuple(self._agent_location)]
@@ -422,6 +422,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         return self.dictionary_symbols.copy()
 
 
+    # returns the propositions that currently hold according to the grounder
     def get_events(self):
         img = self.current_obs
         pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
