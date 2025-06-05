@@ -72,7 +72,7 @@ class DFA:
 
         #From symbolic DFA to simple DFA
         print(dfa.__dict__)
-        self.alphabet = ["c" + str(i) for i in range(num_symbols)]
+        self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
         print(self.transitions)
         self.num_of_states = len(self.transitions)
@@ -91,7 +91,7 @@ class DFA:
             self.alphabet.append( a )
         if len(self.transitions[0]) < self.num_of_symbols:
             for s in range(self.num_of_states):
-                for sym in  self.alphabet:
+                for sym in self.alphabet:
                     if sym not in self.transitions[s].keys():
                         self.transitions[s][sym] = s
         #print("Complete transition function")
