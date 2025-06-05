@@ -1,12 +1,15 @@
 import pickle
 import os
 import argparse
+import ast
+from utils import ltl2dfa
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", default="file", choices=["file", "manual", "sampler"])
-parser.add_argument("--folder", default="envs/gridworld_multitask/tasks")
-parser.add_argument("--id", default=0, type=int)
-parser.add_argument("--sampler", default="keyboard", choices=["keyboard", "terminal"])
+parser.add_argument("--mode", type=str, default="file", choices=["file", "manual", "sampler"])
+parser.add_argument("--folder", type=str, default="envs/gridworld_multitask/tasks")
+parser.add_argument("--id", type=int, default=0)
+parser.add_argument("--sampler", type=str, default="keyboard", choices=["keyboard", "terminal"])
+parser.add_argument("--formula", type=ast.literal_eval, default=('eventually', 'b'))
 args = parser.parse_args()
 
 MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +27,9 @@ if args.mode == "file":
 
 
 elif args.mode == "manual":
-    raise NotImplementedError
+
+    formula = tuple(args.formula)
+    automaton = ltl2dfa(formula, ["a", "b", "c", "d", "e"])
 
 
 elif args.mode == "sampler":
@@ -32,4 +37,4 @@ elif args.mode == "sampler":
 
 
 print(formula)
-automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"))
+automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"), show=True)
