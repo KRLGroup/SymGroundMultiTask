@@ -22,8 +22,8 @@ class GridWorldEnv_multitask(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type="image", train=True, size=7, max_num_steps=70,
-        randomize_loc=False, img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
+    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
+        img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
@@ -37,7 +37,6 @@ class GridWorldEnv_multitask(gym.Env):
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
         self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
 
-        self._train = train # ???
         self.max_num_steps = max_num_steps
         self.curr_step = 0
         self.has_window = False
