@@ -196,13 +196,12 @@ class DFA:
         return automaton
 
 
-    def write_dot_file(self, file_name):
+    def write_dot_file(self, file_name, show=False):
         with open(file_name, "w") as f:
-            f.write(
-                "digraph MONA_DFA {\nrankdir = LR;\ncenter = true;\nsize = \"7.5,10.5\";\nedge [fontname = Courier];\nnode [height = .5, width = .5];\nnode [shape = doublecircle];")
+            f.write("digraph MONA_DFA {\nrankdir = LR;\ncenter = true;\nsize = \"7.5,10.5\";\nedge [fontname = Courier];\nnode [height = .5, width = .5];\nnode [shape = doublecircle];")
             for i, rew in enumerate(self.acceptance):
-                    if rew:
-                        f.write(str(i) + ";")
+                if rew:
+                    f.write(str(i) + ";")
             f.write("\nnode [shape = circle]; 0;\ninit [shape = plaintext, label = \"\"];\ninit -> 0;\n")
 
             for s in range(self.num_of_states):
@@ -211,8 +210,9 @@ class DFA:
                     f.write("{} -> {} [label=\"{}\"];\n".format(s, s_prime, self.dictionary_symbols[a]))
             f.write("}\n")
 
-        s = Source.from_file(file_name)
-        s.view()
+        if show:
+            s = Source.from_file(file_name)
+            s.view()
 
 
 
