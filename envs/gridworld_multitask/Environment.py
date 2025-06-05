@@ -16,6 +16,7 @@ obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
 WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 
 
 class GridWorldEnv_multitask(gym.Env):
@@ -129,11 +130,15 @@ class GridWorldEnv_multitask(gym.Env):
 
             # save images as seen by the agent
             if save_obs:
+                obs_folder = os.path.join(MAIN_DIR, 'saves/env_obs')
+                if not os.path.exists(obs_folder)):
+                    os.makedirs(obs_folder)
                 for r in range(self.size):
                     for c in range(self.size):
                         image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        cv2.imwrite(f"saves/env_obs/obs_{r}_{c}.jpg", image_bgr)
+                        obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
+                        cv2.imwrite(obs_path, image_bgr)
 
             # normalize observations
             stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
