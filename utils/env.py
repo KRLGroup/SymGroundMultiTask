@@ -5,21 +5,26 @@ Note that this is the place to include the right LTL-Wrapper for each environmen
 
 
 import gym
-# import gym_minigrid
-# import envs.gym_letters
 import envs
 from envs.gridworld_multitask.Environment import LTLWrapper as GridWorldLTLWrapper
 import ltl_wrappers
 
+
+
 def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, device=None):
+
+    # arguments of the environment are the default one except for device
     kwargs = {} if not "GridWorld" in env_key else {"device": device}
+
+    # create environment
     env = gym.make(env_key, **kwargs)
     env.seed(seed)
 
-    # Adding LTL wrappers
+    # add wrapper
     if (noLTL):
         return ltl_wrappers.NoLTLWrapper(env)
-    if "GridWorld" in env_key:
+    elif "GridWorld" in env_key:
         assert ltl_sampler == 'None'
         return GridWorldLTLWrapper(env, progression_mode, ltl_sampler, intrinsic)
-    return ltl_wrappers.LTLEnv(env, progression_mode, ltl_sampler, intrinsic)
+    else:
+        return ltl_wrappers.LTLEnv(env, progression_mode, ltl_sampler, intrinsic)
