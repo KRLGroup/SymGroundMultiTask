@@ -60,15 +60,16 @@ class DFA:
                             break
 
 
-    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols):
+    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=False):
 
         #From LTL to DFA
         parser = LTLfParser()
         ltl_formula_parsed = parser(ltl_formula)
         dfa = ltl_formula_parsed.to_automaton()
-        # print the automaton
-        graph = dfa.to_graphviz()
-        graph.render("symbolicDFAs/"+formula_name)
+
+        if save:
+            graph = dfa.to_graphviz()
+            graph.render(f"symbolicDFAs/{formula_name}")
 
         #From symbolic DFA to simple DFA
         # print(dfa.__dict__)
@@ -94,9 +95,12 @@ class DFA:
                 for sym in self.alphabet:
                     if sym not in self.transitions[s].keys():
                         self.transitions[s][sym] = s
+
         #print("Complete transition function")
         #print(self.transitions)
-        self.write_dot_file("symbolicDFAs/{}.dot".format(formula_name))
+
+        if save:
+            self.write_dot_file(f"symbolicDFAs/{formula_name}.dot")
 
 
     def reduce_dfa(self, pythomata_dfa):
