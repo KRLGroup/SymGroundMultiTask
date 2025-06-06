@@ -29,10 +29,19 @@ def get_dataset(path: Path) -> Dataset:
 
 
 if __name__ == "__main__":
-    import sys
-    dataset_path = Path(sys.argv[1])
-    target = sys.argv[2] # 'formulas' or 'automata'
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--path", type=str, default="lab/storage/datasets/e54")
+    parser.add_argument("--target", type=str, default="formulas", choices=["formulas", "automata"])
+    args = parser.parse_args()
+
+
+    dataset_path = Path(args.path)
+    target = args.target # 'formulas' or 'automata'
     dataset = get_dataset(dataset_path)
+
     if target == 'formulas':
         dataset.save_formulas()
     elif target == 'automata':
