@@ -118,15 +118,14 @@ class GridWorldEnv_multitask(gym.Env):
             self.cell_size = self.pickaxe_img.shape[0]
             self.canvas_size = self.size * self.cell_size
 
-        # precompute observations per locations
         if state_type == "image":
 
-            # precompute observations per location
+            # precompute image observations per location
             self.loc_to_obs = {}
             for r in range(self.size):
                 for c in range(self.size):
                     self._agent_location = np.array([r, c])
-                    self.loc_to_obs[r,c] = self._get_obs()
+                    self.loc_to_obs[r,c] = self._get_image_obs()
 
             # save images as seen by the agent
             if save_obs:
@@ -148,6 +147,17 @@ class GridWorldEnv_multitask(gym.Env):
                     self.loc_to_obs[r,c] = norm_img.numpy() # passing back to numpy?
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.loc_to_obs[0,0].shape, dtype=np.float32)
+
+        elif state_type == "symbol":
+
+            # precompute symbol observations per location
+            self.loc_to_obs = {}
+            for r in range(self.size):
+                for c in range(self.size):
+                    self._agent_location = np.array([r, c])
+                    self.loc_to_obs[r,c] = self._get_symbol_obs()
+
+            self.observation_space = spaces.Box(low=0, high=1, shape=self.loc_to_obs[0,0].shape, dtype=np.uint8)
 
         # reset the agent location
         self._agent_location = self._initial_agent_location
@@ -203,12 +213,12 @@ class GridWorldEnv_multitask(gym.Env):
 
             if state_type == "image":
 
-                # precompute observations per location
+                # precompute image observations per location
                 self.loc_to_obs = {}
                 for r in range(self.size):
                     for c in range(self.size):
                         self._agent_location = np.array([r, c])
-                        self.loc_to_obs[r,c] = self._get_obs()
+                        self.loc_to_obs[r,c] = self._get_image_obs()
 
                 # normalize observations
                 stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
@@ -217,17 +227,20 @@ class GridWorldEnv_multitask(gym.Env):
                         norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
                         self.loc_to_obs[r,c] = norm_img.numpy()
 
+            elif state_type == "symbol":
+
+                # precompute symbol observations per location
+                self.loc_to_obs = {}
+                for r in range(self.size):
+                    for c in range(self.size):
+                        self._agent_location = np.array([r, c])
+                        self.loc_to_obs[r,c] = self._get_symbol_obs()
+
         # reset the agent location
         self._agent_location = self._initial_agent_location
 
         # compute initial observation
-        if self.state_type == "symbol":
-            # doesn't see world and see automaton state!
-            observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
-        elif self.state_type == "image":
-            observation = self.loc_to_obs[tuple(self._agent_location)]
-
-        # TODO: add reward and done to reset?
+        observation = self.loc_to_obs[tuple(self._agent_location)]
 
         return observation, self.automaton, self.loc_to_obs, self.loc_to_label
 
@@ -246,10 +259,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_automaton_state = self.new_automaton_state
 
         # compute observation
-        if self.state_type == "symbol":
-            observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
-        elif self.state_type == "image":
-            observation = self.loc_to_obs[tuple(self._agent_location)]
+        observation = self.loc_to_obs[tuple(self._agent_location)]
 
         # compute completion state
         done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
@@ -262,7 +272,16 @@ class GridWorldEnv_multitask(gym.Env):
         return observation, reward, done
 
 
-    def _get_obs(self):
+    def _get_symbol_obs(self):
+        obs = np.zeros(shape=(self.size,self.size,len(self.dictionary_symbols)+1),dtype=np.uint8)
+        for r,c in self.loc_to_label:
+            label = self.loc_to_label[(r,c)]
+            obs[r,c,label] = 1
+        obs[self._agent_location[0],self._agent_location[1],len(self.letter_types)] = 1
+        return obs
+
+
+    def _get_image_obs(self):
         obs = self._render_frame()
         obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
         obs = torch.permute(obs, (2, 0, 1)) # from w*h*c to c*w*h
