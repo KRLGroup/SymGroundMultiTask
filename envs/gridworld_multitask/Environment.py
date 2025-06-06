@@ -21,10 +21,11 @@ MAIN_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 
 class GridWorldEnv_multitask(gym.Env):
 
-    metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
+    metadata = {
+        "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
-        img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
+        img_dir="imgs_16x16", task_dir="tasks", shuffle_tasks=False, save_obs=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
@@ -51,9 +52,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.state_type = state_type
 
         # load automata and formulas
-        with open(os.path.join(ENV_DIR, "tasks/formulas.pkl"), "rb") as f:
+        with open(os.path.join(ENV_DIR, task_dir, "formulas.pkl"), "rb") as f:
             self.formulas = pickle.load(f)
-        with open(os.path.join(ENV_DIR, "tasks/automata.pkl"), "rb") as f:
+        with open(os.path.join(ENV_DIR, task_dir, "automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
         if shuffle_tasks:
