@@ -277,7 +277,7 @@ class GridWorldEnv_multitask(gym.Env):
         for r,c in self.loc_to_label:
             label = self.loc_to_label[(r,c)]
             obs[r,c,label] = 1
-        obs[self._agent_location[0],self._agent_location[1],len(self.letter_types)] = 1
+        obs[self._agent_location[0],self._agent_location[1],len(self.dictionary_symbols)] = 1
         return obs
 
 
