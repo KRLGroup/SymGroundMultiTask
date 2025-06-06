@@ -10,16 +10,41 @@ from pathlib import Path
 from dataset import Dataset
 
 
+# Available datasets
+
+train_dataset = Dataset(
+    path=Path("lab/storage/datasets/e54"),
+    seed=42,
+    n_formulas=10000,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="Eventually_1_5_1_4",
+    disjoint_from=None,
+)
+
+test_dataset = Dataset(
+    path=Path("lab/storage/datasets/e54test"),
+    seed=42,
+    n_formulas=1000,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="Eventually_1_5_1_4",
+    disjoint_from=train_dataset,
+)
+
+hard_test_dataset = Dataset(
+    path=Path("lab/storage/datasets/e65test"),
+    seed=42,
+    n_formulas=1000,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="Eventually_6_6_5_5",
+    disjoint_from=None,
+)
+
 datasets = [
-    Dataset(
-        path=Path("lab") / "storage" / "datasets" / "e54",
-        seed=42,
-        n_formulas=10000,
-        propositions=["a", "b", "c", "d", "e"],
-        sampler="Eventually_1_5_1_4",
-        disjoint_from=None,
-    ),
+    train_dataset,
+    test_dataset,
+    hard_test_dataset
 ]
+
 
 def get_dataset(path: Path) -> Dataset:
     for dataset in datasets:
