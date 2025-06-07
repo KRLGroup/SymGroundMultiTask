@@ -41,27 +41,26 @@ def shift_back_nodes(dot_dfa):
 
 def dot2pythomata(dot_str, action_alphabet):
 
+        # read dot string
         dot_file = io.StringIO(dot_str)
         Lines = dot_file.readlines()
 
         states = set()
 
+        # find all states
         count = 0
         for line in Lines:
             count += 1
-
-            # find all states
             if count >= 11:
                 if line.strip()[0] == '}':
                     break
                 states.add(line.strip().split(" ")[0])
-            
             # capture the final states
             elif "doublecircle" in line.strip():
                 final_states = line.strip().split(';')[1:-1]
                 final_states = [s.strip() for s in final_states]
 
-        # keep same names as original DFA
+        # keep same names
         states = list(states)
         states.sort()
 
@@ -81,16 +80,13 @@ def dot2pythomata(dot_str, action_alphabet):
         for state in final_states:
             automaton.set_accepting_state(state_dict[state], True)
 
-        count = 0
         # add all transitions
+        count = 0
         for line in Lines:
             count += 1
-
             if count >= 11:
-
                 if line.strip()[0] == '}':
                     break
-
                 init_state = state_dict[line.strip().split(" ")[0]]
                 action = line.strip().split('"')[1]
                 final_state = state_dict[line.strip().split(" ")[2]]
