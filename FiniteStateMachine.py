@@ -61,7 +61,7 @@ class DFA:
                             break
 
 
-    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=True):
+    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=False):
 
         # convert LTL formula into DFA (dot file)
         parser = LTLfParser()
@@ -80,7 +80,7 @@ class DFA:
         dfa = dot2pythomata(dot_dfa, dictionary_symbols)
 
         # from symbolic DFA to simple DFA
-        print(dfa.__dict__)
+        # print(dfa.__dict__)
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
         # print(self.transitions)
