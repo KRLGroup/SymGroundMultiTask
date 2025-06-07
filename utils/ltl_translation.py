@@ -13,7 +13,6 @@ def ltl_ast2str(ast) -> str:
         assert isinstance(ast, str)
         return ast
     op, *args = ast
-    # One case for each type of sampler in src/ltl_samplers.py
     if op == 'or':
         return f"({ltl_ast2str(args[0])}) | ({ltl_ast2str(args[1])})"
     elif op == 'until':
