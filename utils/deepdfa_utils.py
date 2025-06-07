@@ -1,6 +1,8 @@
 import torch
 import random
 import os
+import io
+import re
 import numpy as np
 from numpy.random import RandomState
 from pythomata import SymbolicAutomaton, SimpleDFA
@@ -29,34 +31,43 @@ def set_seed(seed: int) -> RandomState:
     return random_state
 
 
-def dot2pythomata(dot_file_name, action_alphabet):
+# shift the nodes names back by 1
+def shift_back_nodes(dot_dfa):
+    def shift(match):
+        return str(int(match.group(0)) - 1)
+    dot_dfa = re.sub(r'\b\d+\b', shift, dot_dfa)
+    return dot_dfa
 
-        fake_action = "(~"+action_alphabet[0]
-        for sym in action_alphabet[1:]:
-            fake_action+=" & ~"+sym
-        fake_action+=") | ("+action_alphabet[0]
-        for sym in action_alphabet[1:]:
-            fake_action+=" & "+sym
-        fake_action+=")"
 
-        file1 = open(dot_file_name, 'r')
-        Lines = file1.readlines()
+def dot2pythomata(dot_str, action_alphabet):
 
-        count = 0
+        dot_file = io.StringIO(dot_str)
+        Lines = dot_file.readlines()
+
         states = set()
 
+        count = 0
         for line in Lines:
             count += 1
+
+            # find all states
             if count >= 11:
                 if line.strip()[0] == '}':
                     break
-                action = line.strip().split('"')[1]
                 states.add(line.strip().split(" ")[0])
-            else:
-                if "doublecircle" in line.strip():
-                    final_states = line.strip().split(';')[1:-1]
+            
+            # capture the final states
+            elif "doublecircle" in line.strip():
+                final_states = line.strip().split(';')[1:-1]
+                final_states = [s.strip() for s in final_states]
+
+        # keep same names as original DFA
+        states = list(states)
+        states.sort()
 
         automaton = SymbolicAutomaton()
+
+        # create all states
         state_dict = dict()
         state_dict['0'] = 0
         for state in states:
@@ -64,32 +75,26 @@ def dot2pythomata(dot_file_name, action_alphabet):
                 continue
             state_dict[state] = automaton.create_state()
 
-        final_state_list = []
+        # set initial state (always 0)
+        automaton.set_initial_state(state_dict['0'])
+        # set final states
         for state in final_states:
-            state = int(state)
-            state = str(state)
-            final_state_list.append(state)
-
-        for state in final_state_list:
             automaton.set_accepting_state(state_dict[state], True)
 
         count = 0
+        # add all transitions
         for line in Lines:
             count += 1
+
             if count >= 11:
+
                 if line.strip()[0] == '}':
                     break
-                action = line.strip().split('"')[1]
-                action_label = action
-                for sym in action_alphabet:
-                    if sym != action:
-                        action_label += " & ~"+sym
-                init_state = line.strip().split(" ")[0]
-                final_state = line.strip().split(" ")[2]
-                automaton.add_transition((state_dict[init_state], action_label, state_dict[final_state]))
-                automaton.add_transition((state_dict[init_state], fake_action, state_dict[init_state]))
 
-        automaton.set_initial_state(state_dict['0'])
+                init_state = state_dict[line.strip().split(" ")[0]]
+                action = line.strip().split('"')[1]
+                final_state = state_dict[line.strip().split(" ")[2]]
+                automaton.add_transition((init_state, action, final_state))
 
         return automaton
 

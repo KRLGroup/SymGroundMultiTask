@@ -27,9 +27,8 @@ def ltl_ast2str(ast) -> str:
 
 
 # from LTL2Action formula to MooreMachine
-def ltl_ast2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
+def ltl_ast2dfa(ltl_ast, symbols, name='placeholder'):
     ltl = ltl_ast2str(ltl_ast)
-    # print(f'converting {ltl} to DFA...')
     return MooreMachine(
         ltl,
         len(symbols),

@@ -23,16 +23,22 @@
 4. Install some libraries missing from ltl2action:
 
     ```bash
-    pip install ring pygame pythomata flloat graphviz torchvision
+    pip install ring pygame pythomata ltlf2dfa graphviz torchvision
     ```
 
-5. Install the CUDA version of DGL (GNN library):
+5. (optional) Install MONA if you need to create new automata:
+
+    ```bash
+    sudo apt install mona
+    ```
+
+6. Install the CUDA version of DGL (GNN library):
 
     ```bash
     conda install -c dglteam dgl-cuda10.2=0.4.3post2
     ```
 
-6. Install the CUDA 10.2 toolkit (needed by the CUDA version of DGL):
+7. Install the CUDA 10.2 toolkit (needed by the CUDA version of DGL):
 
     ```bash
     conda install cudatoolkit=10.2 -c pytorch

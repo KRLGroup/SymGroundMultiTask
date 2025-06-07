@@ -12,7 +12,7 @@ parser.add_argument("--id", type=int, default=0)
 parser.add_argument("--symbols", nargs="+", type=str, default=["a", "b", "c", "d", "e"])
 parser.add_argument("--formula", type=ast.literal_eval, default=('eventually', 'b'))
 parser.add_argument("--sampler", type=str, default="Eventually_1_5_1_4")
-parser.add_argument('--automaton', dest='automaton', action='store_true')
+parser.add_argument('--automaton', dest='automaton', default=True, action='store_true')
 parser.add_argument('--no-automaton', dest='automaton', action='store_false')
 args = parser.parse_args()
 
@@ -41,6 +41,7 @@ if args.automaton:
     if args.mode == "file":
         with open(os.path.join(TASKS_DIR, "automata.pkl"), "rb") as f:
             automaton = pickle.load(f)[args.id]
+        automaton = ltl_ast2dfa(formula, args.symbols)
 
     if args.mode == "manual":
         automaton = ltl_ast2dfa(formula, args.symbols)
@@ -48,4 +49,5 @@ if args.automaton:
     if args.mode == "sampler":
         automaton = ltl_ast2dfa(formula, args.symbols)
 
-    automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"), show=True)
+    automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton.dot"))
+    automaton.show(os.path.join(OUTPUT_DIR, "automaton"))

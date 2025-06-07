@@ -2,7 +2,8 @@ import random
 from graphviz import Source
 import sys
 from pythomata import SimpleDFA
-from flloat.parser.ltlf import LTLfParser
+from utils.deepdfa_utils import dot2pythomata, shift_back_nodes
+from ltlf2dfa.parser.ltlf import LTLfParser
 import numpy as np
 from itertools import product
 
@@ -60,19 +61,26 @@ class DFA:
                             break
 
 
-    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=False):
+    def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=True):
 
-        #From LTL to DFA
+        # convert LTL formula into DFA (dot file)
         parser = LTLfParser()
         ltl_formula_parsed = parser(ltl_formula)
-        dfa = ltl_formula_parsed.to_automaton()
+        dot_dfa = ltl_formula_parsed.to_dfa()
+        dot_dfa = shift_back_nodes(dot_dfa)
 
+        # save symbolic DFA
         if save:
-            graph = dfa.to_graphviz()
-            graph.render(f"symbolicDFAs/{formula_name}")
+            with open(f"symbolicDFAs/{formula_name}_symbolic.dot", "w") as f:
+                f.write(dot_dfa)
+            s = Source.from_file(f"symbolicDFAs/{formula_name}_symbolic.dot")
+            s.render(f"symbolicDFAs/{formula_name}_symbolic", format='pdf', cleanup=True, view=True)
 
-        #From symbolic DFA to simple DFA
-        # print(dfa.__dict__)
+        # convert dot file into SymbolicDFA
+        dfa = dot2pythomata(dot_dfa, dictionary_symbols)
+
+        # from symbolic DFA to simple DFA
+        print(dfa.__dict__)
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
         # print(self.transitions)
@@ -99,8 +107,11 @@ class DFA:
         #print("Complete transition function")
         #print(self.transitions)
 
+        # save final DFA
         if save:
             self.write_dot_file(f"symbolicDFAs/{formula_name}.dot")
+            s = Source.from_file(f"symbolicDFAs/{formula_name}.dot")
+            s.render(f"symbolicDFAs/{formula_name}", format='pdf', cleanup=True, view=True)
 
 
     def reduce_dfa(self, pythomata_dfa):
@@ -200,24 +211,43 @@ class DFA:
         return automaton
 
 
-    def write_dot_file(self, file_name, show=False):
+    def to_dot_str(self):
+        dot_str = (
+            "digraph MONA_DFA {\n"
+            "rankdir = LR;\n"
+            "center = true;\n"
+            "size = \"7.5,10.5\";\n"
+            "edge [fontname = Courier];\n"
+            "node [height = .5, width = .5];\n"
+            "node [shape = doublecircle];"
+        )
+        for i, rew in enumerate(self.acceptance):
+            if rew:
+                dot_str += str(i) + ";"
+        dot_str += (
+            "\nnode [shape = circle]; 0;\n"
+            "init [shape = plaintext, label = \"\"];\n"
+            "init -> 0;\n"
+        )
+
+        for s in range(self.num_of_states):
+            for a in range(self.num_of_symbols):
+                s_prime = self.transitions[s][a]
+                dot_str += "{} -> {} [label=\"{}\"];\n".format(s, s_prime, self.dictionary_symbols[a])
+
+        dot_str += "}\n"
+        return dot_str
+
+
+    def write_dot_file(self, file_name):
         with open(file_name, "w") as f:
-            f.write("digraph MONA_DFA {\nrankdir = LR;\ncenter = true;\nsize = \"7.5,10.5\";\nedge [fontname = Courier];\nnode [height = .5, width = .5];\nnode [shape = doublecircle];")
-            for i, rew in enumerate(self.acceptance):
-                if rew:
-                    f.write(str(i) + ";")
-            f.write("\nnode [shape = circle]; 0;\ninit [shape = plaintext, label = \"\"];\ninit -> 0;\n")
+            f.write(self.to_dot_str())
 
-            for s in range(self.num_of_states):
-                for a in range(self.num_of_symbols):
-                    s_prime = self.transitions[s][a]
-                    f.write("{} -> {} [label=\"{}\"];\n".format(s, s_prime, self.dictionary_symbols[a]))
-            f.write("}\n")
 
-        if show:
-            s = Source.from_file(file_name)
-            s.view()
-
+    def show(self, save_path=None):
+        dot_dfa = self.to_dot_str()
+        s = Source(dot_dfa)
+        s.render(save_path, format='pdf', cleanup=True, view=True)
 
 
 class MooreMachine(DFA):
