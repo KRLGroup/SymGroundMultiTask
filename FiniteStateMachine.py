@@ -63,7 +63,7 @@ class DFA:
 
     def init_from_ltl(self, ltl_formula, num_symbols, formula_name, dictionary_symbols, save=False):
 
-        # convert LTL formula into DFA (dot file)
+        # convert LTL formula into DFA (dot string)
         parser = LTLfParser()
         ltl_formula_parsed = parser(ltl_formula)
         dot_dfa = ltl_formula_parsed.to_dfa()
@@ -78,12 +78,11 @@ class DFA:
 
         # convert dot file into SymbolicDFA
         dfa = dot2pythomata(dot_dfa, dictionary_symbols)
+        # print(dfa.__dict__)
 
         # from symbolic DFA to simple DFA
-        # print(dfa.__dict__)
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
-        # print(self.transitions)
         self.num_of_states = len(self.transitions)
         self.acceptance = []
         for s in range(self.num_of_states):
@@ -91,9 +90,8 @@ class DFA:
                 self.acceptance.append(True)
             else:
                 self.acceptance.append(False)
-        # print(self.acceptance)
 
-        #Complete the transition function with the symbols of the environment that ARE NOT in the formula
+        # complete the transitions with the symbols that ARE NOT in the formula
         self.num_of_symbols = len(dictionary_symbols)
         self.alphabet = []
         for a in range(self.num_of_symbols):
@@ -103,9 +101,6 @@ class DFA:
                 for sym in self.alphabet:
                     if sym not in self.transitions[s].keys():
                         self.transitions[s][sym] = s
-
-        #print("Complete transition function")
-        #print(self.transitions)
 
         # save final DFA
         if save:
