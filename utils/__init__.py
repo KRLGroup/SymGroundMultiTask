@@ -6,4 +6,4 @@ from .storage import *
 from .evaluator import *
 from .ast_builder import *
 from .deepdfa_utils import *
-from .ltl2dfa import *
+from .ltl_translation import *

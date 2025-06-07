@@ -6,7 +6,7 @@ from typing import List, Optional
 from tqdm import tqdm
 from dataclasses import dataclass
 
-from utils.ltl2dfa import ltl2dfa
+from utils import ltl_ast2dfa
 from ltl_samplers import getLTLSampler
 from utils.other import seed
 
@@ -88,6 +88,6 @@ class Dataset:
         print('Computing the DFA of each formula...')
         automata = []
         for formula in tqdm(formulas) if pbar else formulas:
-            automata += [ltl2dfa(formula, symbols=self.propositions)]
+            automata += [ltl_ast2dfa(formula, symbols=self.propositions)]
         save_verbose(automata, self.automata_path, 'automata')
 

@@ -6,7 +6,7 @@ ParserElement.enablePackrat()
 
 
 # input LTL syntax is from LTL2ACtion (https://github.com/LTL2Action/LTL2Action)
-# output LTL syntax is from LTL2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
+# output LTL syntax is from LTLF2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
 # with the addition of parenthesis for grouping
 def ltl_ast2str(ast) -> str:
     if not isinstance(ast, tuple):
@@ -27,7 +27,7 @@ def ltl_ast2str(ast) -> str:
 
 
 # from LTL2Action formula to MooreMachine
-def ltl2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
+def ltl_ast2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
     ltl = ltl_ast2str(ltl_ast)
     # print(f'converting {ltl} to DFA...')
     return MooreMachine(
@@ -40,7 +40,7 @@ def ltl2dfa(ltl_ast, symbols, name='PLACEHOLDER'):
 
 
 # input LTL syntax is from LTL2ACtion (https://github.com/LTL2Action/LTL2Action)
-# output LTL syntax is from LTL2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
+# output LTL syntax is from LTLF2DFA (http://ltlf2dfa.diag.uniroma1.it/ltlf_syntax)
 def ltl_str2ast(ltl_str: str):
 
     var = Word(alphas)

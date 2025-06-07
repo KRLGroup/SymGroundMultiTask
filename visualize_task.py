@@ -2,7 +2,7 @@ import pickle
 import os
 import argparse
 import ast
-from utils import ltl2dfa, pprint_ltl_formula
+from utils import ltl_ast2dfa, pprint_ltl_formula
 from ltl_samplers import getLTLSampler
 
 parser = argparse.ArgumentParser()
@@ -43,9 +43,9 @@ if args.automaton:
             automaton = pickle.load(f)[args.id]
 
     if args.mode == "manual":
-        automaton = ltl2dfa(formula, args.symbols)
+        automaton = ltl_ast2dfa(formula, args.symbols)
 
     if args.mode == "sampler":
-        automaton = ltl2dfa(formula, args.symbols)
+        automaton = ltl_ast2dfa(formula, args.symbols)
 
     automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton"), show=True)
