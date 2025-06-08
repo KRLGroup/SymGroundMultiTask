@@ -10,7 +10,7 @@ from math import floor
 
 import utils
 from ac_model import ACModel
-from recurrent_model import RecurrentACModel
+from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
 from dataclasses import dataclass, field
 from typing import List, Optional

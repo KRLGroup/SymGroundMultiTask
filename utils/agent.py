@@ -2,7 +2,7 @@ import torch
 
 import utils
 from ac_model import ACModel
-from recurrent_model import RecurrentACModel
+from recurrent_ac_model import RecurrentACModel
 
 class Agent:
     """An agent.
