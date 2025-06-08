@@ -23,7 +23,7 @@ test_gridworld = Args(
     env = "GridWorld-v0",
     ltl_sampler = "None",
     dataset = "e54",
-    log_interval = 5,
+    log_interval = 10,
     save_interval = 100,
     procs = 1,
     frames = 20000000,
@@ -31,7 +31,7 @@ test_gridworld = Args(
 
     # Evaluation parameters
     eval = True,
-    eval_episodes = 5,
+    eval_episodes = 10,
     eval_env = "GridWorld-v0",
     ltl_samplers_eval = None,
     eval_dataset = "e54test",

@@ -16,12 +16,12 @@ class Agent:
                 gnn, recurrence = 1, dumb_ac = False, device=None, argmax=False, num_envs=1):
         try:
             print(model_dir)
-            status = utils.get_status(model_dir, device)
+            status = get_status(model_dir, device)
         except OSError:
             status = {"num_frames": 0, "update": 0}
 
         using_gnn = (gnn != "GRU" and gnn != "LSTM")
-        obs_space, self.preprocess_obss = utils.get_obss_preprocessor(env, using_gnn, progression_mode)
+        obs_space, self.preprocess_obss = get_obss_preprocessor(env, using_gnn, progression_mode)
         if "vocab" in status and self.preprocess_obss.vocab is not None:
             self.preprocess_obss.vocab.load_vocab(status["vocab"])
 
@@ -36,7 +36,7 @@ class Agent:
         self.argmax = argmax
         self.num_envs = num_envs
 
-        self.acmodel.load_state_dict(utils.get_model_state(model_dir, device))
+        self.acmodel.load_state_dict(get_model_state(model_dir, device))
         self.acmodel.to(self.device)
         self.acmodel.eval()
 
