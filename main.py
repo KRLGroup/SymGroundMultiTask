@@ -39,8 +39,8 @@ for exp in range(num_experiments):
     train_labels = []
     for c in range(7):
         for r in range(7):
-            train_images.append(env.image_locations[r,c])
-            train_labels.append(env.image_labels[r,c])
+            train_images.append(env.loc_to_obs[r,c])
+            train_labels.append(env.loc_to_label[r,c])
     train_images = np.stack(train_images)
     train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
     # train_images = torch.stack(train_images, dim=0).to(device)
