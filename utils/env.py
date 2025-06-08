@@ -11,9 +11,9 @@ import ltl_wrappers
 
 
 
-def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, device=None):
+def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, device=None, dataset=None):
 
-    # arguments of the environment are the default one except for device
+    # arguments of the environment are the default ones except for device
     kwargs = {} if not "GridWorld" in env_key else {"device": device}
 
     # create environment
@@ -25,6 +25,6 @@ def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noL
         return ltl_wrappers.NoLTLWrapper(env)
     elif "GridWorld" in env_key:
         assert ltl_sampler == 'None'
-        return GridWorldLTLWrapper(env, progression_mode, ltl_sampler, intrinsic)
+        return GridWorldLTLWrapper(env, progression_mode, ltl_sampler, intrinsic, dataset=dataset)
     else:
         return ltl_wrappers.LTLEnv(env, progression_mode, ltl_sampler, intrinsic)

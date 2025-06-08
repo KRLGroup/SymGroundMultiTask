@@ -17,8 +17,7 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_name, ltl_sampler,
-                seed=0, device="cpu", argmax=False,
+    def __init__(self, env, model_name, ltl_sampler, seed=0, device="cpu", dataset=None, argmax=False,
                 num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
 
         self.env = env
@@ -38,7 +37,16 @@ class Eval:
         # Load environments for evaluation
         eval_envs = []
         for i in range(self.num_procs):
-            eval_envs.append(make_env(env, progression_mode, ltl_sampler, seed, 0, False, device))
+            eval_envs.append(make_env(
+                env_key = env,
+                progression_mode = progression_mode,
+                ltl_sampler = ltl_sampler,
+                seed = seed,
+                intrinsic = 0,
+                noLTL = False,
+                device = device,
+                dataset = dataset
+            ))
 
         eval_envs[0].reset()
         if isinstance(eval_envs[0].env, LetterEnv):

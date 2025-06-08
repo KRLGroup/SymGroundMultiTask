@@ -19,10 +19,12 @@ from envs.gym_letters.letter_env import LetterEnv
 
 @dataclass
 class Args:
+
     # General parameters
     algo: str # a2c or ppo
     env: str
     ltl_sampler: str = "Default" # Must be None for GridWorld
+    dataset: str
     model: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
@@ -36,6 +38,7 @@ class Args:
     eval_episodes: int = 5
     eval_env: Optional[str] = None
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
+    eval_dataset: str
     eval_procs: int = 1
 
     # Parameters for main algorithm
@@ -122,7 +125,16 @@ def train_agent(args: Args, device: str = None):
     envs = []
     progression_mode = args.progression_mode
     for i in range(args.procs):
-        envs.append(utils.make_env(args.env, progression_mode, args.ltl_sampler, args.seed, args.int_reward, args.noLTL, device))
+        envs.append(utils.make_env(
+            env_key = args.env,
+            progression_mode = progression_mode,
+            ltl_sampler = args.ltl_sampler,
+            seed = args.seed,
+            intrinsic = args.int_reward,
+            noLTL = args.noLTL,
+            device = device,
+            dataset = args.dataset
+        ))
 
     # Sync environments
     envs[0].reset()
@@ -196,8 +208,19 @@ def train_agent(args: Args, device: str = None):
 
         evals = []
         for eval_sampler in eval_samplers:
-            evals.append(utils.Eval(eval_env, model_name, eval_sampler,
-                        seed=args.seed, device=device, num_procs=eval_procs, ignoreLTL=args.ignoreLTL, progression_mode=progression_mode, gnn=args.gnn, dumb_ac = args.dumb_ac))
+            evals.append(utils.Eval(
+                env = eval_env,
+                model_name = model_name,
+                ltl_sampler = eval_sampler,
+                seed = args.seed,
+                device = device,
+                dataset = args.eval_dataset,
+                num_procs = eval_procs,
+                ignoreLTL = args.ignoreLTL,
+                progression_mode = progression_mode,
+                gnn = args.gnn,
+                dumb_ac = args.dumb_ac
+            ))
 
     # TRAINING
 
