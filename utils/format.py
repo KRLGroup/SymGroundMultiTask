@@ -12,6 +12,8 @@ import gym
 import numpy as np
 from .ast_builder import ASTBuilder
 from ltl_wrappers import LTLEnv
+from envs import *
+
 
 def get_obss_preprocessor(env, gnn, progression_mode):
     obs_space = env.observation_space
