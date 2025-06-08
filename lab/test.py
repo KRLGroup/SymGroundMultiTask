@@ -2,16 +2,16 @@ from train_agent import Args
 
 
 test_ltl2action = Args(
-    algo="ppo",
-    env="Letter-7x7-v3",
-    log_interval=5,
-    save_interval=20,
-    frames=20000000,
-    discount=0.94,
-    ltl_sampler="Eventually_1_5_1_4",
-    epochs=4,
-    lr=0.0003,
-    procs=1
+    algo = "ppo",
+    env = "Letter-7x7-v3",
+    log_interval = 5,
+    save_interval = 20,
+    frames = 20000000,
+    discount = 0.94,
+    ltl_sampler = "Eventually_1_5_1_4",
+    epochs = 4,
+    lr = 0.0003,
+    procs = 1
 )
 
 
@@ -19,20 +19,30 @@ test_ltl2action = Args(
 test_gridworld = Args(
 
     # General parameters
-    algo="ppo",
-    env="GridWorld-v0",
-    ltl_sampler="None",
-    log_interval=5,
-    save_interval=20,
-    procs=1,
-    frames=20000000,
-    gnn = "RGCN_8x32_ROOT_SHARED",
+    algo = "ppo",
+    env = "GridWorld-v0",
+    ltl_sampler = "None",
+    dataset = "e54"
+    log_interval = 5,
+    save_interval = 100,
+    procs = 1,
+    frames = 20000000,
+    gnn  =  "RGCN_8x32_ROOT_SHARED",
+
+    # Evaluation parameters
+    eval = True,
+    eval_episodes = 5,
+    eval_env = "GridWorld-v0",
+    ltl_samplers_eval = None,
+    eval_dataset = "e54test",
+    eval_procs = 1,
+
 
     # Parameters for main algorithm
-    epochs=4,
-    discount=0.94,
-    lr=0.0003,
-    pretrained_gnn=False
+    epochs = 4,
+    discount = 0.94,
+    lr = 0.0003,
+    pretrained_gnn = False
 )
 
 
@@ -40,17 +50,17 @@ test_gridworld = Args(
 test_simple_ltl_6l = Args(
 
     # General parameters
-    algo="ppo",
-    env="Simple-LTL-Env-6L-v0",
-    ltl_sampler="Eventually_1_5_1_4",
-    log_interval=5,
-    save_interval=20,
-    procs=1,
-    frames=20000000,
-    gnn = "RGCN_8x32_ROOT_SHARED",
+    algo = "ppo",
+    env = "Simple-LTL-Env-6L-v0",
+    ltl_sampler = "Eventually_1_5_1_4",
+    log_interval = 5,
+    save_interval = 20,
+    procs = 1,
+    frames = 20000000,
+    gnn  =  "RGCN_8x32_ROOT_SHARED",
 
     # Parameters for main algorithm
-    epochs=4,
-    discount=0.94,
-    lr=0.0003
+    epochs = 4,
+    discount = 0.94,
+    lr = 0.0003
 )
