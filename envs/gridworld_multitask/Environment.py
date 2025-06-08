@@ -17,6 +17,7 @@ WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
+DATASETS_DIR = os.path.join(MAIN_DIR, "datasets")
 
 
 class GridWorldEnv_multitask(gym.Env):
@@ -52,9 +53,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.state_type = state_type
 
         # load automata and formulas
-        with open(os.path.join(ENV_DIR, task_dir, "formulas.pkl"), "rb") as f:
+        with open(os.path.join(DATASETS_DIR, task_dir, "formulas.pkl"), "rb") as f:
             self.formulas = pickle.load(f)
-        with open(os.path.join(ENV_DIR, task_dir, "automata.pkl"), "rb") as f:
+        with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
         if shuffle_tasks:
