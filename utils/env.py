@@ -7,7 +7,7 @@ Note that this is the place to include the right LTL-Wrapper for each environmen
 import gym
 import envs
 from envs.gridworld_multitask.Environment import LTLWrapper as GridWorldLTLWrapper
-import ltl_wrappers
+from ltl_wrappers import NoLTLWrapper,LTLEnv
 
 
 
@@ -20,11 +20,25 @@ def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noL
     env = gym.make(env_key, **kwargs)
     env.seed(seed)
 
-    # add wrapper
     if (noLTL):
-        return ltl_wrappers.NoLTLWrapper(env)
+        wrapper = NoLTLWrapper(env)
+
     elif "GridWorld" in env_key:
         assert ltl_sampler == 'None'
-        return GridWorldLTLWrapper(env, progression_mode, ltl_sampler, intrinsic, dataset=dataset)
+        wrapper = GridWorldLTLWrapper(
+            env=env,
+            progression_mode=progression_mode,
+            ltl_sampler=ltl_sampler,
+            intrinsic=intrinsic,
+            task_dir=dataset
+        )
+
     else:
-        return ltl_wrappers.LTLEnv(env, progression_mode, ltl_sampler, intrinsic)
+        wrapper = LTLEnv(
+            env=env,
+            progression_mode=progression_mode,
+            ltl_sampler=ltl_sampler,
+            intrinsic=intrinsic
+        )
+
+    return wrapper
