@@ -6,7 +6,7 @@ from typing import List, Optional
 from tqdm import tqdm
 from dataclasses import dataclass
 
-from utils import ltl_ast2dfa, seed
+from utils import ltl_ast2dfa, set_seed
 from ltl_samplers import getLTLSampler
 
 
@@ -62,7 +62,7 @@ class Dataset:
             disjoint_formulas = ()
 
         sampler = getLTLSampler(self.sampler, self.propositions)
-        seed(self.seed)
+        set_seed(self.seed)
         formulas = []
         for _ in tqdm(range(self.n_formulas)) if pbar else range(self.n_formulas):
             formula = None
