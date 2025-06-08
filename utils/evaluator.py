@@ -1,18 +1,22 @@
 import time
 import torch
-from torch_ac.utils.penv import ParallelEnv
 #import tensorboardX
-
-import utils
 import argparse
 import datetime
+from .storage import get_model_dir
+from .env import make_env
+from .agent import Agent
+from .other import synthesize, average_discounted_return
 from envs.gym_letters.letter_env import LetterEnv
+from torch_ac.utils.penv import ParallelEnv
+
 
 """
 This class evaluates a model on a validation dataset generated online
 via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
+
     def __init__(self, env, model_name, ltl_sampler,
                 seed=0, device="cpu", argmax=False,
                 num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
@@ -28,13 +32,13 @@ class Eval:
         self.dumb_ac = dumb_ac
         self.discount = discount
 
-        self.model_dir = utils.get_model_dir(model_name, storage_dir="")
+        self.model_dir = get_model_dir(model_name, storage_dir="")
         #self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
 
         # Load environments for evaluation
         eval_envs = []
         for i in range(self.num_procs):
-            eval_envs.append(utils.make_env(env, progression_mode, ltl_sampler, seed, 0, False, device))
+            eval_envs.append(make_env(env, progression_mode, ltl_sampler, seed, 0, False, device))
 
         eval_envs[0].reset()
         if isinstance(eval_envs[0].env, LetterEnv):
@@ -44,14 +48,11 @@ class Eval:
         self.eval_envs = ParallelEnv(eval_envs)
 
 
-
-
     def eval(self, num_frames, episodes=100, stdout=True):
         # Load agent
             
-        agent = utils.Agent(self.eval_envs.envs[0], self.eval_envs.observation_space, self.eval_envs.action_space, self.model_dir + "/train", 
+        agent = Agent(self.eval_envs.envs[0], self.eval_envs.observation_space, self.eval_envs.action_space, self.model_dir + "/train", 
             self.ignoreLTL, self.progression_mode, self.gnn, recurrence = self.recurrence, dumb_ac = self.dumb_ac, device=self.device, argmax=self.argmax, num_envs=self.num_procs)
-
 
         # Run agent
         start_time = time.time()
@@ -87,6 +88,8 @@ class Eval:
 
         return logs["return_per_episode"], logs["num_frames_per_episode"]
 
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--ltl-sampler", default="Default",
@@ -112,7 +115,6 @@ if __name__ == '__main__':
                     help="number of time-steps gradient is backpropagated (default: 1). If > 1, a LSTM is added to the model to have memory.")
     parser.add_argument("--gnn", default="RGCN_8x32_ROOT_SHARED", help="use gnn to model the LTL (only if ignoreLTL==True)")
 
-
     args = parser.parse_args()
 
     logs_returns_per_episode = []
@@ -122,7 +124,7 @@ if __name__ == '__main__':
         idx = model_path.find("seed:") + 5
         seed = int(model_path[idx:idx+2].strip("_"))
 
-        eval = utils.Eval(args.env, model_path, args.ltl_sampler,
+        eval = Eval(args.env, model_path, args.ltl_sampler,
                      seed=seed, device=torch.device("cpu"), argmax=False,
                      num_procs=args.procs, ignoreLTL=args.ignoreLTL, progression_mode=args.progression_mode, gnn=args.gnn, recurrence=args.recurrence, dumb_ac=False, discount=args.discount)
         rpe, nfpe = eval.eval(-1, episodes=args.eval_episodes, stdout=True)
@@ -134,9 +136,9 @@ if __name__ == '__main__':
     print(logs_num_frames_per_episode)
     print(logs_returns_per_episode)
     num_frame_pe = sum(logs_num_frames_per_episode)
-    return_per_episode = utils.synthesize(logs_returns_per_episode)
-    num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
-    average_discounted_return, error = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount, include_error=True)
+    return_per_episode = synthesize(logs_returns_per_episode)
+    num_frames_per_episode = synthesize(logs_num_frames_per_episode)
+    average_discounted_return, error = average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount, include_error=True)
 
     header = ["frames"]
     data   = [num_frame_pe]

@@ -10,9 +10,7 @@ import torch
 import torch_ac
 import gym
 import numpy as np
-import utils
-
-from envs import *
+from .ast_builder import ASTBuilder
 from ltl_wrappers import LTLEnv
 
 def get_obss_preprocessor(env, gnn, progression_mode):
@@ -36,7 +34,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                 vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
 
                 vocab = Vocabulary(vocab_space)
-                tree_builder = utils.ASTBuilder(vocab_space["tokens"])
+                tree_builder = ASTBuilder(vocab_space["tokens"])
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
@@ -57,7 +55,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                 vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
 
                 vocab = Vocabulary(vocab_space)
-                tree_builder = utils.ASTBuilder(vocab_space["tokens"])
+                tree_builder = ASTBuilder(vocab_space["tokens"])
 
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({

@@ -1,11 +1,10 @@
 import random
 from graphviz import Source
-import sys
 from pythomata import SimpleDFA
-from utils.deepdfa_utils import dot2pythomata, shift_back_nodes
 from ltlf2dfa.parser.ltlf import LTLfParser
 import numpy as np
 from itertools import product
+from utils import dot2pythomata, shift_back_nodes
 
 
 class DFA:

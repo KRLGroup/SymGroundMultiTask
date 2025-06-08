@@ -1,8 +1,9 @@
 import torch
-
-import utils
+from .storage import get_status, get_model_state
+from .format import get_obss_preprocessor
 from ac_model import ACModel
-from recurrent_ac_model import RecurrentACModel
+from recurrent_model import RecurrentACModel
+
 
 class Agent:
     """An agent.

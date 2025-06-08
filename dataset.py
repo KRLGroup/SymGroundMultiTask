@@ -6,9 +6,8 @@ from typing import List, Optional
 from tqdm import tqdm
 from dataclasses import dataclass
 
-from utils import ltl_ast2dfa
+from utils import ltl_ast2dfa, seed
 from ltl_samplers import getLTLSampler
-from utils.other import seed
 
 
 def save_verbose(obj, path, name):
