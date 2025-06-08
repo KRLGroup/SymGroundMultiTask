@@ -454,9 +454,28 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 class LTLWrapper(LTLEnv):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, task_dir=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sampler = None # make sure we don't use this
+
+        # load automata and formulas
+        if task_dir:
+
+            with open(os.path.join(DATASETS_DIR, task_dir, "formulas.pkl"), "rb") as f:
+                self.env.formulas = pickle.load(f)
+            with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
+                self.env.automata = pickle.load(f)
+
+            if self.env.shuffle_tasks:
+                tasks = list(zip(self.env.formulas, self.env.automata))
+                random.shuffle(tasks)
+                self.env.formulas, self.env.automata = zip(*tasks)
+
+            for i in range(len(self.env.formulas)):
+                new_transitions = self.env.automata[i].transitions
+                for state in self.env.automata[i].transitions.keys():
+                    new_transitions[state][5]= state
+                self.env.automata[i].transitions = new_transitions
 
 
     def step(self, action):
