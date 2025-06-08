@@ -10,7 +10,6 @@ import random
 import os
 import pickle
 import yaml
-
 import numpy as np
 
 
@@ -31,6 +30,7 @@ class SuperSampler(LTLSampler):
     def sample(self):
         return random.choice(self.reg_samplers).sample()
 
+
 # This class samples formulas of form (or, op_1, op_2), where op_1 and 2 can be either specified as samplers_ids
 # or by default they will be sampled at random via SuperSampler.
 class OrSampler(LTLSampler):
@@ -42,6 +42,7 @@ class OrSampler(LTLSampler):
         return ('or', getLTLSampler(self.sampler_ids[0], self.propositions).sample(),
                         getLTLSampler(self.sampler_ids[1], self.propositions).sample())
 
+
 # This class generates random LTL formulas using the following template:
 #   ('until',('not','a'),('and', 'b', ('until',('not','c'),'d')))
 # where p1, p2, p3, and p4 are randomly sampled propositions
@@ -49,6 +50,7 @@ class DefaultSampler(LTLSampler):
     def sample(self):
         p = random.sample(self.propositions,4)
         return ('until',('not',p[0]),('and', p[1], ('until',('not',p[2]),p[3])))
+
 
 # This class generates random conjunctions of Until-Tasks.
 # Each until tasks has *n* levels, where each level consists
@@ -112,6 +114,7 @@ class SequenceSampler(LTLSampler):
             return ('eventually',seq)
         return ('eventually',('and', seq[0], self._get_sequence(seq[1:])))
 
+
 # This generates several sequence tasks which can be accomplished in parallel. 
 # e.g. in (eventually (a and eventually c)) and (eventually b)
 # the two sequence tasks are "a->c" and "b".
@@ -171,11 +174,13 @@ class AdversarialEnvSampler(LTLSampler):
         else:
             return ('eventually', ('and', 'a', ('eventually', 'c')))
 
+
 def getRegisteredSamplers(propositions):
     return [SequenceSampler(propositions),
             UntilTaskSampler(propositions),
             DefaultSampler(propositions),
             EventuallySampler(propositions)]
+
 
 # The LTLSampler factory method that instantiates the proper sampler
 # based on the @sampler_id.
@@ -223,6 +228,7 @@ def getLTLSampler(sampler_id, propositions):
         return DefaultSampler(propositions)
 
 
+# redo?
 class DatasetSampler(LTLSampler):
 
     def __init__(self, propositions, dataset, kernel, train=True, shuffle=True, formula=None, curriculum=False):

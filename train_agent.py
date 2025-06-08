@@ -1,4 +1,3 @@
-import argparse
 import time
 import datetime
 import torch
@@ -7,13 +6,14 @@ import tensorboardX
 import sys
 import glob
 from math import floor
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
-from dataclasses import dataclass, field
-from typing import List, Optional
+
 
 # Parse arguments
 

@@ -3,10 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from utils import dot2pythomata, transacc2pythomata
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 sftmx = torch.nn.Softmax(dim=-1)
 

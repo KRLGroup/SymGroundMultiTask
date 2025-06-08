@@ -1,7 +1,8 @@
 import torch
 import argparse
-import utils
 import cv2
+
+import utils
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

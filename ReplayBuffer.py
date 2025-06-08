@@ -2,10 +2,8 @@ import random
 from collections import deque
 import torch
 import numpy as np
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReplayBuffer:
     def __init__(self, capacity= 1000):

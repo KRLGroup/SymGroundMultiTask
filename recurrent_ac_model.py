@@ -12,16 +12,14 @@ Each of those tokens get a one-hot embedding representation by the utils.format.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions.categorical import Categorical
 import torch_ac
-
-from gym.spaces import Box, Discrete
 
 from gnns.graphs.GCN import *
 from gnns.graphs.GNN import GNNMaker
 
 from env_model import getEnvModel
 from policy_network import PolicyNetwork
+
 from ac_model import LSTMModel, GRUModel, init_params
 
 

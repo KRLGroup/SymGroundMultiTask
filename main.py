@@ -1,12 +1,14 @@
 import torch
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+from ReplayBuffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
 from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 from NN_models import CNN_grounder, GridworldClassifier, ObjectCNN
 from utils import EarlyStopping
-import matplotlib.pyplot as plt
-from ReplayBuffer import ReplayBuffer
-import numpy as np
-import os
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

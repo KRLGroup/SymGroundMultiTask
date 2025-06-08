@@ -1,9 +1,10 @@
 import pickle
 import os
-import argparse
-import ast
+import argparse, ast
+
 from utils import ltl_ast2dfa, pprint_ltl_formula
 from ltl_samplers import getLTLSampler
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default="file", choices=["file", "manual", "sampler"])

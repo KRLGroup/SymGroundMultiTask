@@ -1,9 +1,9 @@
 import random
 from graphviz import Source
 from pythomata import SimpleDFA
-from ltlf2dfa.parser.ltlf import LTLfParser
 import numpy as np
-from itertools import product
+from ltlf2dfa.parser.ltlf import LTLfParser
+
 from utils import dot2pythomata, shift_back_nodes
 
 
