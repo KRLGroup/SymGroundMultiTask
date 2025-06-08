@@ -59,18 +59,16 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type=str, default="lab/storage/datasets/e54")
-    parser.add_argument("--target", type=str, default="formulas", choices=["formulas", "automata"])
+    parser.add_argument("--target", type=str, default="formulas", choices=["formulas", "automata", "both"])
     args = parser.parse_args()
 
-
     dataset_path = Path(args.path)
-    target = args.target # 'formulas' or 'automata'
+    target = args.target
     dataset = get_dataset(dataset_path)
 
-    if target == 'formulas':
+    if target == 'formulas' or target == 'both':
         dataset.save_formulas()
-    elif target == 'automata':
+    elif target == 'automata' or target == 'both':
         dataset.save_automata()
     else:
-        print(f"Unknown target {target}, expected 'formulas' or 'automata'.")
-
+        print(f"Unknown target {target}, expected 'formulas', 'automata' or 'both'.")
