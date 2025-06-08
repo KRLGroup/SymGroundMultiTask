@@ -26,7 +26,7 @@ class GridWorldEnv_multitask(gym.Env):
         "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
-        img_dir="imgs_16x16", task_dir="tasks", shuffle_tasks=False, save_obs=False):
+        img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=False, save_obs=False):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
