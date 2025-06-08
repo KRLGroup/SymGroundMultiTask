@@ -41,7 +41,6 @@ if args.automaton:
     if args.mode == "file":
         with open(os.path.join(TASKS_DIR, "automata.pkl"), "rb") as f:
             automaton = pickle.load(f)[args.id]
-        automaton = ltl_ast2dfa(formula, args.symbols)
 
     if args.mode == "manual":
         automaton = ltl_ast2dfa(formula, args.symbols)
