@@ -31,7 +31,7 @@ class Eval:
         self.dumb_ac = dumb_ac
         self.discount = discount
 
-        self.model_dir = get_model_dir(model_name, storage_dir="")
+        self.model_dir = get_model_dir(model_name)
         #self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
 
         # Load environments for evaluation
