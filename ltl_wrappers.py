@@ -18,7 +18,8 @@ Notes about LTLEnv:
 import numpy as np
 import gym
 from gym import spaces
-import ltl_progression, random
+
+import ltl_progression
 from ltl_samplers import getLTLSampler, SequenceSampler
 
 

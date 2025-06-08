@@ -1,14 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import dot2pythomata, transacc2pythomata
+
+from utils import transacc2pythomata
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 sftmx = torch.nn.Softmax(dim=-1)
 
 def sftmx_with_temp(x, temp):
     return sftmx(x/temp)
+
 
 class ProbabilisticAutoma(nn.Module):
     def __init__(self, numb_of_actions, numb_of_states, numb_of_rewards, initialization="gaussian"):

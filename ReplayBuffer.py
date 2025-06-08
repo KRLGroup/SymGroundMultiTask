@@ -5,6 +5,7 @@ import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 class ReplayBuffer:
     def __init__(self, capacity= 1000):
         self.buffer = deque(maxlen=capacity)
