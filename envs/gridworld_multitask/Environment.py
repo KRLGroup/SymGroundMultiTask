@@ -43,6 +43,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.max_num_steps = max_num_steps
         self.curr_step = 0
         self.has_window = False
+        self.shuffle_tasks = shuffle_tasks
 
         # environment map size
         self.size = size
@@ -58,7 +59,7 @@ class GridWorldEnv_multitask(gym.Env):
         with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
-        if shuffle_tasks:
+        if self.shuffle_tasks:
             tasks = list(zip(self.formulas, self.automata))
             random.shuffle(tasks)
             self.formulas, self.automata = zip(*tasks)
