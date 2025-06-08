@@ -254,7 +254,7 @@ class DatasetSampler(LTLSampler):
         if self.use_automata:
             with open(os.path.join(dirpath, 'automata.pkl'), 'rb') as f:
                 automata = pickle.load(f)
-            asser len(formulas) == len(automata)
+            assert len(formulas) == len(automata)
             self.items = list(zip(formulas, automata))
 
         if self.ids != None:
