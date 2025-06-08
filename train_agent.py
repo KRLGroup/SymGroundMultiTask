@@ -24,7 +24,7 @@ class Args:
     algo: str # a2c or ppo
     env: str
     ltl_sampler: str = "Default" # Must be None for GridWorld
-    dataset: str
+    dataset: str = None
     model: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
@@ -38,7 +38,7 @@ class Args:
     eval_episodes: int = 5
     eval_env: Optional[str] = None
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
-    eval_dataset: str
+    eval_dataset: str = None
     eval_procs: int = 1
 
     # Parameters for main algorithm
@@ -116,7 +116,7 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("{}\n".format(args))
 
     # Set seed for all randomness sources
-    utils.seed(args.seed)
+    utils.set_seed(args.seed)
 
     # Set device
     txt_logger.info(f"Device: {device}\n")
