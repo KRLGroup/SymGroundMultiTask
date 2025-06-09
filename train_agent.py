@@ -237,6 +237,8 @@ def train_agent(args: Args, device: str = None):
         logs = {**logs1, **logs2}
         update_end_time = time.time()
 
+        # the logs refere only to the last update
+
         num_frames += logs["num_frames"]
         update += 1
 
@@ -267,7 +269,7 @@ def train_agent(args: Args, device: str = None):
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
             # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
-                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:.1f} {:.1f} {} {} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
+                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
                 .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
@@ -285,8 +287,12 @@ def train_agent(args: Args, device: str = None):
 
         if args.save_interval > 0 and update % args.save_interval == 0:
 
-            status = {"num_frames": num_frames, "update": update,
-                    "model_state": algo.acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
+            status = {
+                "num_frames": num_frames,
+                "update": update,
+                "model_state": algo.acmodel.state_dict(), 
+                "optimizer_state": algo.optimizer.state_dict()
+            }
 
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
                 status["vocab"] = preprocess_obss.vocab.vocab
