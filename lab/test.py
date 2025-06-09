@@ -24,19 +24,18 @@ test_gridworld = Args(
     ltl_sampler = "None",
     dataset = "e54",
     log_interval = 10,
-    save_interval = 100,
+    save_interval = 2500,
     procs = 1,
     frames = 20000000,
     gnn  =  "RGCN_8x32_ROOT_SHARED",
 
     # Evaluation parameters
     eval = True,
-    eval_episodes = 10,
+    eval_episodes = 1000,
     eval_env = "GridWorld-v0",
     ltl_samplers_eval = None,
     eval_dataset = "e54test",
     eval_procs = 1,
-
 
     # Parameters for main algorithm
     epochs = 4,
