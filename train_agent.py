@@ -267,7 +267,7 @@ def train_agent(args: Args, device: str = None):
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
             # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
-                "U {} | F {:06} | FPS {:04.0f} | D {} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:.1f} {:.1f} {} {} | H {:.3f} | V {:.3f} | pL {:.3f} | vL {:.3f} | ∇ {:.3f}"
+                "U {:05} | F {:07} | FPS {:04.0f} | D {} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:.1f} {:.1f} {} {} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
                 .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
@@ -305,8 +305,6 @@ def train_agent(args: Args, device: str = None):
                     return_per_episode = utils.synthesize(logs_returns_per_episode)
                     average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
                     num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
-
-                    print(logs_returns_per_episode)
 
                     header = ["frames"]
                     data = [num_frame_pe]
