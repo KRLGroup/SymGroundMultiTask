@@ -13,9 +13,10 @@ class Agent:
     - to analyze the feedback (i.e. reward and done state) of its action."""
 
     def __init__(self, env, obs_space, action_space, model_dir, ignoreLTL, progression_mode,
-                gnn, recurrence = 1, dumb_ac = False, device=None, argmax=False, num_envs=1):
+                gnn, recurrence = 1, dumb_ac = False, device=None, argmax=False, num_envs=1, verbose = True):
         try:
-            print(model_dir)
+            if verbose:
+                print(model_dir)
             status = get_status(model_dir, device)
         except OSError:
             status = {"num_frames": 0, "update": 0}
@@ -27,10 +28,10 @@ class Agent:
 
 
         if recurrence > 1:
-            self.acmodel = RecurrentACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True)
+            self.acmodel = RecurrentACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, verbose=verbose)
             self.memories = torch.zeros(num_envs, self.acmodel.memory_size, device=device)
         else:
-            self.acmodel = ACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, device)
+            self.acmodel = ACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, device, verbose=verbose)
 
         self.device = device
         self.argmax = argmax

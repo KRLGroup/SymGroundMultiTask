@@ -1,6 +1,6 @@
 import time
 import torch
-#import tensorboardX
+import tensorboardX
 import argparse
 import datetime
 from .storage import get_model_dir
@@ -32,7 +32,7 @@ class Eval:
         self.discount = discount
 
         self.model_dir = get_model_dir(model_name)
-        #self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
+        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
 
         # Load environments for evaluation
         eval_envs = []
@@ -57,10 +57,22 @@ class Eval:
 
 
     def eval(self, num_frames, episodes=100, stdout=True):
+
         # Load agent
-            
-        agent = Agent(self.eval_envs.envs[0], self.eval_envs.observation_space, self.eval_envs.action_space, self.model_dir + "/train", 
-            self.ignoreLTL, self.progression_mode, self.gnn, recurrence = self.recurrence, dumb_ac = self.dumb_ac, device=self.device, argmax=self.argmax, num_envs=self.num_procs)
+        agent = Agent(
+            self.eval_envs.envs[0],
+            self.eval_envs.observation_space,
+            self.eval_envs.action_space,
+            self.model_dir + "/train", 
+            self.ignoreLTL,
+            self.progression_mode,
+            self.gnn,
+            recurrence = self.recurrence,
+            dumb_ac = self.dumb_ac, device=self.device,
+            argmax=self.argmax,
+            num_envs=self.num_procs,
+            verbose=False
+        )
 
         # Run agent
         start_time = time.time()
@@ -85,7 +97,7 @@ class Eval:
                 if done:
                     log_counter += 1
                     logs["return_per_episode"].append(log_episode_return[i].item())
-                    logs["num_frames_per_episode"].append(log_episode_num_frames[i].item())
+                    logs["num_frames_per_episode"].append(int(log_episode_num_frames[i].item()))
 
             mask = 1 - torch.tensor(dones, device=self.device, dtype=torch.float)
             log_episode_return *= mask

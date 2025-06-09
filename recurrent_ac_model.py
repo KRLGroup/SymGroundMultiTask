@@ -25,7 +25,7 @@ from ac_model import LSTMModel, GRUModel, init_params
 
 
 class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
-    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl):
+    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, verbose=True):
         super().__init__()
 
         # Decide which components are enabled
@@ -38,7 +38,7 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
         self.dumb_ac = dumb_ac
 
         self.freeze_pretrained_params = freeze_ltl
-        if self.freeze_pretrained_params:
+        if self.freeze_pretrained_params and verbose:
             print("Freezing the LTL module.")
 
         self.env_model = getEnvModel(env, obs_space)
@@ -52,7 +52,8 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
                 nn.Linear(64, self.text_embedding_size),
                 nn.Tanh()
             ).to(self.device)
-            print("Linear encoder Number of parameters:", sum(p.numel() for p in self.simple_encoder.parameters() if p.requires_grad))
+            if verbose:
+                print("Linear encoder Number of parameters:", sum(p.numel() for p in self.simple_encoder.parameters() if p.requires_grad))
 
         elif self.use_text:
             self.word_embedding_size = 32
@@ -62,21 +63,23 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
             else:
                 assert(self.gnn_type == "LSTM")
                 self.text_rnn = LSTMModel(obs_space["text"], self.word_embedding_size, 16, self.text_embedding_size).to(self.device)
-            print("RNN Number of parameters:", sum(p.numel() for p in self.text_rnn.parameters() if p.requires_grad))
+            if verbose:
+                print("RNN Number of parameters:", sum(p.numel() for p in self.text_rnn.parameters() if p.requires_grad))
         
         elif self.use_ast:
             hidden_dim = 32
             self.text_embedding_size = 32
             self.gnn = GNNMaker(self.gnn_type, obs_space["text"], self.text_embedding_size).to(self.device)
-            print("GNN Number of parameters:", sum(p.numel() for p in self.gnn.parameters() if p.requires_grad))
+            if verbose:
+                print("GNN Number of parameters:", sum(p.numel() for p in self.gnn.parameters() if p.requires_grad))
 
 
         # Memory specific code. 
         self.image_embedding_size = self.env_model.size()
         self.memory_rnn = nn.LSTMCell(self.image_embedding_size, self.semi_memory_size)
         self.embedding_size = self.semi_memory_size
-
-        print("embedding size:", self.embedding_size)
+        if verbose:
+            print("embedding size:", self.embedding_size)
         if self.use_text or self.use_ast or self.use_progression_info:
             self.embedding_size += self.text_embedding_size
 
@@ -159,4 +162,3 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
 
             for param in target.parameters():
                 param.requires_grad = False
-

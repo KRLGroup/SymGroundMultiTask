@@ -284,14 +284,41 @@ def train_agent(args: Args, device: str = None):
         # Save status
 
         if args.save_interval > 0 and update % args.save_interval == 0:
+
             status = {"num_frames": num_frames, "update": update,
                     "model_state": algo.acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
+
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
                 status["vocab"] = preprocess_obss.vocab.vocab
+
             utils.save_status(status, model_dir + "/train")
             txt_logger.info("Status saved")
 
             if args.eval:
+
                 # we send the num_frames to align the eval curves with the training curves on TB
                 for evalu in evals:
-                    evalu.eval(num_frames, episodes=args.eval_episodes)
+
+                    logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes)
+
+                    num_frame_pe = sum(logs_num_frames_per_episode)
+                    return_per_episode = utils.synthesize(logs_returns_per_episode)
+                    average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
+                    num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
+
+                    print(logs_returns_per_episode)
+
+                    header = ["frames"]
+                    data = [num_frame_pe]
+                    header += ["average_discounted_return"]
+                    data += [average_discounted_return]
+                    header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
+                    data += num_frames_per_episode.values()
+
+                    txt_logger.info("Evaluation: F {:06} | ADR {:.3f} | F:μσmM {:.1f} {:.1f} {} {}".format(*data))
+
+                    header += ["return_" + key for key in return_per_episode.keys()]
+                    data += return_per_episode.values()
+
+                    for field, value in zip(header, data):
+                        evalu.tb_writer.add_scalar(field, value, num_frames)
