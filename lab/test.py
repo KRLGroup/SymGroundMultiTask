@@ -42,6 +42,7 @@ test_gridworld = Args(
     discount = 0.94,
     lr = 0.0003,
     pretrained_gnn = False
+
 )
 
 
@@ -61,5 +62,7 @@ test_simple_ltl_6l = Args(
     # Parameters for main algorithm
     epochs = 4,
     discount = 0.94,
-    lr = 0.0003
+    lr = 0.0003,
+    dumb_ac = True
+
 )
