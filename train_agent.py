@@ -270,7 +270,7 @@ def train_agent(args: Args, device: str = None):
             # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
                 "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
-                .format(*data))
+            .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
             data += return_per_episode.values()
@@ -300,9 +300,10 @@ def train_agent(args: Args, device: str = None):
             utils.save_status(status, model_dir + "/train")
             txt_logger.info("Status saved")
 
+            # Evaluate
+
             if args.eval:
 
-                # we send the num_frames to align the eval curves with the training curves on TB
                 for evalu in evals:
 
                     logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes)
@@ -319,7 +320,7 @@ def train_agent(args: Args, device: str = None):
                     header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
                     data += num_frames_per_episode.values()
 
-                    txt_logger.info("Evaluation: F {:06} | ADR {:.3f} | F:μσmM {:.1f} {:.1f} {} {}".format(*data))
+                    txt_logger.info("Evaluation: F {:06} | ADR {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02}".format(*data))
 
                     header += ["return_" + key for key in return_per_episode.keys()]
                     data += return_per_episode.values()
