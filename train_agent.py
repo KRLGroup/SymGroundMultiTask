@@ -25,7 +25,7 @@ class Args:
     env: str
     ltl_sampler: str = "Default" # Must be None for GridWorld
     dataset: str = None
-    model: Optional[str] = None
+    model_name: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
     save_interval: int = 100
@@ -61,6 +61,7 @@ class Args:
     gnn: str = "RGCN_8x32_ROOT_SHARED"
     int_reward: float = 0.0
     pretrained_gnn: bool = False
+    pretrain_name: Optional[str] = None
     dumb_ac: bool = False
     freeze_ltl: bool = False
 
@@ -89,16 +90,16 @@ def train_agent(args: Args, device: str = None):
 
     default_model_name = f"{gnn_name}_{args.ltl_sampler}_{args.env}_seed:{args.seed}_epochs:{args.epochs}_bs:{args.batch_size}_fpp:{args.frames_per_proc}_dsc:{args.discount}_lr:{args.lr}_ent:{args.entropy_coef}_clip:{args.clip_eps}_prog:{args.progression_mode}"
 
-    model_name = args.model or default_model_name
+    model_name = args.model_name or default_model_name
     storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
     model_dir = utils.get_model_dir(model_name, storage_dir)
 
     pretrained_model_dir = None
     if args.pretrained_gnn:
         assert(args.progression_mode == "full")
-        default_dir = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
-        print(default_dir)
-        model_dirs = glob.glob(default_dir)
+        default_pretrain_name = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
+        pretrain_name = args.pretrain_name or default_pretrain_name
+        model_dirs = glob.glob(f"{pretrain_name}/train")
         if len(model_dirs) == 0:
             raise Exception("Pretraining directory not found.")
         elif len(model_dirs) > 1:
