@@ -11,12 +11,20 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--env", default="GridWorld-v0")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
+parser.add_argument("--sampler", default="None", type=str)
 args = parser.parse_args()
 
 
 # build environment
-env = utils.make_env(args.env, progression_mode="full", ltl_sampler="None", seed=1, intrinsic=0, noLTL=False, device=device)
-str_to_action = {"s":0,"d":1,"w":2,"a":3}
+env = utils.make_env(args.env, progression_mode="full", ltl_sampler=args.sampler, seed=1, intrinsic=0, noLTL=False, device=device)
+
+if "GridWorld" in args.env:
+    str_to_action = {"s":0,"d":1,"w":2,"a":3}
+    process_formula = env.translate_formula
+
+if "Letter" in args.env:
+    str_to_action = {"w":0,"s":1,"a":2,"d":3}
+    process_formula = lambda formula : formula
 
 # set formula
 env.env.produced_tasks = args.formula_id
@@ -35,7 +43,7 @@ while not done:
     print(f"\n---")
     print(f"Step: {step}")
     print(f"Task:")
-    utils.pprint_ltl_formula(env.translate_formula(obs['text']))
+    utils.pprint_ltl_formula(process_formula(obs['text']))
 
     print("\nAction: ", end="")
 
