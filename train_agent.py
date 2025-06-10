@@ -99,7 +99,8 @@ def train_agent(args: Args, device: str = None):
         assert(args.progression_mode == "full")
         default_pretrain_name = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
         pretrain_name = args.pretrain_name or default_pretrain_name
-        model_dirs = glob.glob(f"{pretrain_name}/train")
+        print(pretrain_name)
+        model_dirs = glob.glob(f"symbol-storage/{pretrain_name}/train")
         if len(model_dirs) == 0:
             raise Exception("Pretraining directory not found.")
         elif len(model_dirs) > 1:
