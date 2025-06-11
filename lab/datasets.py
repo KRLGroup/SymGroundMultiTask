@@ -33,7 +33,7 @@ test_dataset = Dataset(
 hard_test_dataset = Dataset(
     path=Path("lab/storage/datasets/e65test"),
     seed=42,
-    n_formulas=1000,
+    n_formulas=50,
     propositions=["a", "b", "c", "d", "e"],
     sampler="Eventually_6_6_5_5",
     disjoint_from=None,
@@ -66,9 +66,12 @@ if __name__ == "__main__":
     target = args.target
     dataset = get_dataset(dataset_path)
 
-    if target == 'formulas' or target == 'both':
+    if target == 'formulas':
         dataset.save_formulas()
-    elif target == 'automata' or target == 'both':
+    elif target == 'automata':
+        dataset.save_automata()
+    elif target == 'both':
+        dataset.save_formulas()
         dataset.save_automata()
     else:
         print(f"Unknown target {target}, expected 'formulas', 'automata' or 'both'.")
