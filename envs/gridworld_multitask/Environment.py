@@ -49,7 +49,7 @@ class GridWorldEnv_multitask(gym.Env):
         # environment map size
         self.size = size
 
-        assert not use_agent_centric_view or (grid_size%2==1 and wrap_around_map)
+        assert not agent_centric_view or (size%2==1 and wrap_around_map)
         self.wrap_around_map = wrap_around_map
         self.agent_centric_view = agent_centric_view
 
