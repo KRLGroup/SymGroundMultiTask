@@ -210,7 +210,7 @@ for exp in range(num_experiments):
                 print("Train")
                 print(f"true: {train_labels.tolist()}")
                 print(f"pred: {pred_sym_train.tolist()}")
-                print("TEST TARGET/PREDICTIONS")
+                print("Test")
                 print(f"true: {test_labels.tolist()}")
                 print(f"pred: {pred_sym_test.tolist()}")
                 print("---")
