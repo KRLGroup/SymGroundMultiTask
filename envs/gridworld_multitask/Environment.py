@@ -25,8 +25,9 @@ class GridWorldEnv_multitask(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
-        img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=False, save_obs=False):
+    def __init__(self, render_mode="terminal", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
+        img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=False, save_obs=False, wrap_around_map=True, 
+        agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
 
@@ -47,6 +48,10 @@ class GridWorldEnv_multitask(gym.Env):
 
         # environment map size
         self.size = size
+
+        assert not use_agent_centric_view or (grid_size%2==1 and wrap_around_map)
+        self.wrap_around_map = wrap_around_map
+        self.agent_centric_view = agent_centric_view
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -252,7 +257,11 @@ class GridWorldEnv_multitask(gym.Env):
 
         # update position
         direction = self._action_to_direction[action]
-        self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
+        if self.wrap_around_map:
+            self._agent_location = (self._agent_location + direction) % self.size
+        else:
+            self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
+
         self.curr_step += 1
 
         # update automaton
@@ -277,9 +286,11 @@ class GridWorldEnv_multitask(gym.Env):
 
     def _get_symbol_obs(self):
         obs = np.zeros(shape=(self.size,self.size,len(self.dictionary_symbols)+1),dtype=np.uint8)
-        for r,c in self.loc_to_label:
-            label = self.loc_to_label[(r,c)]
-            obs[r,c,label] = 1
+        for loc in self.loc_to_label:
+            if self.agent_centric_view:
+                loc = self._absolute_to_agent_centric(loc)
+            label = self.loc_to_label[loc]
+            obs[loc[0],loc[1],label] = 1
         obs[self._agent_location[0],self._agent_location[1],len(self.dictionary_symbols)] = 1
         return obs
 
@@ -301,7 +312,7 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     # create the visualization of the environment (for rendering and for observations)
-    def _render_frame(self, draw_grid = False):
+    def _render_frame(self, draw_grid=False):
 
         # create a white canvas
         canvas = 255 * np.ones((self.canvas_size, self.canvas_size, 3), dtype=np.uint8)
@@ -331,6 +342,8 @@ class GridWorldEnv_multitask(gym.Env):
             if display:
                 for loc in locations:
                     # loc is assumed to be a numpy array [col, row] or [x, y]
+                    if self.agent_centric_view:
+                        loc = self._absolute_to_agent_centric(loc)
                     x = int(loc[0] * self.cell_size)
                     y = int(loc[1] * self.cell_size)
                     overlay_image(canvas, item_img, (x, y))
@@ -344,6 +357,22 @@ class GridWorldEnv_multitask(gym.Env):
         blit_item(self.robot_img, [self._agent_location], self._robot_display)
 
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+
+    def _absolute_to_agent_centric(self, pos):
+        center = self.size // 2
+        delta  = (center - self._agent_location[0], center - self._agent_location[1])
+        new_pos_r = (pos[0] + delta[0] + self.size) % self.size
+        new_pos_c = (pos[1] + delta[1] + self.size) % self.size
+        return (new_pos_r, new_pos_c)
+
+
+    def _agent_centric_to_absolute(self, pos):
+        center = self.size // 2
+        delta  = (center - self._agent_location[0], center - self._agent_location[1])
+        orig_r = (pos[0] - delta[0] + self.size) % self.size
+        orig_c = (pos[1] - delta[1] + self.size) % self.size
+        return (orig_r, orig_c)
 
 
     def render(self):
@@ -388,10 +417,12 @@ class GridWorldEnv_multitask(gym.Env):
         for c in range(self.size):
             row_str = ""
             for r in range(self.size):
-                pos = (r, c)
-                label = self.loc_to_label.get(pos, 5)
+                loc = (r, c)
+                if self.agent_centric_view:
+                    loc = self._agent_centric_to_absolute(loc)
+                label = self.loc_to_label.get(loc, 5)
                 symbol = label_to_icon.get(label, '?')
-                if tuple(self._agent_location) == pos:
+                if tuple(self._agent_location) == loc:
                     row_str += f"[{symbol}]"
                 else:
                     row_str += f" {symbol} "
