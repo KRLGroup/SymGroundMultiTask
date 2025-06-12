@@ -13,7 +13,7 @@ import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
-
+from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 
 # Parse arguments
 
@@ -135,7 +135,7 @@ def train_agent(args: Args, device: str = None):
             seed = args.seed,
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
-            device = device,
+            device = torch.device("cpu"),
             dataset = args.dataset
         ))
 
@@ -198,6 +198,12 @@ def train_agent(args: Args, device: str = None):
     else:
         raise ValueError("Incorrect algorithm name: {}".format(args.algo))
 
+    # move the environments to CUDA only after having spawned the other threads
+    if  isinstance(envs[0].env, GridWorldEnv_multitask):
+        for env in envs:
+            env.env.device = device
+            env.env.sym_grounder.to(device)
+
     if "optimizer_state" in status:
         algo.optimizer.load_state_dict(status["optimizer_state"])
         txt_logger.info("Loading optimizer from existing run.\n")
@@ -220,7 +226,7 @@ def train_agent(args: Args, device: str = None):
                 model_name = model_name,
                 ltl_sampler = eval_samplers[i],
                 seed = args.seed,
-                device = device,
+                device = torch.device("cpu"),
                 dataset = args.eval_datasets[i],
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
@@ -228,6 +234,14 @@ def train_agent(args: Args, device: str = None):
                 gnn = args.gnn,
                 dumb_ac = args.dumb_ac
             ))
+
+    # move the environments to CUDA only after having spawned the other threads
+    if  isinstance(evals[0].eval_envs[0].env, GridWorldEnv_multitask):
+        for evalu in evals:
+            evalu.device = device
+            for env in evalu.eval_envs:
+                env.env.device = device
+                env.env.sym_grounder.to(device)
 
     # TRAINING
 
