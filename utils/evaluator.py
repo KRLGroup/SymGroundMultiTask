@@ -55,16 +55,17 @@ class Eval:
             for env in eval_envs:
                 env.env.map = eval_envs[0].env.map
 
-        self.eval_envs = ParallelEnv(eval_envs)
+        self.eval_envs = eval_envs
+        self.eval_env = ParallelEnv(eval_envs)
 
 
     def eval(self, num_frames, episodes=100, stdout=True):
 
         # Load agent
         agent = Agent(
-            self.eval_envs.envs[0],
-            self.eval_envs.observation_space,
-            self.eval_envs.action_space,
+            self.eval_env.envs[0],
+            self.eval_env.observation_space,
+            self.eval_env.action_space,
             self.model_dir + "/train", 
             self.ignoreLTL,
             self.progression_mode,
@@ -79,7 +80,7 @@ class Eval:
         # Run agent
         start_time = time.time()
 
-        obss = self.eval_envs.reset()
+        obss = self.eval_env.reset()
         log_counter = 0
 
         log_episode_return = torch.zeros(self.num_procs, device=self.device)
@@ -89,7 +90,7 @@ class Eval:
         logs = {"num_frames_per_episode": [], "return_per_episode": []}
         while log_counter < episodes:
             actions = agent.get_actions(obss)
-            obss, rewards, dones, _ = self.eval_envs.step(actions)
+            obss, rewards, dones, _ = self.eval_env.step(actions)
             agent.analyze_feedbacks(rewards, dones)
 
             log_episode_return += torch.tensor(rewards, device=self.device, dtype=torch.float)
