@@ -483,13 +483,13 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
 
-class GridWorldEnv_LTL2Action_Base(GridWorldEnv_LTL2Action):
+class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
     def __init__(self):
         super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=False)
 
 
 
-class GridWorldEnv_LTL2Action_Agent_Centric(GridWorldEnv_LTL2Action):
+class GridWorldEnv_Agent_Centric(GridWorldEnv_LTL2Action):
     def __init__(self):
         super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=True)
 
