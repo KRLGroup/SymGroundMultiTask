@@ -452,10 +452,10 @@ class GridWorldEnv_multitask(gym.Env):
 # incorporates the symbol grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
-    def __init__(self, device, *args, **kwargs):
+    def __init__(self, device, grounder, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.device = device
-        self.sym_grounder = torch.load('sym_grounder.pth', map_location=self.device)
+        self.sym_grounder = torch.load(grounder, map_location=self.device)
         self.current_obs = None
 
 
@@ -484,14 +484,26 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
 class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
-    def __init__(self):
-        super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=False)
+    def __init__(self, device):
+        super().__init__(
+            device=device,
+            grounder='sym_grounder.pth',
+            randomize_loc=False,
+            wrap_around_map=True,
+            agent_centric_view=False
+        )
 
 
 
 class GridWorldEnv_Agent_Centric(GridWorldEnv_LTL2Action):
-    def __init__(self):
-        super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=True)
+    def __init__(self, device):
+        super().__init__(
+            device=device,
+            grounder='sym_grounder_agent_centric.pth',
+            randomize_loc=False,
+            wrap_around_map=True,
+            agent_centric_view=True
+        )
 
 
 
