@@ -19,29 +19,31 @@ test_ltl2action = Args(
 test_gridworld = Args(
 
     # General parameters
+    model_name = None,
     algo = "ppo",
     env = "GridWorld-v0",
     ltl_sampler = "None",
     dataset = "e54",
     log_interval = 10,
-    save_interval = 2500,
+    save_interval = 1000,
     procs = 1,
     frames = 20000000,
     gnn  =  "RGCN_8x32_ROOT_SHARED",
 
     # Evaluation parameters
     eval = True,
-    eval_episodes = 1000,
     eval_env = "GridWorld-v0",
-    ltl_samplers_eval = None,
-    eval_dataset = "e54test",
+    ltl_samplers_eval = [None, None],
+    eval_dataset = ["e54test", "e65test"],
+    eval_episodes = [1000, 50],
     eval_procs = 1,
 
     # Parameters for main algorithm
     epochs = 4,
     discount = 0.94,
     lr = 0.0003,
-    pretrained_gnn = False
+    pretrained_gnn = False,
+    pretrain_name = "pretrain"
 
 )
 

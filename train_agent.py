@@ -35,10 +35,11 @@ class Args:
 
     # Evaluation parameters
     eval: bool = False
-    eval_episodes: int = 5
+    eval_episodes: List[int] = [5]
     eval_env: Optional[str] = None
+    eval_interval: int = 100
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
-    eval_dataset: str = None
+    eval_datasets: Optional[List[str]] = None
     eval_procs: int = 1
 
     # Parameters for main algorithm
@@ -204,19 +205,22 @@ def train_agent(args: Args, device: str = None):
 
     # init the evaluator
     if args.eval:
+
         eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
 
+        assert len(eval_samplers) == len(eval_episodes) == len(eval_datasets)
+
         evals = []
-        for eval_sampler in eval_samplers:
+        for i in range(len(eval_samplers)):
             evals.append(utils.Eval(
                 env = eval_env,
                 model_name = model_name,
-                ltl_sampler = eval_sampler,
+                ltl_sampler = eval_samplers[i],
                 seed = args.seed,
                 device = device,
-                dataset = args.eval_dataset,
+                dataset = args.eval_datasets[i],
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
                 progression_mode = progression_mode,
@@ -247,6 +251,7 @@ def train_agent(args: Args, device: str = None):
         # Print logs
 
         if update % args.log_interval == 0:
+    
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
@@ -302,30 +307,31 @@ def train_agent(args: Args, device: str = None):
             utils.save_status(status, model_dir + "/train")
             txt_logger.info("Status saved")
 
-            # Evaluate
+        # Compute Evaluation
 
-            if args.eval:
+        if args.eval and args.eval_interval > 0 and update % args.eval_interval == 0:
 
-                for evalu in evals:
+            for i, evalu in enumerate(evals):
 
-                    logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes)
+                logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
 
-                    num_frame_pe = sum(logs_num_frames_per_episode)
-                    return_per_episode = utils.synthesize(logs_returns_per_episode)
-                    average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
-                    num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
+                num_frame_pe = sum(logs_num_frames_per_episode)
+                return_per_episode = utils.synthesize(logs_returns_per_episode)
+                average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
+                num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
 
-                    header = ["frames"]
-                    data = [num_frame_pe]
-                    header += ["average_discounted_return"]
-                    data += [average_discounted_return]
-                    header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
-                    data += num_frames_per_episode.values()
+                header = ["frames"]
+                data = [num_frame_pe]
+                header += ["average_discounted_return"]
+                data += [average_discounted_return]
+                header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
+                data += num_frames_per_episode.values()
 
-                    txt_logger.info("Evaluation: F {:06} | ADR {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02}".format(*data))
+                txt_logger.info(f"Evaluator {i}")
+                txt_logger.info("F {:06} | ADR {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02}".format(*data))
 
-                    header += ["return_" + key for key in return_per_episode.keys()]
-                    data += return_per_episode.values()
+                header += ["return_" + key for key in return_per_episode.keys()]
+                data += return_per_episode.values()
 
-                    for field, value in zip(header, data):
-                        evalu.tb_writer.add_scalar(field, value, num_frames)
+                for field, value in zip(header, data):
+                    evalu.tb_writer.add_scalar(field, value, num_frames)
