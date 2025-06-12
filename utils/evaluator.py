@@ -32,7 +32,9 @@ class Eval:
         self.discount = discount
 
         self.model_dir = get_model_dir(model_name)
-        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
+
+        eval_name = ltl_sampler if ltl_sampler != 'None' else dataset
+        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + eval_name)
 
         # Load environments for evaluation
         eval_envs = []

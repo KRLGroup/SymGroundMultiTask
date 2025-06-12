@@ -25,7 +25,7 @@ test_gridworld = Args(
     ltl_sampler = "None",
     dataset = "e54",
     log_interval = 10,
-    save_interval = 1000,
+    save_interval = 100,
     procs = 1,
     frames = 20000000,
     gnn  =  "RGCN_8x32_ROOT_SHARED",
@@ -33,8 +33,9 @@ test_gridworld = Args(
     # Evaluation parameters
     eval = True,
     eval_env = "GridWorld-v0",
-    ltl_samplers_eval = [None, None],
-    eval_dataset = ["e54test", "e65test"],
+    eval_interval = 500,
+    ltl_samplers_eval = ['None', 'None'],
+    eval_datasets = ["e54test", "e65test"],
     eval_episodes = [1000, 50],
     eval_procs = 1,
 
@@ -42,7 +43,7 @@ test_gridworld = Args(
     epochs = 4,
     discount = 0.94,
     lr = 0.0003,
-    pretrained_gnn = False,
+    pretrained_gnn = True,
     pretrain_name = "pretrain"
 
 )

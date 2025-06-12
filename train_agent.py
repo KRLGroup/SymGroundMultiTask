@@ -35,7 +35,7 @@ class Args:
 
     # Evaluation parameters
     eval: bool = False
-    eval_episodes: List[int] = [5]
+    eval_episodes: List[int] = None
     eval_env: Optional[str] = None
     eval_interval: int = 100
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
@@ -207,10 +207,11 @@ def train_agent(args: Args, device: str = None):
     if args.eval:
 
         eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
+        eval_datasets = args.eval_datasets if args.eval_datasets else [args.dataset]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
 
-        assert len(eval_samplers) == len(eval_episodes) == len(eval_datasets)
+        assert len(eval_samplers) == len(eval_datasets) == len(args.eval_episodes)
 
         evals = []
         for i in range(len(eval_samplers)):
