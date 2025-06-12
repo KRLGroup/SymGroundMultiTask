@@ -25,7 +25,7 @@ class GridWorldEnv_multitask(gym.Env):
     metadata = {
         "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
-    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
+    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False, 
         img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=False, save_obs=False, wrap_around_map=True, 
         agent_centric_view=True):
 
@@ -480,6 +480,18 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         img = self.current_obs
         pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
         return self.dictionary_symbols[pred_sym]
+
+
+
+class GridWorldEnv_LTL2Action_Base(GridWorldEnv_LTL2Action):
+    def __init__(self):
+        super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=False)
+
+
+
+class GridWorldEnv_LTL2Action_Agent_Centric(GridWorldEnv_LTL2Action):
+    def __init__(self):
+        super().__init__(randomize_loc=False, wrap_around_map=True, agent_centric_view=True)
 
 
 
