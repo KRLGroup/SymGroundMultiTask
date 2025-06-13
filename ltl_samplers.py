@@ -245,18 +245,32 @@ class DatasetSampler(LTLSampler):
         self.shuffle = shuffle
         self.use_automata = use_automata
         self.ids = ids
-        self.cycle = 0
         self.sampled_formulas = 0
 
+        # load formulas
         with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
             formulas = pickle.load(f)
 
         if self.use_automata:
+
+            # load automata
             with open(os.path.join(dirpath, 'automata.pkl'), 'rb') as f:
                 automata = pickle.load(f)
             assert len(formulas) == len(automata)
+
+            # add self-loops on empty cells
+            for i in range(len(self.formulas)):
+                new_transitions = self.automata[i].transitions
+                for state in self.automata[i].transitions.keys():
+                    new_transitions[state][-1] = state
+                self.automata[i].transitions = new_transitions
+
             self.items = list(zip(formulas, automata))
 
+        else:
+            self.items = formulas
+
+        # filter for ids
         if self.ids != None:
             self.items = self.items[ids]
 
@@ -265,7 +279,8 @@ class DatasetSampler(LTLSampler):
 
     def sample(self):
 
-        if self.sampled_formulas % self.n_formulas == 0 and self.shuffle:
+        # shuffle at each cycle
+        if self.shuffle and self.sampled_formulas % self.n_formulas == 0:
             np.random.shuffle(self.items)
 
         sample = self.items[self.sampled_formulas % self.n_formulas]
