@@ -29,7 +29,7 @@ class GridWorldEnv_multitask(gym.Env):
         img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=True, save_obs=False, wrap_around_map=True, 
         agent_centric_view=True):
 
-        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
+        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
         self.randomize_locations = randomize_loc
         self.produced_tasks = 0
@@ -64,15 +64,11 @@ class GridWorldEnv_multitask(gym.Env):
         with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
             self.automata = pickle.load(f)
 
-        if self.shuffle_tasks:
-            tasks = list(zip(self.formulas, self.automata))
-            random.shuffle(tasks)
-            self.formulas, self.automata = zip(*tasks)
-
+        # add self-loops on empty cells
         for i in range(len(self.formulas)):
             new_transitions = self.automata[i].transitions
             for state in self.automata[i].transitions.keys():
-                new_transitions[state][5]= state
+                new_transitions[state][-1] = state
             self.automata[i].transitions = new_transitions
 
         # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
@@ -172,6 +168,12 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def reset(self):
+
+        # shuffle dataset
+        if self.shuffle_tasks and self.produced_tasks % len(self.formulas) == 0:
+            tasks = list(zip(self.formulas, self.automata))
+            random.shuffle(tasks)
+            self.formulas, self.automata = zip(*tasks)
 
         # extract task
         self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
@@ -392,7 +394,7 @@ class GridWorldEnv_multitask(gym.Env):
             'c': 'door',
             'd': 'gem',
             'e': 'egg',
-            'f': 'nothing'
+            '': 'nothing'
         }
 
         if isinstance(formula, tuple):
