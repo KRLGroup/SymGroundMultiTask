@@ -28,8 +28,8 @@ register(
 )
 
 register(
-    id='Simple-LTL-Env-6L-v0',
-    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnv6Letters'
+    id='Simple-LTL-Env-5L-v0',
+    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnv5Letters'
 )
 
 

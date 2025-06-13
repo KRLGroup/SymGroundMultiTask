@@ -50,11 +50,11 @@ test_gridworld = Args(
 
 
 # pretrain for GridWorld
-test_simple_ltl_6l = Args(
+test_simple_ltl_5l = Args(
 
     # General parameters
     algo = "ppo",
-    env = "Simple-LTL-Env-6L-v0",
+    env = "Simple-LTL-Env-5L-v0",
     ltl_sampler = "Eventually_1_5_1_4",
     log_interval = 5,
     save_interval = 20,
