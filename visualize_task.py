@@ -17,12 +17,12 @@ parser.add_argument('--automaton', dest='automaton', default=True, action='store
 parser.add_argument('--no-automaton', dest='automaton', action='store_false')
 args = parser.parse_args()
 
-MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(MAIN_DIR, "saves")
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(REPO_DIR, "saves")
 
 
 if args.mode == "file":
-    TASKS_DIR = os.path.join(MAIN_DIR, args.folder)
+    TASKS_DIR = os.path.join(REPO_DIR, args.folder)
     with open(os.path.join(TASKS_DIR, "formulas.pkl"), "rb") as f:
         formula = pickle.load(f)[args.id]
 

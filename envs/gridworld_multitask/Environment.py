@@ -16,7 +16,7 @@ obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
 WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
-MAIN_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
+REPO_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 
 
 class GridWorldEnv_multitask(gym.Env):
@@ -120,7 +120,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             # save images as seen by the agent
             if save_obs:
-                obs_folder = os.path.join(MAIN_DIR, 'saves/env_obs')
+                obs_folder = os.path.join(REPO_DIR, 'saves/env_obs')
                 if not os.path.exists(obs_folder):
                     os.makedirs(obs_folder)
                 for r in range(self.size):

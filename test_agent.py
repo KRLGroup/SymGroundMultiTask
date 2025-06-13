@@ -17,8 +17,8 @@ parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle")
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
-MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
-AGENT_DIR = os.path.join(MAIN_DIR, args.agent_dir)
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+AGENT_DIR = os.path.join(REPO_DIR, args.agent_dir)
 
 
 # load training config

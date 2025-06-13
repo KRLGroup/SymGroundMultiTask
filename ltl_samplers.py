@@ -234,8 +234,8 @@ def getLTLSampler(sampler_id, propositions):
 
 
 
-MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASETS_DIR = os.path.join(MAIN_DIR, "datasets")
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASETS_DIR = os.path.join(REPO_DIR, "datasets")
 
 # sampler that reads the samplers from a precomputed dataset
 # (computing the automata is too slow to be done online)
