@@ -3,12 +3,12 @@ from gym import spaces
 import random
 import numpy as np
 import torch, torchvision
-from FiniteStateMachine import MooreMachine
 from itertools import product
 import pickle
 import cv2
 import os
 from ltl_wrappers import LTLEnv
+from ltl_samplers import getLTLSampler
 
 OBS_SIZE = 64
 obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
@@ -17,7 +17,6 @@ WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
-DATASETS_DIR = os.path.join(MAIN_DIR, "datasets")
 
 
 class GridWorldEnv_multitask(gym.Env):
@@ -26,13 +25,12 @@ class GridWorldEnv_multitask(gym.Env):
         "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
 
     def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False, 
-        img_dir="imgs_16x16", task_dir="e54", shuffle_tasks=True, save_obs=False, wrap_around_map=True, 
+        img_dir="imgs_16x16", ltl_sampler="Dataset_e54", shuffle_tasks=True, save_obs=False, wrap_around_map=True, 
         agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
         self.randomize_locations = randomize_loc
-        self.produced_tasks = 0
 
         self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
         self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
@@ -58,21 +56,10 @@ class GridWorldEnv_multitask(gym.Env):
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
 
-        # load automata and formulas
-        with open(os.path.join(DATASETS_DIR, task_dir, "formulas.pkl"), "rb") as f:
-            self.formulas = pickle.load(f)
-        with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
-            self.automata = pickle.load(f)
-
-        # add self-loops on empty cells
-        for i in range(len(self.formulas)):
-            new_transitions = self.automata[i].transitions
-            for state in self.automata[i].transitions.keys():
-                new_transitions[state][-1] = state
-            self.automata[i].transitions = new_transitions
+        self.sampler = getLTLSampler(ltl_sampler, self.dictionary_symbols)
 
         # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
-        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        # print(f"Iter {self.sampler.sampled_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -169,32 +156,19 @@ class GridWorldEnv_multitask(gym.Env):
 
     def reset(self):
 
-        # shuffle dataset
-        if self.shuffle_tasks and self.produced_tasks % len(self.formulas) == 0:
-            tasks = list(zip(self.formulas, self.automata))
-            random.shuffle(tasks)
-            self.formulas, self.automata = zip(*tasks)
-
         # extract task
-        self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
-        current_automa = self.automata[self.produced_tasks % len(self.automata)]
-        self.produced_tasks += 1
-        self.automaton = MooreMachine(
-            current_automa.transitions,
-            current_automa.acceptance,
-            f"random_task_{self.produced_tasks}",
-            reward="ternary",
-            dictionary_symbols=self.dictionary_symbols
-        )
+        self.current_formula, self.current_automaton = self.sampler.sample()
+
+        # the initial state is always 0
         self.curr_automaton_state = 0
 
-        # self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
-        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        # self.singletask_urs, _ = find_reasoning_shortcuts(self.current_automaton)
+        # print(f"Iter {self.sampler.sampled_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
 
         self.curr_step = 0
 
         # randomize item locations and recompute
-        if self.randomize_locations and self.produced_tasks % 100 == 0:
+        if self.randomize_locations and self.sampler.sampled_tasks % 100 == 0:
 
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
@@ -252,7 +226,7 @@ class GridWorldEnv_multitask(gym.Env):
         # compute initial observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        return observation, self.automaton, self.loc_to_obs, self.loc_to_label
+        return observation, self.current_automaton, self.loc_to_obs, self.loc_to_label
 
 
     def step(self, action):
@@ -268,8 +242,8 @@ class GridWorldEnv_multitask(gym.Env):
 
         # update automaton
         sym = self.loc_to_label[tuple(self._agent_location)]
-        self.new_automaton_state = self.automaton.transitions[self.curr_automaton_state][sym]
-        reward = self.automaton.rewards[self.new_automaton_state]
+        self.new_automaton_state = self.current_automaton.transitions[self.curr_automaton_state][sym]
+        reward = self.current_automaton.rewards[self.new_automaton_state]
         self.curr_automaton_state = self.new_automaton_state
 
         # compute observation
@@ -523,23 +497,8 @@ class GridWorldEnv_No_Wrap_Around(GridWorldEnv_LTL2Action):
 
 class LTLWrapper(LTLEnv):
 
-    def __init__(self, task_dir=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sampler = None # make sure we don't use this
-
-        # load automata and formulas
-        if task_dir:
-
-            with open(os.path.join(DATASETS_DIR, task_dir, "formulas.pkl"), "rb") as f:
-                self.env.formulas = pickle.load(f)
-            with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
-                self.env.automata = pickle.load(f)
-
-            for i in range(len(self.env.formulas)):
-                new_transitions = self.env.automata[i].transitions
-                for state in self.env.automata[i].transitions.keys():
-                    new_transitions[state][5]= state
-                self.env.automata[i].transitions = new_transitions
 
 
     def step(self, action):
@@ -579,5 +538,6 @@ class LTLWrapper(LTLEnv):
         return ltl_obs, reward, done, info
 
 
+    # the formula is set by the environment
     def sample_ltl_goal(self):
         return self.env.current_formula

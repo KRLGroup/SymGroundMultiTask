@@ -244,6 +244,7 @@ class DFA:
         s.render(save_path, format='pdf', cleanup=True, view=True)
 
 
+
 class MooreMachine(DFA):
 
     def __init__(self, arg1, arg2, arg3, reward = "distance", dictionary_symbols = None):

@@ -13,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--agent_dir", default="storage/RGCN_8x32_ROOT_SHARED_None_GridWorld-v0_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
-parser.add_argument("--dataset", default="/home/matt/SymGroundMultiTask/datasets/e54test")
+parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle")
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
@@ -30,8 +30,7 @@ print(f"\nConfig:\n{config}")
 env = utils.make_env(
     config.env,
     progression_mode=config.progression_mode,
-    ltl_sampler=config.ltl_sampler,
-    dataset=args.dataset,
+    ltl_sampler=sampler,
     seed=1,
     intrinsic=config.int_reward,
     noLTL=config.noLTL,
@@ -40,7 +39,7 @@ env = utils.make_env(
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
 # set formula
-env.env.produced_tasks = args.formula_id
+env.env.sampler.sampled_tasks = args.formula_id
 
 
 # load training status

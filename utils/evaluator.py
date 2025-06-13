@@ -17,8 +17,8 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_name, ltl_sampler, seed=0, device="cpu", dataset=None, argmax=False,
-                num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
+    def __init__(self, env, model_name, ltl_sampler, seed=0, device="cpu", argmax=False, num_procs=1, 
+        ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
 
         self.env = env
         self.device = device
@@ -33,8 +33,7 @@ class Eval:
 
         self.model_dir = get_model_dir(model_name)
 
-        eval_name = ltl_sampler if ltl_sampler != 'None' else dataset
-        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + eval_name)
+        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
 
         # Load environments for evaluation
         eval_envs = []
@@ -46,8 +45,7 @@ class Eval:
                 seed = seed,
                 intrinsic = 0,
                 noLTL = False,
-                device = device,
-                dataset = dataset
+                device = device
             ))
 
         eval_envs[0].reset()

@@ -21,9 +21,8 @@ test_gridworld = Args(
     # General parameters
     model_name = None,
     algo = "ppo",
-    env = "GridWorld-v0",
-    ltl_sampler = "None",
-    dataset = "e54",
+    env = "GridWorld-v1",
+    ltl_sampler = "Dataset_e54",
     log_interval = 10,
     save_interval = 100,
     procs = 1,
@@ -32,10 +31,9 @@ test_gridworld = Args(
 
     # Evaluation parameters
     eval = True,
-    eval_env = "GridWorld-v0",
+    eval_env = "GridWorld-v1",
     eval_interval = 500,
-    ltl_samplers_eval = ['None', 'None'],
-    eval_datasets = ["e54test", "e65test"],
+    ltl_samplers_eval = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
     eval_procs = 1,
 

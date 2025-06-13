@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--env", default="GridWorld-v0")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
-parser.add_argument("--sampler", default="None", type=str)
+parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle", type=str)
 args = parser.parse_args()
 
 
@@ -27,7 +27,7 @@ if "Letter" in args.env:
     process_formula = lambda formula : formula
 
 # set formula
-env.env.produced_tasks = args.formula_id
+env.env.sampler.sampled_tasks = args.formula_id
 
 # TEST
 

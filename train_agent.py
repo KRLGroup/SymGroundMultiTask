@@ -24,7 +24,6 @@ class Args:
     algo: str # a2c or ppo
     env: str
     ltl_sampler: str = "Default" # Must be None for GridWorld
-    dataset: str = None
     model_name: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
@@ -39,7 +38,6 @@ class Args:
     eval_env: Optional[str] = None
     eval_interval: int = 100
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
-    eval_datasets: Optional[List[str]] = None
     eval_procs: int = 1
 
     # Parameters for main algorithm
@@ -135,8 +133,7 @@ def train_agent(args: Args, device: str = None):
             seed = args.seed,
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
-            device = torch.device("cpu"),
-            dataset = args.dataset
+            device = torch.device("cpu")
         ))
 
     # Sync environments
@@ -213,21 +210,19 @@ def train_agent(args: Args, device: str = None):
     if args.eval:
 
         eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
-        eval_datasets = args.eval_datasets if args.eval_datasets else [args.dataset]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
 
-        assert len(eval_samplers) == len(eval_datasets) == len(args.eval_episodes)
+        assert len(eval_samplers) == len(args.eval_episodes)
 
         evals = []
-        for i in range(len(eval_samplers)):
+        for sampler in eval_samplers:
             evals.append(utils.Eval(
                 env = eval_env,
                 model_name = model_name,
-                ltl_sampler = eval_samplers[i],
+                ltl_sampler = sampler,
                 seed = args.seed,
                 device = torch.device("cpu"),
-                dataset = args.eval_datasets[i],
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
                 progression_mode = progression_mode,
