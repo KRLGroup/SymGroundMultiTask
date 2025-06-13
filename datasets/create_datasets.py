@@ -1,19 +1,14 @@
-"""
-Example saving formulas:
-    $ python -m lab.datasets lab/datasets/e54 formulas
-
-Example saving automata:
-    $ python -m lab.datasets lab/datasets/e54 automata
-"""
-
 from pathlib import Path
-from dataset import Dataset
+from .dataset import Dataset
+
+
+DATASETS_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # Available datasets
 
 train_dataset = Dataset(
-    path=Path("lab/storage/datasets/e54"),
+    path=Path(os.path.join(DATASETS_DIR, "e54")),
     seed=42,
     n_formulas=10000,
     propositions=["a", "b", "c", "d", "e"],
@@ -22,7 +17,7 @@ train_dataset = Dataset(
 )
 
 test_dataset = Dataset(
-    path=Path("lab/storage/datasets/e54test"),
+    path=Path(os.path.join(DATASETS_DIR, "e54test")),
     seed=42,
     n_formulas=1000,
     propositions=["a", "b", "c", "d", "e"],
@@ -31,7 +26,7 @@ test_dataset = Dataset(
 )
 
 hard_test_dataset = Dataset(
-    path=Path("lab/storage/datasets/e65test"),
+    path=Path(os.path.join(DATASETS_DIR, "e65test")),
     seed=42,
     n_formulas=50,
     propositions=["a", "b", "c", "d", "e"],
@@ -39,10 +34,11 @@ hard_test_dataset = Dataset(
     disjoint_from=None,
 )
 
+
 datasets = [
     train_dataset,
     test_dataset,
-    hard_test_dataset
+    hard_test_dataset,
 ]
 
 
@@ -51,6 +47,7 @@ def get_dataset(path: Path) -> Dataset:
         if dataset.path == path:
             return dataset
     raise ValueError(f"Dataset {path} not found.")
+
 
 
 if __name__ == "__main__":
