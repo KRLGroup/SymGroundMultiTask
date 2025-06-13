@@ -535,11 +535,6 @@ class LTLWrapper(LTLEnv):
             with open(os.path.join(DATASETS_DIR, task_dir, "automata.pkl"), "rb") as f:
                 self.env.automata = pickle.load(f)
 
-            if self.env.shuffle_tasks:
-                tasks = list(zip(self.env.formulas, self.env.automata))
-                random.shuffle(tasks)
-                self.env.formulas, self.env.automata = zip(*tasks)
-
             for i in range(len(self.env.formulas)):
                 new_transitions = self.env.automata[i].transitions
                 for state in self.env.automata[i].transitions.keys():
