@@ -509,6 +509,18 @@ class GridWorldEnv_Agent_Centric(GridWorldEnv_LTL2Action):
 
 
 
+class GridWorldEnv_No_Wrap_Around(GridWorldEnv_LTL2Action):
+    def __init__(self, device):
+        super().__init__(
+            device=device,
+            grounder='sym_grounder_agent_centric.pth',
+            randomize_loc=False,
+            wrap_around_map=False,
+            agent_centric_view=False
+        )
+
+
+
 class LTLWrapper(LTLEnv):
 
     def __init__(self, task_dir=None, *args, **kwargs):

@@ -20,6 +20,11 @@ register(
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Agent_Centric'
 )
 
+register(
+    id='GridWorld-v2',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_No_Wrap_Around'
+)
+
 
 ### Simple LTL Envs
 register(
