@@ -23,7 +23,7 @@ class Args:
     # General parameters
     algo: str # a2c or ppo
     env: str
-    ltl_sampler: str = "Default" # Must be None for GridWorld
+    ltl_sampler: str = "Default"
     model_name: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
@@ -286,7 +286,7 @@ def train_agent(args: Args, device: str = None):
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
             # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
-                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
+                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
             .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
@@ -302,7 +302,7 @@ def train_agent(args: Args, device: str = None):
 
         # Save status
 
-        if args.save_interval > 0 and update % args.save_interval == 0:
+        if (args.save_interval > 0 and update % args.save_interval == 0) or (args.eval and args.eval_interval > 0 and update % args.eval_interval == 0):
 
             status = {
                 "num_frames": num_frames,
@@ -338,7 +338,7 @@ def train_agent(args: Args, device: str = None):
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
-                txt_logger.info("F {:06} | ADR {:.3f} | F:μσmM {:02.1f} {:02.1f} {:02} {:02}".format(*data))
+                txt_logger.info("F {:07} | ADR {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02}".format(*data))
 
                 header += ["return_" + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
