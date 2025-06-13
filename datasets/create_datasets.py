@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from .dataset import Dataset
 
 
@@ -43,8 +44,9 @@ datasets = [
 
 
 def get_dataset(path: Path) -> Dataset:
+    resolved_path = path.resolve()
     for dataset in datasets:
-        if dataset.path == path:
+        if dataset.path.resolve() == resolved_path:
             return dataset
     raise ValueError(f"Dataset {path} not found.")
 
@@ -55,7 +57,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", type=str, default="lab/storage/datasets/e54")
+    parser.add_argument("--path", type=str, default="./datasets/e54")
     parser.add_argument("--target", type=str, default="formulas", choices=["formulas", "automata", "both"])
     args = parser.parse_args()
 

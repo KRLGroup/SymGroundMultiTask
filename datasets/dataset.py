@@ -92,7 +92,7 @@ class Dataset:
         self.mkdir()
         check_existing(self.config_path)
         config = {
-            "path": self.path,
+            "path": str(self.path),
             "seed": self.seed,
             "n_formulas": self.n_formulas,
             "propositions": self.propositions,

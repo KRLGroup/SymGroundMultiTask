@@ -55,16 +55,16 @@ if __name__ == "__main__":
 
 
     print("dataset1 duplicates:")
-    duplicates = get_dataset_duplicates(dataset1_path)
+    duplicates = get_dataset_duplicates(args.dataset1_path)
     print(duplicates)
 
     print("dataset2 duplicates:")
-    duplicates = get_dataset_duplicates(dataset2_path)
+    duplicates = get_dataset_duplicates(args.dataset2_path)
     print(duplicates)
 
     print("indexes of common formulas:")
     indexes = get_dataset_common_index_pairs(
-        dataset1_path,
-        dataset2_path
+        args.dataset1_path,
+        args.dataset2_path
     )
     print(indexes)
