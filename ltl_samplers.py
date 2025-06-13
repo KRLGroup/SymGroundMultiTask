@@ -12,6 +12,7 @@ import pickle
 import yaml
 import numpy as np
 
+from FiniteStateMachine import MooreMachine
 
 
 class LTLSampler():
@@ -236,6 +237,8 @@ def getLTLSampler(sampler_id, propositions):
 MAIN_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASETS_DIR = os.path.join(MAIN_DIR, "datasets")
 
+# sampler that reads the samplers from a precomputed dataset
+# (computing the automata is too slow to be done online)
 class DatasetSampler(LTLSampler):
 
     def __init__(self, propositions, dataset_name, shuffle=True, use_automata=True, ids=None):
@@ -245,25 +248,44 @@ class DatasetSampler(LTLSampler):
         self.shuffle = shuffle
         self.use_automata = use_automata
         self.ids = ids
-        self.sampled_formulas = 0
+        self.sampled_tasks = 0
+        self.propositions = propositions
+
+        with open(os.path.join(dataset_folder, 'config.pkl'), 'rb') as f:
+            self.config = pickle.load(f)
+
+        # the first n-1 propositons are used in the tasks
+        assert self.config["propositions"] == self.propositions[:-1]
+        # the last proposition means no propositions
+        no_prop = len(self.propositions) - 1
 
         # load formulas
         with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
             formulas = pickle.load(f)
+        assert len(formulas) == self.config["n_formulas"]
 
         if self.use_automata:
 
             # load automata
-            with open(os.path.join(dirpath, 'automata.pkl'), 'rb') as f:
+            with open(os.path.join(dataset_folder, 'automata.pkl'), 'rb') as f:
                 automata = pickle.load(f)
-            assert len(formulas) == len(automata)
+            assert len(automata) == self.config["n_formulas"]
 
-            # add self-loops on empty cells
-            for i in range(len(self.formulas)):
-                new_transitions = self.automata[i].transitions
-                for state in self.automata[i].transitions.keys():
-                    new_transitions[state][-1] = state
-                self.automata[i].transitions = new_transitions
+            for i in range(len(formulas)):
+
+                # add self-loops when no proposition occurs
+                new_transitions = automata[i].transitions
+                for state in automata[i].transitions.keys():
+                    new_transitions[state][no_prop] = state
+
+                # rebuild the automaton with new transitions
+                automata[i] = MooreMachine(
+                    new_transitions,
+                    automata[i].acceptance,
+                    None,
+                    reward="ternary",
+                    dictionary_symbols=self.propositions
+                )
 
             self.items = list(zip(formulas, automata))
 
@@ -274,16 +296,16 @@ class DatasetSampler(LTLSampler):
         if self.ids != None:
             self.items = self.items[ids]
 
-        self.n_formulas = len(items)
+        self.n_tasks = len(self.items)
 
 
     def sample(self):
 
         # shuffle at each cycle
-        if self.shuffle and self.sampled_formulas % self.n_formulas == 0:
+        if self.shuffle and self.sampled_tasks % self.n_tasks == 0:
             np.random.shuffle(self.items)
 
-        sample = self.items[self.sampled_formulas % self.n_formulas]
-        self.sampled_formulas += 1
+        sample = self.items[self.sampled_tasks % self.n_tasks]
+        self.sampled_tasks += 1
 
         return sample
