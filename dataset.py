@@ -16,6 +16,7 @@ def save_verbose(obj, path, name):
         pickle.dump(obj, f)
         print('Done.')
 
+
 def check_existing(path, ask_abort=True):
     if os.path.isfile(path):
         if ask_abort and input(f'File {path} already exists. Overwrite? [y/N] ').lower() != 'y':
@@ -27,6 +28,7 @@ def check_existing(path, ask_abort=True):
 
 @dataclass
 class Dataset:
+
     path: Path
     seed: int
     n_formulas: int
@@ -34,21 +36,31 @@ class Dataset:
     sampler: str
     disjoint_from: Optional['Dataset']
 
+
     def mkdir(self):
         self.path.mkdir(parents=True, exist_ok=True)
+
 
     @property
     def formulas_path(self):
         return self.path / 'formulas.pkl'
 
+
     @property
     def automata_path(self):
         return self.path / 'automata.pkl'
+
+
+    @property
+    def config_path(self):
+        return self.path / 'config.pkl'
+
 
     def load_formulas(self):
         with open(self.formulas_path, 'rb') as f:
             formulas = pickle.load(f)
         return formulas
+
 
     def save_formulas(self, pbar=True):
         self.mkdir()
@@ -73,11 +85,28 @@ class Dataset:
                     formula = None
             formulas.append(formula)
         save_verbose(formulas, self.formulas_path, 'formulas')
+        self.save_config()
+
+
+    def save_config(self):
+        self.mkdir()
+        check_existing(self.config_path)
+        config = {
+            "path": self.path,
+            "seed": self.seed,
+            "n_formulas": self.n_formulas,
+            "propositions": self.propositions,
+            "sampler": self.sampler,
+            "disjoint_from": self.disjoint_from
+        }
+        save_verbose(config, self.config_path, 'config')
+
 
     def load_automata(self):
         with open(self.automata_path, 'rb') as f:
             automata = pickle.load(f)
         return automata
+
 
     def save_automata(self, pbar=True):
         formulas = self.load_formulas()
@@ -89,4 +118,3 @@ class Dataset:
         for formula in tqdm(formulas) if pbar else formulas:
             automata += [ltl_ast2dfa(formula, symbols=self.propositions)]
         save_verbose(automata, self.automata_path, 'automata')
-
