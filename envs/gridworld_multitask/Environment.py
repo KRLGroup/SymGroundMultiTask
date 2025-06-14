@@ -451,7 +451,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         return self.dictionary_symbols.copy()
 
 
-    # returns the propositions that currently hold according to the grounder
+    # returns the proposition that currently holds according to the grounder
     def get_events(self):
         img = self.current_obs
         pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
@@ -487,7 +487,7 @@ class GridWorldEnv_No_Wrap_Around(GridWorldEnv_LTL2Action):
     def __init__(self, device):
         super().__init__(
             device=device,
-            grounder='sym_grounder_agent_centric.pth',
+            grounder='sym_grounder.pth',
             randomize_loc=False,
             wrap_around_map=False,
             agent_centric_view=False
