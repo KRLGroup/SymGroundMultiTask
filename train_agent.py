@@ -72,9 +72,8 @@ def train_agent(args: Args, device: str = None):
 
     use_mem = args.recurrence > 1
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M-%S")
 
-    # Set run dir
+    # build GNN name
     gnn_name = args.gnn
     if args.ignoreLTL:
         gnn_name = "IgnoreLTL"
@@ -87,42 +86,43 @@ def train_agent(args: Args, device: str = None):
     if use_mem:
         gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
 
+    # compute model_name
     default_model_name = f"{gnn_name}_{args.ltl_sampler}_{args.env}_seed:{args.seed}_epochs:{args.epochs}_bs:{args.batch_size}_fpp:{args.frames_per_proc}_dsc:{args.discount}_lr:{args.lr}_ent:{args.entropy_coef}_clip:{args.clip_eps}_prog:{args.progression_mode}"
-
     model_name = args.model_name or default_model_name
+
+    # compute model_dir
     storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
     model_dir = utils.get_model_dir(model_name, storage_dir)
 
+    # compute pretrained_model_dir
     pretrained_model_dir = None
     if args.pretrained_gnn:
         assert(args.progression_mode == "full")
         default_pretrain_name = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
         pretrain_name = args.pretrain_name or default_pretrain_name
-        print(pretrain_name)
         model_dirs = glob.glob(f"symbol-storage/{pretrain_name}/train")
         if len(model_dirs) == 0:
             raise Exception("Pretraining directory not found.")
         elif len(model_dirs) > 1:
             raise Exception("More than 1 candidate pretraining directory found.")
         pretrained_model_dir = model_dirs[0]
+        print(f"Using pretrain from {pretrained_model_dir}.")
 
-    # Load loggers and Tensorboard writer
+    # load loggers and Tensorboard writer
     txt_logger = utils.get_txt_logger(model_dir + "/train")
     csv_file, csv_logger = utils.get_csv_logger(model_dir + "/train")
     tb_writer = tensorboardX.SummaryWriter(model_dir + "/train")
     utils.save_config(model_dir + "/train", args)
 
-    # Log command and all script arguments
+    # log command and all script arguments
     txt_logger.info("{}\n".format(" ".join(sys.argv)))
     txt_logger.info("{}\n".format(args))
-
-    # Set seed for all randomness sources
-    utils.set_seed(args.seed)
-
-    # Set device
     txt_logger.info(f"Device: {device}\n")
 
-    # Load environments
+    # set seed for all randomness sources
+    utils.set_seed(args.seed)
+
+    # load environments
     envs = []
     progression_mode = args.progression_mode
     for i in range(args.procs):
@@ -136,7 +136,7 @@ def train_agent(args: Args, device: str = None):
             device = torch.device("cpu")
         ))
 
-    # Sync environments
+    # sync environments
     envs[0].reset()
     if isinstance(envs[0].env, LetterEnv):
         txt_logger.info("Using fixed maps.")
@@ -145,13 +145,14 @@ def train_agent(args: Args, device: str = None):
 
     txt_logger.info("Environments loaded\n")
 
-    # Load training status
+    # load training status
     try:
         status = utils.get_status(model_dir + "/train", device)
     except OSError:
         status = {"num_frames": 0, "update": 0}
     txt_logger.info("Training status loaded.\n")
 
+    # load pretrained model status
     if pretrained_model_dir is not None:
         try:
             pretrained_status = utils.get_status(pretrained_model_dir, device)
@@ -159,22 +160,25 @@ def train_agent(args: Args, device: str = None):
             txt_logger.info("Failed to load pretrained model.\n")
             exit(1)
 
-    # Load observations preprocessor
+    # load observations preprocessor
     using_gnn = (args.gnn != "GRU" and args.gnn != "LSTM")
     obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], using_gnn, progression_mode)
     if "vocab" in status and preprocess_obss.vocab is not None:
         preprocess_obss.vocab.load_vocab(status["vocab"])
     txt_logger.info("Observations preprocessor loaded.\n")
 
-    # Load model
+    # load model
     if use_mem:
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
     else:
         acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl, device)
 
+    # load existing model
     if "model_state" in status:
         acmodel.load_state_dict(status["model_state"])
         txt_logger.info("Loading model from existing run.\n")
+
+    # otherwise load existing pretrained GNN
     elif args.pretrained_gnn:
         acmodel.load_pretrained_gnn(pretrained_status["model_state"])
         txt_logger.info("Pretrained model loaded.\n")
@@ -183,7 +187,7 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("Model loaded.\n")
     txt_logger.info("{}\n".format(acmodel))
 
-    # Load algo
+    # load algo
     if args.algo == "a2c":
         algo = torch_ac.A2CAlgo(envs, acmodel, device, args.frames_per_proc, args.discount, args.lr, args.gae_lambda,
                                 args.entropy_coef, args.value_loss_coef, args.max_grad_norm, args.recurrence,
@@ -201,12 +205,14 @@ def train_agent(args: Args, device: str = None):
             env.env.device = device
             env.env.sym_grounder.to(device)
 
+    # load optimizer of existing model
     if "optimizer_state" in status:
         algo.optimizer.load_state_dict(status["optimizer_state"])
         txt_logger.info("Loading optimizer from existing run.\n")
+
     txt_logger.info("Optimizer loaded.\n")
 
-    # init the evaluator
+    # initialize the evaluators
     if args.eval:
 
         eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
@@ -246,7 +252,7 @@ def train_agent(args: Args, device: str = None):
 
     while num_frames < args.frames:
 
-        # Update model parameters
+        # update model parameters
         update_start_time = time.time()
         exps, logs1 = algo.collect_experiences()
         logs2 = algo.update_parameters(exps)
