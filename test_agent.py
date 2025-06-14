@@ -30,7 +30,7 @@ print(f"\nConfig:\n{config}")
 env = utils.make_env(
     config.env,
     progression_mode=config.progression_mode,
-    ltl_sampler=sampler,
+    ltl_sampler=args.sampler,
     seed=1,
     intrinsic=config.int_reward,
     noLTL=config.noLTL,
