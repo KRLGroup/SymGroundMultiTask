@@ -292,7 +292,7 @@ def train_agent(args: Args, device: str = None):
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
             # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
             txt_logger.info(
-                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
+                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:04.1f} {:04.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
             .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
@@ -333,7 +333,7 @@ def train_agent(args: Args, device: str = None):
                 logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
                 eval_end_time = time.time()
 
-                duration = eval_end_time - eval_start_time
+                duration = int(eval_end_time - eval_start_time)
 
                 num_frame_pe = sum(logs_num_frames_per_episode)
                 return_per_episode = utils.synthesize(logs_returns_per_episode)
@@ -350,7 +350,7 @@ def train_agent(args: Args, device: str = None):
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
-                txt_logger.info("F {:07} | D {:05} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02}".format(*data))
+                txt_logger.info("F {:07} | D {:05} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:04.1f} {:04.1f} {:02} {:02}".format(*data))
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
