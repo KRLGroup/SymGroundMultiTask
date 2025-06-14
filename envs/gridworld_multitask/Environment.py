@@ -499,6 +499,7 @@ class LTLWrapper(LTLEnv):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.env.sampler = self.sampler
 
 
     def step(self, action):
