@@ -1,4 +1,4 @@
-import sys
+import argparse
 import multiprocessing as mp
 
 from lab import test
@@ -7,5 +7,11 @@ from train_agent import train_agent
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", default=None, type=str)
+    args = parser.parse_args()
+
+    device = torch.device(args.device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     mp.set_start_method('spawn', force=True)
-    train_agent(test.test_gridworld, device=sys.argv[1])
+    train_agent(test.test_gridworld, device=device)
