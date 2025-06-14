@@ -323,25 +323,28 @@ def train_agent(args: Args, device: str = None):
 
             for i, evalu in enumerate(evals):
 
+                eval_start_time = time.time()
                 logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
+                eval_end_time = time.time()
+
+                duration = eval_end_time - eval_start_time
 
                 num_frame_pe = sum(logs_num_frames_per_episode)
                 return_per_episode = utils.synthesize(logs_returns_per_episode)
                 average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
                 num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
 
-                header = ["frames"]
-                data = [num_frame_pe]
+                header = ["frames", "duration"]
+                data = [num_frame_pe, duration]
+                header += ["return_" + key for key in return_per_episode.keys()]
+                data += return_per_episode.values()
                 header += ["average_discounted_return"]
                 data += [average_discounted_return]
                 header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
-                txt_logger.info("F {:07} | ADR {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02}".format(*data))
-
-                header += ["return_" + key for key in return_per_episode.keys()]
-                data += return_per_episode.values()
+                txt_logger.info("F {:07} | D {:05} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:03.1f} {:03.1f} {:02} {:02}".format(*data))
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
