@@ -30,10 +30,10 @@ buffer = ReplayBuffer()
 for exp in range(num_experiments):
 
     # environment used for training (fixed)
-    env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
+    env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=True)
 
     # environent used for testing and logging about the symbol grounder
-    test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50)
+    test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
     # collect data to compute accuracy on the train enviornment (only for logging)
     # (done here because the training environment is fixed)
@@ -76,8 +76,8 @@ for exp in range(num_experiments):
         n_episodes += 1
 
         # reset environments
-        obs, task, _, _ = env.reset()
-        _, _, test_images_env, test_labels_env = test_env.reset()
+        obs, task, train_env_images, train_env_labels = env.reset()
+        _, _, test_env_images, test_env_labels = test_env.reset()
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
@@ -118,18 +118,6 @@ for exp in range(num_experiments):
             rews = torch.LongTensor(episode_rews)
             buffer.push(obss, rews, dfa_trans, dfa_rew)
 
-            # collect data to compute accuracy on the test enviornment (only for logging)
-            test_images = []
-            test_labels = []
-            for c in range(7):
-                for r in range(7):
-                    test_images.append(test_images_env[r, c])
-                    test_labels.append(test_labels_env[r, c])
-            test_images = np.stack(test_images)
-            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
-            # test_images = torch.stack(test_images, dim=0).to(device)
-            test_labels = torch.LongTensor(test_labels).to(device)
-
         # at each iteration train the sym_grounder after the buffer is full enough
         if len(buffer) >= 10 * batch_size:
 
@@ -140,16 +128,29 @@ for exp in range(num_experiments):
             mt_deepDFA = MultiTaskProbabilisticAutoma(batch_size, task.num_of_symbols, max([len(tr.keys()) for tr in dfa_trans]), 2)
             mt_deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-            '''
+            # collect data to compute accuracy on the test enviornment (only for logging)
             train_images = []
             train_labels = []
             for c in range(7):
                 for r in range(7):
-                    train_images.append(train_images_env[r, c])
-                    train_labels.append(train_labels_env[r, c])
-            train_images = torch.stack(train_images, dim=0).to(device)
+                    train_images.append(train_env_images[r, c])
+                    train_labels.append(train_env_labels[r, c])
+            train_images = np.stack(train_images)
+            train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
+            # train_images = torch.stack(train_images, dim=0).to(device)
             train_labels = torch.LongTensor(train_labels).to(device)
-            '''
+
+            # collect data to compute accuracy on the test enviornment (only for logging)
+            test_images = []
+            test_labels = []
+            for c in range(7):
+                for r in range(7):
+                    test_images.append(test_env_images[r, c])
+                    test_labels.append(test_env_labels[r, c])
+            test_images = np.stack(test_images)
+            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
+            # test_images = torch.stack(test_images, dim=0).to(device)
+            test_labels = torch.LongTensor(test_labels).to(device)
 
             print(f"\nEpoch {epoch}")
             epoch += 1
