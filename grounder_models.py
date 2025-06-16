@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -53,7 +54,7 @@ class GridworldClassifier(nn.Module):
 
 
 class ObjectCNN(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, input_size=(64,64), num_classes=2):
         super(ObjectCNN, self).__init__()
         self.features = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x64x64 -> 16x64x64
@@ -71,9 +72,14 @@ class ObjectCNN(nn.Module):
             nn.MaxPool2d(2)  # -> 64x8x8
         )
 
+        with torch.no_grad():
+            dummy_input = torch.zeros((1, 3, input_size[0], input_size[1]))
+            dummy_output = self.features(dummy_input)
+            self.flattened_size = dummy_output.view(1, -1).size(1)
+
         self.classifier = nn.Sequential(
             nn.Flatten(),  # -> 4096
-            nn.Linear(64 * 8 * 8, 64),  # -> 64
+            nn.Linear(self.flattened_size, 64),  # -> 64
             nn.ReLU(),
             nn.Linear(64, num_classes),  # -> num_classes
             nn.Softmax(dim=-1)

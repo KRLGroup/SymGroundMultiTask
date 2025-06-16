@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from ReplayBuffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
-from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
+from envs.gridworld_multitask.Environment import GridWorldEnv_multitask, OBS_SIZE
 from grounder_models import CNN_grounder, GridworldClassifier, ObjectCNN
 from utils import EarlyStopping
 
@@ -54,7 +54,7 @@ for exp in range(num_experiments):
     elif sym_grounder_model == "GridWorldClassifier":
         sym_grounder = GridworldClassifier(len(env.dictionary_symbols)).double().to(device)
     elif sym_grounder_model == "ObjectCNN":
-        sym_grounder = ObjectCNN(len(env.dictionary_symbols)).double().to(device)
+        sym_grounder = ObjectCNN((OBS_SIZE, OBS_SIZE), len(env.dictionary_symbols)).double().to(device)
     else:
         raise Exception("Symbol Grounder Model '{}' NOT RECOGNIZED".format(sym_grounder_model))
 
@@ -159,7 +159,7 @@ for exp in range(num_experiments):
             optimizer.zero_grad()
 
             # predict symbols from observations with sym_grounder
-            symbols = sym_grounder(obss.view(-1, 3, 64, 64))
+            symbols = sym_grounder(obss.view(-1, 3, OBS_SIZE, OBS_SIZE))
             symbols = symbols.view(-1, env.max_num_steps+1, task.num_of_symbols)
 
             # predict state and reward from predicted symbols with DeepDFA
