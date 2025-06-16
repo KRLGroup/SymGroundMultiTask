@@ -47,7 +47,7 @@ class GridWorldEnv_multitask(gym.Env):
         # environment map size
         self.size = size
 
-        assert not agent_centric_view or (size%2==1 and wrap_around_map)
+        assert not agent_centric_view or (self.size%2==1 and wrap_around_map)
         self.wrap_around_map = wrap_around_map
         self.agent_centric_view = agent_centric_view
 
@@ -96,7 +96,7 @@ class GridWorldEnv_multitask(gym.Env):
         self._robot_display = True
 
         # load images using OpenCV (if used)
-        if state_type == 'image' or render_mode in ['human', 'rgb_array']:
+        if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
             self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
@@ -109,7 +109,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.cell_size = self.pickaxe_img.shape[0]
             self.canvas_size = self.size * self.cell_size
 
-        if state_type == "image":
+        if self.state_type == "image":
 
             # precompute image observations per location
             self.loc_to_obs = {}
@@ -139,7 +139,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.loc_to_obs[0,0].shape, dtype=np.float32)
 
-        elif state_type == "symbol":
+        elif self.state_type == "symbol":
 
             # precompute symbol observations per location
             self.loc_to_obs = {}
@@ -168,7 +168,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         # randomize item locations and recompute
-        if self.randomize_locations and self.sampler.sampled_tasks % 100 == 0:
+        if self.randomize_locations and self.sampler.sampled_tasks % 10 == 0:
 
             all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
 
@@ -183,7 +183,7 @@ class GridWorldEnv_multitask(gym.Env):
             self._initial_agent_location = np.array(item_positions[10])
 
             # precompute symbols per location
-            self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
+            self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
             for loc in self._pickaxe_locations:
                 self.loc_to_label[tuple(loc)] = 0
             for loc in self._lava_locations:
@@ -195,7 +195,7 @@ class GridWorldEnv_multitask(gym.Env):
             for loc in self._egg_locations:
                 self.loc_to_label[tuple(loc)] = 4
 
-            if state_type == "image":
+            if self.state_type == "image":
 
                 # precompute image observations per location
                 self.loc_to_obs = {}
@@ -211,7 +211,7 @@ class GridWorldEnv_multitask(gym.Env):
                         norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
                         self.loc_to_obs[r,c] = norm_img.numpy()
 
-            elif state_type == "symbol":
+            elif self.state_type == "symbol":
 
                 # precompute symbol observations per location
                 self.loc_to_obs = {}
