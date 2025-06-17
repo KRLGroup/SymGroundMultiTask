@@ -15,11 +15,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # parameters
-num_samples = 90000
-num_experiments = 5
+num_samples = 10000
+num_experiments = 1
 batch_size = 32
-epoch = 0
 sym_grounder_model = "ObjectCNN"
+
+model_name = "sym_grounder"
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,7 +30,7 @@ buffer = ReplayBuffer()
 # experiment loop (each experiment trains a different sym_grounder)
 for exp in range(num_experiments):
 
-    model_dir = os.path.join(REPO_DIR, f"saves/sym_grounder_{exp}")
+    model_dir = os.path.join(REPO_DIR, f"saves/{model_name}_{exp}")
     os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
@@ -68,6 +69,7 @@ for exp in range(num_experiments):
 
     txt_logger = utils.get_txt_logger(model_dir)
 
+    epoch = 0
     n_won = 0
     n_failed = 0
     n_episodes = 0
