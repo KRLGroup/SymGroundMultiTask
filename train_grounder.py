@@ -21,14 +21,16 @@ batch_size = 32
 epoch = 0
 sym_grounder_model = "ObjectCNN"
 
-output_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saves")
-os.makedirs(output_folder, exist_ok=True)
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 buffer = ReplayBuffer()
 
 
 # experiment loop (each experiment trains a different sym_grounder)
 for exp in range(num_experiments):
+
+    model_dir = os.path.join(REPO_DIR, f"saves/sym_grounder_{exp}")
+    os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=True)
@@ -63,6 +65,8 @@ for exp in range(num_experiments):
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
+
+    txt_logger = utils.get_txt_logger(model_dir)
 
     n_won = 0
     n_failed = 0
@@ -100,7 +104,7 @@ for exp in range(num_experiments):
             elif rw == -1:
                 n_failed += 1
 
-            print(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
+            txt_logger.info(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
 
             # extend shorter vectors to the max length
             if len(episode_rews) < env.max_num_steps+1:
@@ -153,7 +157,7 @@ for exp in range(num_experiments):
             # test_images = torch.stack(test_images, dim=0).to(device)
             test_labels = torch.LongTensor(test_labels).to(device)
 
-            print(f"\nEpoch {epoch}")
+            txt_logger.info(f"\nEpoch {epoch}")
             epoch += 1
 
             # TRAINING
@@ -172,7 +176,7 @@ for exp in range(num_experiments):
             labels = rews.view(-1)  # lista o array delle label
             class_counts = torch.bincount(labels)  # es: tensor([900, 100])
             total = class_counts.sum().item()
-            print(f"class_counts: {class_counts.tolist()}")
+            txt_logger.info(f"class_counts: {class_counts.tolist()}")
 
             # compute class weights (inversely proportional) [not used]
             class_weights = total / (2.0 * class_counts.float())
@@ -197,9 +201,9 @@ for exp in range(num_experiments):
             test_correct_preds = torch.sum((pred_sym_test == test_labels).long())
             test_class_acc = torch.mean((pred_sym_test == test_labels).float())
 
-            print(f"loss: {loss.item():.4e}")
-            print(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {pred_sym_train.shape[0]} ({train_class_acc.item():.4f})")
-            print(f"grounder TEST accuracy = {test_correct_preds.item()} / {pred_sym_test.shape[0]} ({test_class_acc.item():.4f})")
+            txt_logger.info(f"loss: {loss.item():.4e}")
+            txt_logger.info(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {pred_sym_train.shape[0]} ({train_class_acc.item():.4f})")
+            txt_logger.info(f"grounder TEST accuracy = {test_correct_preds.item()} / {pred_sym_test.shape[0]} ({test_class_acc.item():.4f})")
 
             loss_values.append(loss.item())
             test_class_accs.append(test_class_acc.item())
@@ -207,15 +211,15 @@ for exp in range(num_experiments):
 
             # every 10 epochs print comparison between true and predicted labels
             if epoch % 10 == 0:
-                print("\n---")
-                print("Comparison:")
-                print("Train")
-                print(f"true: {train_labels.tolist()}")
-                print(f"pred: {pred_sym_train.tolist()}")
-                print("Test")
-                print(f"true: {test_labels.tolist()}")
-                print(f"pred: {pred_sym_test.tolist()}")
-                print("---")
+                txt_logger.info("\n---")
+                txt_logger.info("Comparison:")
+                txt_logger.info("Train")
+                txt_logger.info(f"true: {train_labels.tolist()}")
+                txt_logger.info(f"pred: {pred_sym_train.tolist()}")
+                txt_logger.info("Test")
+                txt_logger.info(f"true: {test_labels.tolist()}")
+                txt_logger.info(f"pred: {pred_sym_test.tolist()}")
+                txt_logger.info("---")
 
             # every 100 epochs plot loss and accuracies and save the sym_grounder model
             if epoch % 100 == 0:
@@ -228,7 +232,7 @@ for exp in range(num_experiments):
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
-                plt.savefig(os.path.join(output_folder, f"loss_values_exp_{exp}.png"))
+                plt.savefig(os.path.join(model_dir, f"loss_values_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
                 plt.close()
@@ -239,13 +243,13 @@ for exp in range(num_experiments):
                 plt.title("Classification Accuracy Over Epochs")
                 plt.xlabel("Epoch")
                 plt.ylabel("Accuracy")
-                plt.ylim(0, 1)
+                plt.ylim(-0.1, 1.1)
                 plt.grid(True)
                 plt.legend()
                 plt.tight_layout()
-                plt.savefig(os.path.join(output_folder, f"class_acc_exp_{exp}.png"))
+                plt.savefig(os.path.join(model_dir, f"class_acc_exp_{exp}.png"))
                 plt.cla()
                 plt.clf()
                 plt.close()
 
-                torch.save(sym_grounder, os.path.join(output_folder, f"sym_grounder_exp_{exp}.pth"))
+                torch.save(sym_grounder, os.path.join(model_dir, f"sym_grounder_exp_{exp}.pth"))
