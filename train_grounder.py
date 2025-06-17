@@ -3,11 +3,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+import utils
+from utils import EarlyStopping
 from ReplayBuffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
 from envs.gridworld_multitask.Environment import GridWorldEnv_multitask, OBS_SIZE
 from grounder_models import CNN_grounder, GridworldClassifier, ObjectCNN
-from utils import EarlyStopping
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
