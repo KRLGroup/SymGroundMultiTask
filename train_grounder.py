@@ -39,19 +39,6 @@ for exp in range(num_experiments):
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
-    # collect data to compute accuracy on the train enviornment (only for logging)
-    # (done here because the training environment is fixed)
-    train_images = []
-    train_labels = []
-    for c in range(7):
-        for r in range(7):
-            train_images.append(env.loc_to_obs[r,c])
-            train_labels.append(env.loc_to_label[r,c])
-    train_images = np.stack(train_images)
-    train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
-    # train_images = torch.stack(train_images, dim=0).to(device)
-    train_labels = torch.LongTensor(train_labels).to(device)
-
     # choose the model for the sym_grounder
     if sym_grounder_model == "CNN_grounder":
         sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
@@ -135,30 +122,6 @@ for exp in range(num_experiments):
             mt_deepDFA = MultiTaskProbabilisticAutoma(batch_size, task.num_of_symbols, max([len(tr.keys()) for tr in dfa_trans]), 2)
             mt_deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-            # collect data to compute accuracy on the test enviornment (only for logging)
-            train_images = []
-            train_labels = []
-            for c in range(7):
-                for r in range(7):
-                    train_images.append(train_env_images[r, c])
-                    train_labels.append(train_env_labels[r, c])
-            train_images = np.stack(train_images)
-            train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
-            # train_images = torch.stack(train_images, dim=0).to(device)
-            train_labels = torch.LongTensor(train_labels).to(device)
-
-            # collect data to compute accuracy on the test enviornment (only for logging)
-            test_images = []
-            test_labels = []
-            for c in range(7):
-                for r in range(7):
-                    test_images.append(test_env_images[r, c])
-                    test_labels.append(test_env_labels[r, c])
-            test_images = np.stack(test_images)
-            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
-            # test_images = torch.stack(test_images, dim=0).to(device)
-            test_labels = torch.LongTensor(test_labels).to(device)
-
             txt_logger.info(f"\nEpoch {epoch}")
             epoch += 1
 
@@ -194,6 +157,30 @@ for exp in range(num_experiments):
             old_loss_value = loss
 
             # LOGGING
+
+            # collect data to compute accuracy on the train enviornment (only for logging)
+            train_images = []
+            train_labels = []
+            for c in range(7):
+                for r in range(7):
+                    train_images.append(train_env_images[r, c])
+                    train_labels.append(train_env_labels[r, c])
+            train_images = np.stack(train_images)
+            train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
+            # train_images = torch.stack(train_images, dim=0).to(device)
+            train_labels = torch.LongTensor(train_labels).to(device)
+
+            # collect data to compute accuracy on the test enviornment (only for logging)
+            test_images = []
+            test_labels = []
+            for c in range(7):
+                for r in range(7):
+                    test_images.append(test_env_images[r, c])
+                    test_labels.append(test_env_labels[r, c])
+            test_images = np.stack(test_images)
+            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
+            # test_images = torch.stack(test_images, dim=0).to(device)
+            test_labels = torch.LongTensor(test_labels).to(device)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
             train_correct_preds = torch.sum((pred_sym_train == train_labels).long())
