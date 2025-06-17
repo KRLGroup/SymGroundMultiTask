@@ -8,7 +8,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env", default="GridWorld-v0")
+parser.add_argument("--env", default="GridWorld-v1")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
 parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle", type=str)
@@ -32,7 +32,7 @@ env.env.sampler.sampled_tasks = args.formula_id
 
 # load grounder
 if args.grounder != None:
-    grounder = torch.load(args.grounder, map_location=self.device)
+    grounder = torch.load(args.grounder, map_location=device)
     env.env.sym_grounder = grounder
 
 # TEST
@@ -48,7 +48,7 @@ while not done:
 
     print(f"\n---")
     print(f"Step: {step}")
-    print(f"Predicted Symbol: {process_formula(env.get_events())}")
+    print(f"Predicted Symbol: {process_formula(env.env.get_events())}")
     print(f"Task:")
     utils.pprint_ltl_formula(process_formula(obs['text']))
 
