@@ -2,7 +2,7 @@ import gym
 from gym import spaces
 import random
 import numpy as np
-import torch, torchvision
+import torch
 from itertools import product
 import pickle
 import cv2
@@ -11,8 +11,6 @@ from ltl_wrappers import LTLEnv
 from ltl_samplers import getLTLSampler
 
 OBS_SIZE = 64
-obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
-
 WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -70,32 +68,32 @@ class GridWorldEnv_multitask(gym.Env):
         }
 
         # default locations
-        self._pickaxe_locations = [np.array([1,1]), np.array([5,2])]
-        self._lava_locations = [np.array([3,3]), np.array([1,4])]
-        self._door_locations = [np.array([3,0]), np.array([3,5])]
-        self._gem_locations = [np.array([0,3]), np.array([6,4])]
-        self._egg_locations = [np.array([2,1]), np.array([5,6])]
-        self._initial_agent_location = np.array([0,0])
+        self._pickaxe_locations = [(1,1), (5,2)]
+        self._lava_locations = [(3,3), (1,4)]
+        self._door_locations = [(3,0), (3,5)]
+        self._gem_locations = [(0,3), (6,4)]
+        self._egg_locations = [(2,1), (5,6)]
+        self._initial_agent_location = (0,0)
 
         # precompute symbols per location
         self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
         for loc in self._pickaxe_locations:
-            self.loc_to_label[tuple(loc)] = 0
+            self.loc_to_label[loc] = 0
         for loc in self._lava_locations:
-            self.loc_to_label[tuple(loc)] = 1
+            self.loc_to_label[loc] = 1
         for loc in self._door_locations:
-            self.loc_to_label[tuple(loc)] = 2
+            self.loc_to_label[loc] = 2
         for loc in self._gem_locations:
-            self.loc_to_label[tuple(loc)] = 3
+            self.loc_to_label[loc] = 3
         for loc in self._egg_locations:
-            self.loc_to_label[tuple(loc)] = 4
+            self.loc_to_label[loc] = 4
 
         # ???
         self._gem_display = True
         self._pickaxe_display = True
         self._robot_display = True
 
-        # load images using OpenCV (if used)
+        # load icons using OpenCV (if they are used)
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
@@ -125,19 +123,20 @@ class GridWorldEnv_multitask(gym.Env):
                     os.makedirs(obs_folder)
                 for r in range(self.size):
                     for c in range(self.size):
-                        image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                        image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                         obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
                         cv2.imwrite(obs_path, image_bgr)
 
             # normalize observations
-            stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
+            mean = np.mean(self.loc_to_obs[self._initial_agent_location])
+            stdev = np.std(self.loc_to_obs[self._initial_agent_location])
             for r in range(self.size):
                 for c in range(self.size):
                     norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                    self.loc_to_obs[r,c] = norm_img.numpy() # passing back to numpy?
+                    self.loc_to_obs[r,c] = norm_img
 
-            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.loc_to_obs[0,0].shape, dtype=np.float32)
+            self.observation_space = spaces.Box(low=-np.inf, high=np.inf), shape=self.loc_to_obs[0,0].shape, dtype=np.float64)
 
         elif self.state_type == "symbol":
 
@@ -151,7 +150,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.observation_space = spaces.Box(low=0, high=1, shape=self.loc_to_obs[0,0].shape, dtype=np.uint8)
 
         # reset the agent location
-        self._agent_location = self._initial_agent_location
+        self._agent_location = np.array(self._initial_agent_location)
 
 
     def reset(self):
@@ -175,25 +174,25 @@ class GridWorldEnv_multitask(gym.Env):
             # select 11 random locations
             num_items = 10
             item_positions = random.sample(all_positions, num_items+1)
-            self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
-            self._pickaxe_locations = [np.array(item_positions[2]), np.array(item_positions[3])]
-            self._door_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
-            self._lava_locations = [np.array(item_positions[6]), np.array(item_positions[7])]
-            self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
-            self._initial_agent_location = np.array(item_positions[10])
+            self._gem_locations = [item_positions[0], item_positions[1]]
+            self._pickaxe_locations = [item_positions[2], item_positions[3]]
+            self._door_locations = [item_positions[4], item_positions[5]]
+            self._lava_locations = [item_positions[6], item_positions[7]]
+            self._egg_locations = [item_positions[8], item_positions[9]]
+            self._initial_agent_location = item_positions[10]
 
             # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
             for loc in self._pickaxe_locations:
-                self.loc_to_label[tuple(loc)] = 0
+                self.loc_to_label[loc] = 0
             for loc in self._lava_locations:
-                self.loc_to_label[tuple(loc)] = 1
+                self.loc_to_label[loc] = 1
             for loc in self._door_locations:
-                self.loc_to_label[tuple(loc)] = 2
+                self.loc_to_label[loc] = 2
             for loc in self._gem_locations:
-                self.loc_to_label[tuple(loc)] = 3
+                self.loc_to_label[loc] = 3
             for loc in self._egg_locations:
-                self.loc_to_label[tuple(loc)] = 4
+                self.loc_to_label[loc] = 4
 
             if self.state_type == "image":
 
@@ -205,11 +204,12 @@ class GridWorldEnv_multitask(gym.Env):
                         self.loc_to_obs[r,c] = self._get_image_obs()
 
                 # normalize observations
-                stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
+                mean = np.mean(self.loc_to_obs[self._initial_agent_location])
+                stdev = np.std(self.loc_to_obs[self._initial_agent_location])
                 for r in range(self.size):
                     for c in range(self.size):
                         norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                        self.loc_to_obs[r,c] = norm_img.numpy()
+                        self.loc_to_obs[r,c] = norm_img
 
             elif self.state_type == "symbol":
 
@@ -221,7 +221,7 @@ class GridWorldEnv_multitask(gym.Env):
                         self.loc_to_obs[r,c] = self._get_symbol_obs()
 
         # reset the agent location
-        self._agent_location = self._initial_agent_location
+        self._agent_location = np.array(self._initial_agent_location)
 
         # compute initial observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
@@ -273,9 +273,9 @@ class GridWorldEnv_multitask(gym.Env):
 
     def _get_image_obs(self):
         obs = self._render_frame()
-        obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
-        obs = torch.permute(obs, (2, 0, 1)) # from w*h*c to c*w*h
-        obs = obs_resize(obs) # resized to 64x64
+        obs = cv2.resize(obs, (OBS_SIZE, OBS_SIZE))
+        obs = obs.astype(np.float64) / 255.0
+        obs = np.transpose(obs, (2, 0, 1)) # from w*h*c to c*w*h
         return obs
 
 
@@ -317,7 +317,7 @@ class GridWorldEnv_multitask(gym.Env):
         def blit_item(item_img, locations, display=True):
             if display:
                 for loc in locations:
-                    # loc is assumed to be a numpy array [col, row] or [x, y]
+                    # loc is assumed to be a tuple
                     if self.agent_centric_view:
                         loc = self._absolute_to_agent_centric(loc)
                     x = int(loc[0] * self.cell_size)
