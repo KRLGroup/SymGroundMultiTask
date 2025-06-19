@@ -147,14 +147,10 @@ for exp in range(num_experiments):
             class_weights = total / (2.0 * class_counts.float())
 
             loss = cross_entr(pred.view(-1, 2), labels)
-            #loss = cross_entr(pred[:,-1,:], y[:,-1])
 
             # update sym_grounder
             loss.backward()
             optimizer.step()
-
-            # for early stopping [not used]
-            old_loss_value = loss
 
             # LOGGING
 
