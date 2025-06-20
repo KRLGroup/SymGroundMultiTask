@@ -232,4 +232,11 @@ for exp in range(num_experiments):
                 plt.clf()
                 plt.close()
 
-                torch.save(sym_grounder, os.path.join(model_dir, f"grounder.pth"))
+                status = {
+                    "epoch": epoch,
+                    "optimizer_state": optimizer.state_dict(),
+                    "grounder_state": sym_grounder.state_dict()
+                }
+
+                utils.save_status(status, model_dir)
+                txt_logger.info("Status saved")
