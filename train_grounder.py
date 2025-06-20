@@ -30,7 +30,7 @@ buffer = ReplayBuffer()
 # experiment loop (each experiment trains a different sym_grounder)
 for exp in range(num_experiments):
 
-    model_dir = os.path.join(REPO_DIR, f"saves/{model_name}_{exp}")
+    model_dir = os.path.join(REPO_DIR, f"storage/{model_name}_{exp}")
     os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
