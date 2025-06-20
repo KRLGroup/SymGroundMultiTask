@@ -12,12 +12,19 @@ parser.add_argument("--env", default="GridWorld-v1")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
 parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle", type=str)
-parser.add_argument("--grounder", default=None, type=str)
 args = parser.parse_args()
 
 
 # build environment
-env = utils.make_env(args.env, progression_mode="full", ltl_sampler=args.sampler, seed=1, intrinsic=0, noLTL=False, device=device)
+env = utils.make_env(
+    args.env,
+    progression_mode="full",
+    ltl_sampler=args.sampler,
+    seed=1,
+    intrinsic=0,
+    noLTL=False,
+    grounder=None
+)
 
 if "GridWorld" in args.env:
     str_to_action = {"s":0,"d":1,"w":2,"a":3}
@@ -29,11 +36,6 @@ if "Letter" in args.env:
 
 # set formula
 env.env.sampler.sampled_tasks = args.formula_id
-
-# load grounder
-if args.grounder != None:
-    grounder = torch.load(args.grounder, map_location=device)
-    env.env.sym_grounder = grounder
 
 # TEST
 
