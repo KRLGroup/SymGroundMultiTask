@@ -39,15 +39,9 @@ for exp in range(num_experiments):
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
-    # choose the model for the sym_grounder
-    if sym_grounder_model == "CNN_grounder":
-        sym_grounder = CNN_grounder(len(env.dictionary_symbols)).double().to(device)
-    elif sym_grounder_model == "GridWorldClassifier":
-        sym_grounder = GridworldClassifier(len(env.dictionary_symbols)).double().to(device)
-    elif sym_grounder_model == "ObjectCNN":
-        sym_grounder = ObjectCNN((OBS_SIZE, OBS_SIZE), len(env.dictionary_symbols)).double().to(device)
-    else:
-        raise Exception("Symbol Grounder Model '{}' NOT RECOGNIZED".format(sym_grounder_model))
+    # create model
+    sym_grounder = utils.make_grounder(sym_grounder_model, len(env.dictionary_symbols))
+    sym_grounder.to(device)
 
     # setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
