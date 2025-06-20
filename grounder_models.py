@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+
 class CNN_grounder(nn.Module):
+
     def __init__(self, num_symbols):
         super(CNN_grounder, self).__init__()
 
@@ -14,6 +16,9 @@ class CNN_grounder(nn.Module):
         self.fc1 = nn.Linear(125, 50)
         self.fc2 = nn.Linear(50, num_symbols)
         self.softmax = nn.Softmax(dim=1) # TODO double check if correct (dim 0 should be batch size)
+
+        self.device = None
+
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 3))
@@ -28,7 +33,14 @@ class CNN_grounder(nn.Module):
         return x
 
 
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
+
+
 class GridworldClassifier(nn.Module):
+
     def __init__(self, num_classes):  # 10 items da classificare
         super(GridworldClassifier, self).__init__()
 
@@ -39,6 +51,8 @@ class GridworldClassifier(nn.Module):
         self.fc1 = nn.Linear(32 * 16 * 16, 128)  # Input più piccolo
         self.fc2 = nn.Linear(128, num_classes)
         self.softmax = nn.Softmax(dim=-1)
+
+        self.device = None
 
 
     def forward(self, x):
@@ -53,9 +67,18 @@ class GridworldClassifier(nn.Module):
         return x
 
 
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
+
+
+
 class ObjectCNN(nn.Module):
+
     def __init__(self, input_size=(64,64), num_classes=2):
         super(ObjectCNN, self).__init__()
+
         self.features = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x64x64 -> 16x64x64
             #nn.BatchNorm2d(16),
@@ -85,15 +108,27 @@ class ObjectCNN(nn.Module):
             nn.Softmax(dim=-1)
         )
 
+        self.device = None
+
+
     def forward(self, x):
         x = self.features(x)
         x = self.classifier(x)
         return x
 
 
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
+
+
+
 class Linear_grounder_no_droput(nn.Module):
+
     def __init__(self, num_inputs, hidden_size, num_output):
         super(Linear_grounder_no_droput, self).__init__()
+
         self.grounder = nn.Sequential(
             nn.Linear(num_inputs, hidden_size),
             nn.Tanh(),
@@ -101,13 +136,26 @@ class Linear_grounder_no_droput(nn.Module):
             nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
+
+        self.device = None
+
+
     def forward(self, x):
          return self.grounder(x)
+
+
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
+
 
 
 class Linear_grounder(nn.Module):
+
     def __init__(self, num_inputs, hidden_size, num_output):
         super(Linear_grounder, self).__init__()
+
         self.grounder = nn.Sequential(
             nn.Linear(num_inputs, hidden_size),
             nn.Dropout(0.2),
@@ -117,5 +165,15 @@ class Linear_grounder(nn.Module):
             nn.Softmax(dim=-1),
             nn.Linear(hidden_size, num_output),
         )
+
+        self.device = None
+
+
     def forward(self, x):
          return self.grounder(x)
+
+
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
