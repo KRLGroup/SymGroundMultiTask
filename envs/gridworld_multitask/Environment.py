@@ -453,11 +453,19 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         return self.dictionary_symbols.copy()
 
 
-    # returns the proposition that currently holds according to the grounder
+    
     def get_events(self):
-        img = torch.tensor(self.current_obs, device=self.device).unsqueeze(0)
-        pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
-        return self.dictionary_symbols[pred_sym]
+
+        # returns the proposition that currently holds
+        if self.sym_grounder == None:
+            true_sym = self.loc_to_label[tuple(self._agent_location)]
+            return self.dictionary_symbols[true_sym]
+
+        # returns the proposition that currently holds according to the grounder
+        else:
+            img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+            pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
+            return self.dictionary_symbols[pred_sym]
 
 
 
