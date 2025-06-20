@@ -114,11 +114,11 @@ for exp in range(num_experiments):
 
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
-                batch_size=batch_size, 
-                numb_of_actions=task.num_of_symbols, 
-                numb_of_states=max([len(tr.keys()) for tr in dfa_trans]),
-                initialization="gaussian",
-                reward_type="ternary"
+                batch_size = batch_size, 
+                numb_of_actions = task.num_of_symbols, 
+                numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                initialization = "gaussian",
+                reward_type = "ternary"
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
 

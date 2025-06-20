@@ -18,12 +18,12 @@ args = parser.parse_args()
 # build environment
 env = utils.make_env(
     args.env,
-    progression_mode="full",
-    ltl_sampler=args.sampler,
-    seed=1,
-    intrinsic=0,
-    noLTL=False,
-    grounder=None
+    progression_mode = "full",
+    ltl_sampler = args.sampler,
+    seed = 1,
+    intrinsic = 0,
+    noLTL = False,
+    grounder = None
 )
 
 if "GridWorld" in args.env:

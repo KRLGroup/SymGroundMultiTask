@@ -283,8 +283,8 @@ class DatasetSampler(LTLSampler):
                     new_transitions,
                     automata[i].acceptance,
                     None,
-                    reward="ternary",
-                    dictionary_symbols=self.propositions
+                    reward = "ternary",
+                    dictionary_symbols = self.propositions
                 )
 
             self.items = list(zip(formulas, automata))

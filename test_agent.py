@@ -29,12 +29,12 @@ print(f"\nConfig:\n{config}")
 # build environment
 env = utils.make_env(
     config.env,
-    progression_mode=config.progression_mode,
-    ltl_sampler=args.sampler,
-    seed=1,
-    intrinsic=config.int_reward,
-    noLTL=config.noLTL,
-    device=device
+    progression_mode = config.progression_mode,
+    ltl_sampler = args.sampler,
+    seed = 1,
+    intrinsic = config.int_reward,
+    noLTL = config.noLTL,
+    device = device
 )
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
