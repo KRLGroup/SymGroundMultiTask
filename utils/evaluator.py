@@ -17,7 +17,7 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_name, ltl_sampler, seed=0, device="cpu", argmax=False, num_procs=1, 
+    def __init__(self, env, model_name, ltl_sampler, seed=0, device="cpu", grounder=None, argmax=False, num_procs=1,
         ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
 
         self.env = env
@@ -45,7 +45,7 @@ class Eval:
                 seed = seed,
                 intrinsic = 0,
                 noLTL = False,
-                device = device
+                grounder = grounder
             ))
 
         eval_envs[0].reset()
