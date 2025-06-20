@@ -20,7 +20,10 @@ REPO_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 class GridWorldEnv_multitask(gym.Env):
 
     metadata = {
-        "render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
+        "render_modes": ["human", "rgb_array", "terminal"],
+        "state_types": ["image", "symbol"],
+        "render_fps": 4
+    }
 
     def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False, 
         img_dir="imgs_16x16", ltl_sampler="Dataset_e54", shuffle_tasks=True, save_obs=False, wrap_around_map=True, 
@@ -136,7 +139,7 @@ class GridWorldEnv_multitask(gym.Env):
                     norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
                     self.loc_to_obs[r,c] = norm_img
 
-            self.observation_space = spaces.Box(low=-np.inf, high=np.inf), shape=self.loc_to_obs[0,0].shape, dtype=np.float64)
+            self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.loc_to_obs[0,0].shape, dtype=np.float64)
 
         elif self.state_type == "symbol":
 
@@ -453,8 +456,8 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     # returns the proposition that currently holds according to the grounder
     def get_events(self):
-        img = self.current_obs
-        pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
+        img = torch.tensor(self.current_obs, device=self.device).unsqueeze(0)
+        pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
         return self.dictionary_symbols[pred_sym]
 
 
