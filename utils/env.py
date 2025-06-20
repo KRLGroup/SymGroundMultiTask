@@ -11,10 +11,10 @@ from ltl_wrappers import NoLTLWrapper, LTLEnv
 
 
 
-def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, device=None):
+def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, grounder=None):
 
-    # arguments of the environment are the default ones except for device
-    kwargs = {} if not "GridWorld" in env_key else {"device": device}
+    # arguments of the environment are the default ones except for grounder
+    kwargs = {} if not "GridWorld" in env_key else {"grounder": grounder}
 
     # create environment
     env = gym.make(env_key, **kwargs)
