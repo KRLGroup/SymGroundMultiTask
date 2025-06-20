@@ -34,7 +34,7 @@ for exp in range(num_experiments):
     os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
-    env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=True)
+    env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
@@ -119,8 +119,14 @@ for exp in range(num_experiments):
             obss, rews, dfa_trans, dfa_rew = buffer.sample(batch_size)
 
             # build the differentiable reward machine for the task
-            mt_deepDFA = MultiTaskProbabilisticAutoma(batch_size, task.num_of_symbols, max([len(tr.keys()) for tr in dfa_trans]), 2)
-            mt_deepDFA.initFromDfas(dfa_trans, dfa_rew)
+            deepDFA = MultiTaskProbabilisticAutoma(
+                batch_size=batch_size, 
+                numb_of_actions=task.num_of_symbols, 
+                numb_of_states=max([len(tr.keys()) for tr in dfa_trans]),
+                initialization="gaussian",
+                reward_type="ternary"
+            )
+            deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
             txt_logger.info(f"\nEpoch {epoch}")
             epoch += 1
@@ -129,24 +135,18 @@ for exp in range(num_experiments):
 
             optimizer.zero_grad()
 
-            # predict symbols from observations with sym_grounder
+            # obtain probability of symbols from observations with sym_grounder
             symbols = sym_grounder(obss.view(-1, 3, OBS_SIZE, OBS_SIZE))
             symbols = symbols.view(-1, env.max_num_steps+1, task.num_of_symbols)
 
             # predict state and reward from predicted symbols with DeepDFA
-            pred_states, pred_rew = mt_deepDFA(symbols)
-            pred = pred_rew.squeeze(0)
+            pred_states, pred_rew = deepDFA(symbols)
+            pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
 
-            # count occurences of reward 0 and 1
-            labels = rews.view(-1)  # lista o array delle label
-            class_counts = torch.bincount(labels)  # es: tensor([900, 100])
-            total = class_counts.sum().item()
-            txt_logger.info(f"class_counts: {class_counts.tolist()}")
+            # maps rewards to label
+            labels = (rews + 1).view(-1)
 
-            # compute class weights (inversely proportional) [not used]
-            class_weights = total / (2.0 * class_counts.float())
-
-            loss = cross_entr(pred.view(-1, 2), labels)
+            loss = cross_entr(pred, labels)
 
             # update sym_grounder
             loss.backward()
@@ -196,6 +196,7 @@ for exp in range(num_experiments):
 
             # every 10 epochs print comparison between true and predicted labels
             if epoch % 10 == 0:
+
                 txt_logger.info("\n---")
                 txt_logger.info("Comparison:")
                 txt_logger.info("Train")
