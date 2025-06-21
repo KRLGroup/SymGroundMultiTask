@@ -2,8 +2,7 @@ import time
 import torch
 import torch_ac
 import tensorboardX
-import sys
-import glob
+import os
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -28,6 +27,12 @@ class Args:
     procs: int = 16
     frames: int = 2 * 10**8
     checkpoint_dir: Optional[str] = None
+
+
+    # GNN parameters
+    gnn_model: str = "RGCN_8x32_ROOT_SHARED"
+    use_pretrained_gnn: bool = False
+    gnn_pretrain: Optional[str] = None
 
     # Evaluation parameters
     eval: bool = False
@@ -54,13 +59,12 @@ class Args:
     noLTL: bool = False
     progression_mode: str = "full" # full, partial, or none
     recurrence: int = 1
-    gnn: str = "RGCN_8x32_ROOT_SHARED"
     int_reward: float = 0.0
-    pretrained_gnn: bool = False
-    pretrain_name: Optional[str] = None
     dumb_ac: bool = False
     freeze_ltl: bool = False
 
+
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def train_agent(args: Args, device: str = None):
@@ -70,46 +74,44 @@ def train_agent(args: Args, device: str = None):
     use_mem = args.recurrence > 1
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # checkpoint dirs
+    storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
+    storage_dir = os.path.join(REPO_DIR, storage_dir)
+    pretrain_dir = os.path.join(REPO_DIR, "symbol-storage")
+
     # build GNN name
-    gnn_name = args.gnn
+    gnn_name = args.gnn_model
     if args.ignoreLTL:
         gnn_name = "IgnoreLTL"
     if args.dumb_ac:
         gnn_name = gnn_name + "-dumb_ac"
-    if args.pretrained_gnn:
+    if args.use_pretrained_gnn:
         gnn_name = gnn_name + "-pretrained"
     if args.freeze_ltl:
         gnn_name = gnn_name + "-freeze_ltl"
     if use_mem:
         gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
 
-    # compute model_name
+    # compute default_model_name
     default_model_name = f"{gnn_name}_{args.ltl_sampler}_{args.env}_seed:{args.seed}_epochs:{args.epochs}_bs:{args.batch_size}_fpp:{args.frames_per_proc}_dsc:{args.discount}_lr:{args.lr}_ent:{args.entropy_coef}_clip:{args.clip_eps}_prog:{args.progression_mode}"
+
+    # model dir
     model_name = args.model_name or default_model_name
-
-    # compute model_dir
-    storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
     model_dir = utils.get_model_dir(model_name, storage_dir)
+    train_dir = os.path.join(model_dir, "train")
 
-    # compute pretrained_model_dir
-    pretrained_model_dir = None
-    if args.pretrained_gnn:
-        assert(args.progression_mode == "full")
-        default_pretrain_name = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
-        pretrain_name = args.pretrain_name or default_pretrain_name
-        model_dirs = glob.glob(f"symbol-storage/{pretrain_name}/train")
-        if len(model_dirs) == 0:
-            raise Exception("Pretraining directory not found.")
-        elif len(model_dirs) > 1:
-            raise Exception("More than 1 candidate pretraining directory found.")
-        pretrained_model_dir = model_dirs[0]
-        print(f"Using pretrain from {pretrained_model_dir}.")
+    # pretrained gnn dir
+    pretrained_gnn_dir = None
+    if args.use_pretrained_gnn:
+        assert(args.progression_mode == "full" and args.gnn_pretrain != None)
+        pretrained_gnn_dir = utils.get_model_dir(args.gnn_pretrain, pretrain_dir)
+
 
     # load loggers and Tensorboard writer
-    txt_logger = utils.get_txt_logger(model_dir + "/train")
-    csv_file, csv_logger = utils.get_csv_logger(model_dir + "/train")
-    tb_writer = tensorboardX.SummaryWriter(model_dir + "/train")
-    utils.save_config(model_dir + "/train", args)
+    txt_logger = utils.get_txt_logger(model_dir)
+    csv_file, csv_logger = utils.get_csv_logger(train_dir)
+    tb_writer = tensorboardX.SummaryWriter(train_dir)
+    utils.save_config(model_dir, args)
 
     # log command and all script arguments
     txt_logger.info("\n---\n")
@@ -160,7 +162,7 @@ def train_agent(args: Args, device: str = None):
         txt_logger.info("-) Previous status found")
 
     # load observations preprocessor
-    using_gnn = (args.gnn != "GRU" and args.gnn != "LSTM")
+    using_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
     obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], using_gnn, progression_mode)
     if "vocab" in status and preprocess_obss.vocab is not None:
         preprocess_obss.vocab.load_vocab(status["vocab"])
@@ -178,9 +180,9 @@ def train_agent(args: Args, device: str = None):
         txt_logger.info("-) Loading model from existing run.")
 
     # otherwise load existing pretrained GNN
-    elif args.pretrained_gnn:
-        acmodel.load_pretrained_gnn(pretrained_status["model_state"])
-
+    elif args.use_pretrained_gnn:
+        gnn_status = utils.get_status(pretrained_gnn_dir, device)
+        acmodel.load_pretrained_gnn(gnn_status["model_state"])
         txt_logger.info("-) Loading GNN from pretrain.")
     acmodel.to(device)
 
@@ -225,14 +227,14 @@ def train_agent(args: Args, device: str = None):
         for sampler in eval_samplers:
             evals.append(utils.Eval(
                 env = eval_env,
-                model_name = model_name,
+                model_dir = model_dir,
                 ltl_sampler = sampler,
                 seed = args.seed,
                 device = torch.device("cpu"),
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
                 progression_mode = progression_mode,
-                gnn = args.gnn,
+                gnn = args.gnn_model,
                 dumb_ac = args.dumb_ac
             ))
 
@@ -326,7 +328,7 @@ def train_agent(args: Args, device: str = None):
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
                 status["vocab"] = preprocess_obss.vocab.vocab
 
-            utils.save_status(status, model_dir + "/train")
+            utils.save_status(status, model_dir)
             txt_logger.info("Status saved")
 
         # Compute Evaluation
