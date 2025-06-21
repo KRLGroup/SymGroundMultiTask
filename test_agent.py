@@ -12,23 +12,25 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--agent_dir", default="storage/RGCN_8x32_ROOT_SHARED_None_GridWorld-v0_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
+parser.add_argument("--agent_dir", default="storage/RGCN_8x32_ROOT_SHARED-pretrained_Dataset_e54_GridWorld-v1_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
 parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle")
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
-AGENT_DIR = os.path.join(REPO_DIR, args.agent_dir)
 
+
+# compute agent dir
+agent_dir = os.path.join(REPO_DIR, args.agent_dir)
 
 # load training config
-with open(os.path.join(AGENT_DIR, "train/config.pickle"), "rb") as f:
+with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
     config = pickle.load(f)
 print(f"\nConfig:\n{config}")
 
 # load training status
 try:
-    status = utils.get_status(AGENT_DIR + "/train", device)
+    status = utils.get_status(agent_dir, device)
 except OSError:
     status = {"num_frames": 0, "update": 0}
 
@@ -50,20 +52,20 @@ env.sampler.sampled_tasks = args.formula_id
 
 # create and load grounder
 sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions))
-sym_grounder.load_state_dict(status["sym_grounder"])
+sym_grounder.load_state_dict(status["grounder_state"])
 env.env.sym_grounder = sym_grounder
 
 # load observations preprocessor
-using_gnn = (config.gnn != "GRU" and config.gnn != "LSTM")
+using_gnn = (config.gnn_model != "GRU" and config.gnn_model != "LSTM")
 obs_space, preprocess_obss = utils.get_obss_preprocessor(env, using_gnn, config.progression_mode)
 if "vocab" in status and preprocess_obss.vocab is not None:
     preprocess_obss.vocab.load_vocab(status["vocab"])
 
 # create model
 if config.recurrence > 1:
-    acmodel = RecurrentACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn, config.dumb_ac, config.freeze_ltl)
+    acmodel = RecurrentACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn_model, config.dumb_ac, config.freeze_ltl, device, False)
 else:
-    acmodel = ACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn, config.dumb_ac, config.freeze_ltl, device)
+    acmodel = ACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn_model, config.dumb_ac, config.freeze_ltl, device, False)
 
 # load model
 acmodel.load_state_dict(status["model_state"])
