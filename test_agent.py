@@ -52,26 +52,25 @@ env.sampler.sampled_tasks = args.formula_id
 
 # create and load grounder
 sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions))
-sym_grounder.load_state_dict(status["grounder_state"])
+sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
+sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder
 
-# load observations preprocessor
-using_gnn = (config.gnn_model != "GRU" and config.gnn_model != "LSTM")
-obs_space, preprocess_obss = utils.get_obss_preprocessor(env, using_gnn, config.progression_mode)
-if "vocab" in status and preprocess_obss.vocab is not None:
-    preprocess_obss.vocab.load_vocab(status["vocab"])
-
-# create model
-if config.recurrence > 1:
-    acmodel = RecurrentACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn_model, config.dumb_ac, config.freeze_ltl, device, False)
-else:
-    acmodel = ACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn_model, config.dumb_ac, config.freeze_ltl, device, False)
-
-# load model
-acmodel.load_state_dict(status["model_state"])
-
-sym_grounder.to(device) if sym_grounder is not None else None
-acmodel.to(device)
+agent = utils.Agent(
+    env,
+    env.observation_space,
+    env.action_space,
+    args.agent_dir,
+    config.ignoreLTL,
+    config.progression_mode,
+    config.gnn_model,
+    recurrence = config.recurrence,
+    dumb_ac = config.dumb_ac,
+    device = device,
+    argmax = True,
+    num_envs = 1,
+    verbose = False
+)
 
 # TEST
 
@@ -93,9 +92,7 @@ while not done:
 
     print("\nAction: ", end="")
 
-    preprocessed_obs = preprocess_obss([obs], device=device)
-    dist, _ = acmodel(preprocessed_obs)
-    a = torch.argmax(dist.logits, dim=-1).item()
+    a = agent.get_action(obs).item()
     print(action_to_str[a])
 
     obs, reward, done, info = env.step(a)
