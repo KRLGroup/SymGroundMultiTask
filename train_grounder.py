@@ -9,8 +9,7 @@ import utils
 from utils import EarlyStopping
 from ReplayBuffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
-from envs.gridworld_multitask.Environment import GridWorldEnv_multitask, OBS_SIZE
-from grounder_models import CNN_grounder, GridworldClassifier, ObjectCNN
+from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 
 
 @dataclass
@@ -20,10 +19,6 @@ class Args:
     batch_size: int = 32
     sym_grounder_model: str = "ObjectCNN"
     model_name: str = "sym_grounder"
-
-    # Agent parameters
-    use_agent: bool = False
-    agent: Optional[str] = None
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -40,12 +35,13 @@ def train_grounder(args: Args, device: str = None):
 
     # environment used for training (fixed)
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
+    n_propositions = len(env.dictionary_symbols)
 
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
     # create model
-    sym_grounder = utils.make_grounder(args.sym_grounder_model, len(env.dictionary_symbols))
+    sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions)
     sym_grounder.to(device)
 
     # setup optimizer (train the grounder and not the DeepDFA)
@@ -119,10 +115,9 @@ def train_grounder(args: Args, device: str = None):
 
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
-                batch_size = args.batch_size, 
-                numb_of_actions = task.num_of_symbols, 
+                batch_size = args.batch_size,
+                numb_of_actions = n_propositions,
                 numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
-                initialization = "gaussian",
                 reward_type = "ternary"
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
@@ -135,8 +130,8 @@ def train_grounder(args: Args, device: str = None):
             optimizer.zero_grad()
 
             # obtain probability of symbols from observations with sym_grounder
-            symbols = sym_grounder(obss.view(-1, 3, OBS_SIZE, OBS_SIZE))
-            symbols = symbols.view(-1, env.max_num_steps+1, task.num_of_symbols)
+            symbols = sym_grounder(obss.view(-1, *obss.shape[2:]))
+            symbols = symbols.view(*obss.shape[:2], -1)
 
             # predict state and reward from predicted symbols with DeepDFA
             pred_states, pred_rew = deepDFA(symbols)
