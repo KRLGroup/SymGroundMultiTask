@@ -65,7 +65,7 @@ class Eval:
             self.eval_env.envs[0],
             self.eval_env.observation_space,
             self.eval_env.action_space,
-            self.model_dir + "/train", 
+            self.model_dir, 
             self.ignoreLTL,
             self.progression_mode,
             self.gnn,
