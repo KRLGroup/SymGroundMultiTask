@@ -17,3 +17,6 @@ def make_grounder(model_name, n_symbols):
 
     elif model_name == "GridworldClassifier":
         return GridworldClassifier(n_symbols).double()
+
+    elif model_name == None:
+        return None
