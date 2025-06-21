@@ -112,12 +112,20 @@ def train_agent(args: Args, device: str = None):
     utils.save_config(model_dir + "/train", args)
 
     # log command and all script arguments
-    txt_logger.info("{}\n".format(" ".join(sys.argv)))
-    txt_logger.info("{}\n".format(args))
-    txt_logger.info(f"Device: {device}\n")
+    txt_logger.info("\n---\n")
+    txt_logger.info("Args:")
+    for field_name, value in vars(args).items():
+        txt_logger.info(f"\t{field_name}: {value}")
+    txt_logger.info(f"\nDevice: {device}")
+    txt_logger.info("\n---\n")
 
     # set seed for all randomness sources
     utils.set_seed(args.seed)
+
+
+    # INITIALIZATION
+
+    txt_logger.info("Initialization\n")
 
     # load environments
     envs = []
@@ -140,49 +148,44 @@ def train_agent(args: Args, device: str = None):
         for env in envs:
             env.env.map = envs[0].env.map
 
-    txt_logger.info("Environments loaded\n")
+    txt_logger.info("-) Environments loaded")
 
-    # load training status
-    try:
-        status = utils.get_status(model_dir + "/train", device)
-    except OSError:
+    # load previous training status
+    status = utils.get_status(model_dir, device)
+    txt_logger.info("-) Looking for status of previous training")
+    if status == None:
         status = {"num_frames": 0, "update": 0}
-    txt_logger.info("Training status loaded.\n")
-
-    # load pretrained model status
-    if pretrained_model_dir is not None:
-        try:
-            pretrained_status = utils.get_status(pretrained_model_dir, device)
-        except:
-            txt_logger.info("Failed to load pretrained model.\n")
-            exit(1)
+        txt_logger.info("-) Previous status not found")
+    else:
+        txt_logger.info("-) Previous status found")
 
     # load observations preprocessor
     using_gnn = (args.gnn != "GRU" and args.gnn != "LSTM")
     obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], using_gnn, progression_mode)
     if "vocab" in status and preprocess_obss.vocab is not None:
         preprocess_obss.vocab.load_vocab(status["vocab"])
-    txt_logger.info("Observations preprocessor loaded.\n")
+    txt_logger.info("-) Observations preprocessor loaded.")
 
     # load model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl, device)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
 
     # load existing model
     if "model_state" in status:
         acmodel.load_state_dict(status["model_state"])
-        txt_logger.info("Loading model from existing run.\n")
+        txt_logger.info("-) Loading model from existing run.")
 
     # otherwise load existing pretrained GNN
     elif args.pretrained_gnn:
         acmodel.load_pretrained_gnn(pretrained_status["model_state"])
-        txt_logger.info("Pretrained model loaded.\n")
 
+        txt_logger.info("-) Loading GNN from pretrain.")
     acmodel.to(device)
-    txt_logger.info("Model loaded.\n")
-    txt_logger.info("{}\n".format(acmodel))
+
+    txt_logger.info("-) Model loaded.")
+    # txt_logger.info(f"{acmodel}")
 
     # load algo
     if args.algo == "a2c":
@@ -205,9 +208,9 @@ def train_agent(args: Args, device: str = None):
     # load optimizer of existing model
     if "optimizer_state" in status:
         algo.optimizer.load_state_dict(status["optimizer_state"])
-        txt_logger.info("Loading optimizer from existing run.\n")
+        txt_logger.info("-) Loading optimizer from existing run.")
 
-    txt_logger.info("Optimizer loaded.\n")
+    txt_logger.info("-) Optimizer loaded.")
 
     # initialize the evaluators
     if args.eval:
@@ -240,8 +243,14 @@ def train_agent(args: Args, device: str = None):
             for env in evalu.eval_envs:
                 env.env.device = device
                 env.env.sym_grounder.to(device)
+        txt_logger.info("-) Evaluators loaded.")
+
+    txt_logger.info("\n---\n")
+
 
     # TRAINING
+
+    txt_logger.info("Training\n")
 
     num_frames = status["num_frames"]
     update = status["update"]
