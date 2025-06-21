@@ -70,7 +70,7 @@ else:
 if "model_state" in status:
     acmodel.load_state_dict(status["model_state"])
 
-sym_grounder.to(device) if sym_grounder is not None
+sym_grounder.to(device) if sym_grounder is not None else None
 acmodel.to(device)
 
 # TEST

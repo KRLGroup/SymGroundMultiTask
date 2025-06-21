@@ -215,7 +215,7 @@ def train_agent(args: Args, device: str = None):
         sym_grounder.load_state_dict(grounder_status["grounder_state"])
         txt_logger.info("-) Loading grounder from pretrain.")
 
-    sym_grounder.to(device) if sym_grounder is not None
+    sym_grounder.to(device) if sym_grounder is not None else None
     acmodel.to(device)
 
     txt_logger.info("-) Model loaded.")
