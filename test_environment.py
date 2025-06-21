@@ -35,7 +35,7 @@ if "Letter" in args.env:
     process_formula = lambda formula : formula
 
 # set formula
-env.env.sampler.sampled_tasks = args.formula_id
+env.sampler.sampled_tasks = args.formula_id
 
 # TEST
 

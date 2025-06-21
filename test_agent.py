@@ -39,7 +39,7 @@ env = utils.make_env(
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
 # set formula
-env.env.sampler.sampled_tasks = args.formula_id
+env.sampler.sampled_tasks = args.formula_id
 
 
 # load training status
