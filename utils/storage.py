@@ -28,7 +28,10 @@ def get_status_path(model_dir):
 
 def get_status(model_dir, device):
     path = get_status_path(model_dir)
-    return torch.load(path, map_location=device)
+    if os.path.exists(path):
+        return torch.load(path, map_location=device)
+    else:
+        return None
 
 
 def save_status(status, model_dir):
