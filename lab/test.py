@@ -31,7 +31,7 @@ test_gridworld = Args(
     ltl_sampler = "Dataset_e54",
 
     # GNN parameters
-    gnn  =  "RGCN_8x32_ROOT_SHARED",
+    gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
     gnn_pretrain = "pretrain",
 
@@ -70,7 +70,7 @@ test_simple_ltl_5l = Args(
     save_interval = 20,
     procs = 1,
     frames = 20000000,
-    gnn_name  =  "RGCN_8x32_ROOT_SHARED",
+    gnn_model = "RGCN_8x32_ROOT_SHARED",
 
     # Parameters for main algorithm
     epochs = 4,
