@@ -2,6 +2,8 @@ import torch
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from dataclasses import dataclass
+from typing import List, Optional
 
 import utils
 from utils import EarlyStopping
@@ -11,26 +13,29 @@ from envs.gridworld_multitask.Environment import GridWorldEnv_multitask, OBS_SIZ
 from grounder_models import CNN_grounder, GridworldClassifier, ObjectCNN
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+@dataclass
+class Args:
 
+    num_samples: int = 10000
+    batch_size: int = 32
+    sym_grounder_model: str = "ObjectCNN"
+    model_name: str = "sym_grounder"
 
-# parameters
-num_samples = 10000
-num_experiments = 1
-batch_size = 32
-sym_grounder_model = "ObjectCNN"
+    # Agent parameters
+    use_agent: bool = False
+    agent: Optional[str] = None
 
-model_name = "sym_grounder"
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
-buffer = ReplayBuffer()
 
+def train_grounder(args: Args, device: str = None):
 
-# experiment loop (each experiment trains a different sym_grounder)
-for exp in range(num_experiments):
+    device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model_dir = os.path.join(REPO_DIR, f"storage/{model_name}_{exp}")
+    buffer = ReplayBuffer()
+
+    model_dir = os.path.join(REPO_DIR, f"storage/{args.model_name}")
     os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
@@ -40,7 +45,7 @@ for exp in range(num_experiments):
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
 
     # create model
-    sym_grounder = utils.make_grounder(sym_grounder_model, len(env.dictionary_symbols))
+    sym_grounder = utils.make_grounder(args.sym_grounder_model, len(env.dictionary_symbols))
     sym_grounder.to(device)
 
     # setup optimizer (train the grounder and not the DeepDFA)
@@ -60,7 +65,7 @@ for exp in range(num_experiments):
     train_class_accs = []
 
     # training loop
-    while n_episodes < num_samples:
+    while n_episodes < args.num_samples:
         n_episodes += 1
 
         # reset environments
@@ -107,14 +112,14 @@ for exp in range(num_experiments):
             buffer.push(obss, rews, dfa_trans, dfa_rew)
 
         # at each iteration train the sym_grounder after the buffer is full enough
-        if len(buffer) >= 10 * batch_size:
+        if len(buffer) >= 10 * args.batch_size:
 
             # sample from the buffer
-            obss, rews, dfa_trans, dfa_rew = buffer.sample(batch_size)
+            obss, rews, dfa_trans, dfa_rew = buffer.sample(args.batch_size)
 
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
-                batch_size = batch_size, 
+                batch_size = args.batch_size, 
                 numb_of_actions = task.num_of_symbols, 
                 numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
                 initialization = "gaussian",
