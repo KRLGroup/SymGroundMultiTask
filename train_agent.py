@@ -17,9 +17,7 @@ from envs.gym_letters.letter_env import LetterEnv
 class Args:
 
     # General parameters
-    algo: str # a2c or ppo
-    env: str
-    ltl_sampler: str = "Default"
+    algo: str = "ppo"
     model_name: Optional[str] = None
     seed: int = 1
     log_interval: int = 10
@@ -28,11 +26,28 @@ class Args:
     frames: int = 2 * 10**8
     checkpoint_dir: Optional[str] = None
 
+    # Environment parameters
+    env: str = "GridWorld-v1"
+    noLTL: bool = False
+    progression_mode: str = "full" # full, partial, or none
+    ltl_sampler: str = "Default"
+    int_reward: float = 0.0
 
     # GNN parameters
     gnn_model: str = "RGCN_8x32_ROOT_SHARED"
     use_pretrained_gnn: bool = False
     gnn_pretrain: Optional[str] = None
+
+    # Grounder parameters
+    grounder_model: str = "ObjectCNN"
+    use_pretrained_grounder: bool = False
+    grounder_pretrain: Optional[str] = None
+
+    # Agent parameters
+    dumb_ac: bool = False
+    freeze_ltl: bool = False
+    ignoreLTL: bool = False
+    recurrence: int = 1
 
     # Evaluation parameters
     eval: bool = False
@@ -42,7 +57,7 @@ class Args:
     ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
     eval_procs: int = 1
 
-    # Parameters for main algorithm
+    # Train parameters
     epochs: int = 4
     batch_size: int = 256
     frames_per_proc: Optional[int] = None
@@ -55,13 +70,6 @@ class Args:
     optim_eps: float = 1e-8
     optim_alpha: float = 0.99
     clip_eps: float = 0.2
-    ignoreLTL: bool = False
-    noLTL: bool = False
-    progression_mode: str = "full" # full, partial, or none
-    recurrence: int = 1
-    int_reward: float = 0.0
-    dumb_ac: bool = False
-    freeze_ltl: bool = False
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
