@@ -65,15 +65,16 @@ class Eval:
             self.eval_env.envs[0],
             self.eval_env.observation_space,
             self.eval_env.action_space,
-            self.model_dir, 
+            self.model_dir,
             self.ignoreLTL,
             self.progression_mode,
             self.gnn,
             recurrence = self.recurrence,
-            dumb_ac = self.dumb_ac, device=self.device,
-            argmax=self.argmax,
-            num_envs=self.num_procs,
-            verbose=False
+            dumb_ac = self.dumb_ac,
+            device = self.device,
+            argmax = self.argmax,
+            num_envs = self.num_procs,
+            verbose = False
         )
 
         # Run agent
@@ -107,7 +108,6 @@ class Eval:
 
         end_time = time.time()
 
-
         return logs["return_per_episode"], logs["num_frames_per_episode"]
 
 
@@ -128,7 +128,6 @@ if __name__ == '__main__':
                         help="name of the environment to train on (REQUIRED)")
     parser.add_argument("--discount", type=float, default=0.99,
                     help="discount factor (default: 0.99)")
-
     parser.add_argument("--ignoreLTL", action="store_true", default=False,
                     help="the network ignores the LTL input")
     parser.add_argument("--progression-mode", default="full",
