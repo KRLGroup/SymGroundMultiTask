@@ -32,8 +32,9 @@ class Eval:
         self.discount = discount
 
         self.model_dir = get_model_dir(model_name)
+        self.eval_dir = self.model_dir + "/eval-" + ltl_sampler
 
-        self.tb_writer = tensorboardX.SummaryWriter(self.model_dir + "/eval-" + ltl_sampler)
+        self.tb_writer = tensorboardX.SummaryWriter(self.eval_dir)
 
         # Load environments for evaluation
         eval_envs = []
