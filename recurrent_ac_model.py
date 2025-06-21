@@ -25,7 +25,7 @@ from ac_model import LSTMModel, GRUModel, init_params
 
 
 class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
-    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, verbose=True):
+    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, device, verbose=True):
         super().__init__()
 
         # Decide which components are enabled
@@ -33,7 +33,7 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
         self.use_text = not ignoreLTL and (gnn_type == "GRU" or gnn_type == "LSTM") and "text" in obs_space
         self.use_ast = not ignoreLTL and ("GCN" in gnn_type) and "text" in obs_space
         self.gnn_type = gnn_type
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device
         self.action_space = action_space
         self.dumb_ac = dumb_ac
 

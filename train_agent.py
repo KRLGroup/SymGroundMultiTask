@@ -189,7 +189,7 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
     else:
         acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
 
@@ -286,8 +286,6 @@ def train_agent(args: Args, device: str = None):
         logs2 = algo.update_parameters(exps)
         logs = {**logs1, **logs2}
         update_end_time = time.time()
-
-        # the logs refere only to the last update
 
         num_frames += logs["num_frames"]
         update += 1
