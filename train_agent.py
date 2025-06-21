@@ -17,8 +17,8 @@ from envs.gym_letters.letter_env import LetterEnv
 class Args:
 
     # General parameters
-    algo: str = "ppo"
     model_name: Optional[str] = None
+    algo: str = "ppo"
     seed: int = 1
     log_interval: int = 10
     save_interval: int = 100
@@ -39,7 +39,7 @@ class Args:
     gnn_pretrain: Optional[str] = None
 
     # Grounder parameters
-    grounder_model: str = "ObjectCNN"
+    grounder_model: Optional[str] = "ObjectCNN"
     use_pretrained_grounder: bool = False
     grounder_pretrain: Optional[str] = None
 
@@ -51,10 +51,10 @@ class Args:
 
     # Evaluation parameters
     eval: bool = False
-    eval_episodes: List[int] = None
     eval_env: Optional[str] = None
     eval_interval: int = 100
-    ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
+    ltl_samplers_eval: Optional[List[str]] = None
+    eval_episodes: List[int] = None
     eval_procs: int = 1
 
     # Train parameters

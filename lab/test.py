@@ -15,19 +15,32 @@ test_ltl2action = Args(
 )
 
 
-# TODO num_envs should be 1 since we use shared pool of formulas?
 test_gridworld = Args(
 
     # General parameters
     model_name = None,
     algo = "ppo",
-    env = "GridWorld-v1",
-    ltl_sampler = "Dataset_e54",
+    seed = 1,
     log_interval = 10,
     save_interval = 100,
     procs = 1,
     frames = 20000000,
+
+    # Environment parameters
+    env = "GridWorld-v1",
+    ltl_sampler = "Dataset_e54",
+
+    # GNN parameters
     gnn  =  "RGCN_8x32_ROOT_SHARED",
+    use_pretrained_gnn = True,
+    gnn_pretrain = "pretrain",
+
+    # Grounder parameters
+    grounder_model = "ObjectCNN",
+    use_pretrained_grounder = True,
+    grounder_pretrain = "sym_grounder_64_fixed",
+
+    # Agent parameters
 
     # Evaluation parameters
     eval = True,
@@ -37,12 +50,11 @@ test_gridworld = Args(
     eval_episodes = [1000, 50],
     eval_procs = 1,
 
-    # Parameters for main algorithm
+    # Train parameters
     epochs = 4,
     discount = 0.94,
     lr = 0.0003,
-    pretrained_gnn = True,
-    pretrain_name = "pretrain"
+
 
 )
 
@@ -58,7 +70,7 @@ test_simple_ltl_5l = Args(
     save_interval = 20,
     procs = 1,
     frames = 20000000,
-    gnn  =  "RGCN_8x32_ROOT_SHARED",
+    gnn_name  =  "RGCN_8x32_ROOT_SHARED",
 
     # Parameters for main algorithm
     epochs = 4,
