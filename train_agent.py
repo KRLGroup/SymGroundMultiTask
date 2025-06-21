@@ -169,16 +169,16 @@ def train_agent(args: Args, device: str = None):
         for env in envs:
             env.env.map = envs[0].env.map
 
-    txt_logger.info("-) Environments loaded")
+    txt_logger.info("-) Environments loaded.")
 
     # load previous training status
     status = utils.get_status(model_dir, device)
-    txt_logger.info("-) Looking for status of previous training")
+    txt_logger.info("-) Looking for status of previous training.")
     if status == None:
         status = {"num_frames": 0, "update": 0}
-        txt_logger.info("-) Previous status not found")
+        txt_logger.info("-) Previous status not found.")
     else:
-        txt_logger.info("-) Previous status found")
+        txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
     using_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
@@ -187,7 +187,7 @@ def train_agent(args: Args, device: str = None):
         preprocess_obss.vocab.load_vocab(status["vocab"])
     txt_logger.info("-) Observations preprocessor loaded.")
 
-    # load model
+    # create model
     if use_mem:
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, False)
     else:
@@ -280,7 +280,7 @@ def train_agent(args: Args, device: str = None):
 
     while num_frames < args.frames:
 
-        # update model parameters
+        # collect experiences from environments and updated agent
         update_start_time = time.time()
         exps, logs1 = algo.collect_experiences()
         logs2 = algo.update_parameters(exps)
@@ -292,7 +292,7 @@ def train_agent(args: Args, device: str = None):
         num_frames += logs["num_frames"]
         update += 1
 
-        # Print logs
+        # Print logs (they refer only to the last update)
 
         if update % args.log_interval == 0:
     
