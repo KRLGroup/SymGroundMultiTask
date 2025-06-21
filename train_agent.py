@@ -1,19 +1,16 @@
 import time
-import datetime
 import torch
 import torch_ac
 import tensorboardX
 import sys
 import glob
-from math import floor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional
 
 import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
-from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 
 # Parse arguments
 
