@@ -60,15 +60,13 @@ if "vocab" in status and preprocess_obss.vocab is not None:
     preprocess_obss.vocab.load_vocab(status["vocab"])
 
 # create model
-use_mem = config.recurrence > 1
-if use_mem:
+if config.recurrence > 1:
     acmodel = RecurrentACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn, config.dumb_ac, config.freeze_ltl)
 else:
     acmodel = ACModel(env.env, obs_space, env.action_space, config.ignoreLTL, config.gnn, config.dumb_ac, config.freeze_ltl, device)
 
 # load model
-if "model_state" in status:
-    acmodel.load_state_dict(status["model_state"])
+acmodel.load_state_dict(status["model_state"])
 
 sym_grounder.to(device) if sym_grounder is not None else None
 acmodel.to(device)
