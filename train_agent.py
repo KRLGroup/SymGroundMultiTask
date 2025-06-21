@@ -114,6 +114,11 @@ def train_agent(args: Args, device: str = None):
         assert(args.progression_mode == "full" and args.gnn_pretrain != None)
         pretrained_gnn_dir = utils.get_model_dir(args.gnn_pretrain, pretrain_dir)
 
+    # pretrained grounder dir
+    pretrained_grounder_dir = None
+    if args.use_pretrained_grounder:
+        assert(args.grounder_pretrain != None)
+        pretrained_grounder_dir = utils.get_model_dir(args.grounder_pretrain, pretrain_dir)
 
     # load loggers and Tensorboard writer
     txt_logger = utils.get_txt_logger(model_dir)
@@ -148,8 +153,14 @@ def train_agent(args: Args, device: str = None):
             seed = args.seed,
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
-            device = torch.device("cpu")
+            grounder = None
         ))
+
+    # create grounder
+    n_propositions = len(envs[0].propositions)
+    sym_grounder = utils.make_grounder(args.grounder_model, n_propositions)
+    for env in envs:
+        env.env.sym_grounder = sym_grounder
 
     # sync environments
     envs[0].reset()
@@ -192,6 +203,19 @@ def train_agent(args: Args, device: str = None):
         gnn_status = utils.get_status(pretrained_gnn_dir, device)
         acmodel.load_pretrained_gnn(gnn_status["model_state"])
         txt_logger.info("-) Loading GNN from pretrain.")
+
+    # load existing grounder
+    if "grounder_state" in status:
+        sym_grounder.load_state_dict(status["grounder_state"])
+        txt_logger.info("-) Loading grounder from existing run.")
+
+    # otherwise load existing pretrained grounder
+    elif args.use_pretrained_grounder:
+        grounder_status = utils.get_status(pretrained_grounder_dir, device)
+        sym_grounder.load_state_dict(grounder_status["grounder_state"])
+        txt_logger.info("-) Loading grounder from pretrain.")
+
+    sym_grounder.to(device)
     acmodel.to(device)
 
     txt_logger.info("-) Model loaded.")
@@ -208,12 +232,6 @@ def train_agent(args: Args, device: str = None):
                                 args.optim_eps, args.clip_eps, args.epochs, args.batch_size, preprocess_obss)
     else:
         raise ValueError("Incorrect algorithm name: {}".format(args.algo))
-
-    # move the environments to CUDA only after having spawned the other threads
-    if  isinstance(envs[0].env, GridWorldEnv_multitask):
-        for env in envs:
-            env.env.device = device
-            env.env.sym_grounder.to(device)
 
     # load optimizer of existing model
     if "optimizer_state" in status:
@@ -238,7 +256,8 @@ def train_agent(args: Args, device: str = None):
                 model_dir = model_dir,
                 ltl_sampler = sampler,
                 seed = args.seed,
-                device = torch.device("cpu"),
+                device = device,
+                grounder = sym_grounder,
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
                 progression_mode = progression_mode,
@@ -246,13 +265,6 @@ def train_agent(args: Args, device: str = None):
                 dumb_ac = args.dumb_ac
             ))
 
-    # move the environments to CUDA only after having spawned the other threads
-    if  isinstance(evals[0].eval_envs[0].env, GridWorldEnv_multitask):
-        for evalu in evals:
-            evalu.device = device
-            for env in evalu.eval_envs:
-                env.env.device = device
-                env.env.sym_grounder.to(device)
         txt_logger.info("-) Evaluators loaded.")
 
     txt_logger.info("\n---\n")
@@ -329,8 +341,9 @@ def train_agent(args: Args, device: str = None):
             status = {
                 "num_frames": num_frames,
                 "update": update,
-                "model_state": algo.acmodel.state_dict(), 
-                "optimizer_state": algo.optimizer.state_dict()
+                "model_state": algo.acmodel.state_dict(),
+                "optimizer_state": algo.optimizer.state_dict(),
+                "grounder_state": sym_grounder.state_dict()
             }
 
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
