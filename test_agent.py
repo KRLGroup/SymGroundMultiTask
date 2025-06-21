@@ -26,6 +26,13 @@ with open(os.path.join(AGENT_DIR, "train/config.pickle"), "rb") as f:
     config = pickle.load(f)
 print(f"\nConfig:\n{config}")
 
+# load training status
+try:
+    status = utils.get_status(AGENT_DIR + "/train", device)
+except OSError:
+    status = {"num_frames": 0, "update": 0}
+
+
 # build environment
 env = utils.make_env(
     config.env,
@@ -34,19 +41,17 @@ env = utils.make_env(
     seed = 1,
     intrinsic = config.int_reward,
     noLTL = config.noLTL,
-    device = device
+    grounder = None
 )
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
 # set formula
 env.sampler.sampled_tasks = args.formula_id
 
-
-# load training status
-try:
-    status = utils.get_status(AGENT_DIR + "/train", device)
-except OSError:
-    status = {"num_frames": 0, "update": 0}
+# create and load grounder
+sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions))
+sym_grounder.load_state_dict(status["sym_grounder"])
+env.env.sym_grounder = sym_grounder
 
 # load observations preprocessor
 using_gnn = (config.gnn != "GRU" and config.gnn != "LSTM")
@@ -64,9 +69,8 @@ else:
 # load model
 if "model_state" in status:
     acmodel.load_state_dict(status["model_state"])
-elif config.pretrained_gnn:
-    acmodel.load_pretrained_gnn(pretrained_status["model_state"])
 
+sym_grounder.to(device) if sym_grounder is not None
 acmodel.to(device)
 
 # TEST
