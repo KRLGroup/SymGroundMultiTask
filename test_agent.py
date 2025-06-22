@@ -12,8 +12,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--agent_dir", default="storage/RGCN_8x32_ROOT_SHARED-pretrained_Dataset_e54_GridWorld-v1_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
-parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--agent_dir", default="RGCN_8x32_ROOT_SHARED-pretrained_Dataset_e54_GridWorld-v1_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
+parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
@@ -21,7 +21,8 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 # compute agent dir
-agent_dir = os.path.join(REPO_DIR, args.agent_dir)
+storage_dir = os.path.join(REPO_DIR, "storage")
+agent_dir = os.path.join(storage_dir, args.agent_dir)
 
 # load training config
 with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
@@ -29,17 +30,13 @@ with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
 print(f"\nConfig:\n{config}")
 
 # load training status
-try:
-    status = utils.get_status(agent_dir, device)
-except OSError:
-    status = {"num_frames": 0, "update": 0}
-
+status = utils.get_status(agent_dir, device)
 
 # build environment
 env = utils.make_env(
     config.env,
     progression_mode = config.progression_mode,
-    ltl_sampler = args.sampler,
+    ltl_sampler = args.ltl_sampler,
     seed = 1,
     intrinsic = config.int_reward,
     noLTL = config.noLTL,
@@ -60,7 +57,7 @@ agent = utils.Agent(
     env,
     env.observation_space,
     env.action_space,
-    args.agent_dir,
+    agent_dir,
     config.ignoreLTL,
     config.progression_mode,
     config.gnn_model,
@@ -92,10 +89,10 @@ while not done:
 
     print("\nAction: ", end="")
 
-    a = agent.get_action(obs).item()
-    print(action_to_str[a])
+    action = agent.get_action(obs).item()
+    print(action_to_str[action])
 
-    obs, reward, done, info = env.step(a)
+    obs, reward, done, info = env.step(action)
 
     if done:
         env.show()
