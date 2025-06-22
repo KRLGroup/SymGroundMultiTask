@@ -1,6 +1,7 @@
 import argparse
 import torch
 import numpy as np
+import os
 
 import utils
 from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
@@ -15,11 +16,23 @@ args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 # build environment
 env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=True, agent_centric_view=args.agent_centric)
 
+# compute grounder dir
+storage_dir = os.path.join(REPO_DIR, "storage")
+grounder_dir = os.path.join(storage_dir, args.grounder)
+
+# load training status
+status = utils.get_status(grounder_dir, device)
+
 # load grounder
-sym_grounder = torch.load(args.grounder, map_location=device)
+sym_grounder = utils.make_grounder("ObjectCNN", len(env.dictionary_symbols))
+sym_grounder.load_state_dict(status["grounder_state"])
+sym_grounder.to(device)
 
 # TEST
 
