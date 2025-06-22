@@ -11,7 +11,6 @@ from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
 
-# Parse arguments
 
 @dataclass
 class Args:
