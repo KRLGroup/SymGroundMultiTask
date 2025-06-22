@@ -30,7 +30,8 @@ def train_grounder(args: Args, device: str = None):
 
     buffer = ReplayBuffer()
 
-    model_dir = os.path.join(REPO_DIR, f"storage/{args.model_name}")
+    storage_dir = os.path.join(REPO_DIR, "storage")
+    model_dir = os.path.join(storage_dir, args.model_name)
     os.makedirs(model_dir, exist_ok=True)
 
     # environment used for training (fixed)
@@ -43,6 +44,14 @@ def train_grounder(args: Args, device: str = None):
     # create model
     sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions)
     sym_grounder.to(device)
+    # load previous training status
+    status = utils.get_status(model_dir, device)
+    if status == None:
+        status = {"epoch": 0}
+
+    # load existing model
+    if "grounder_state" in status:
+        sym_grounder.load_state_dict(status["grounder_state"])
 
     # setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
