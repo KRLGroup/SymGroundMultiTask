@@ -26,13 +26,14 @@ class GridWorldEnv_multitask(gym.Env):
         "render_fps": 4
     }
 
-    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False, 
-        img_dir="imgs_16x16", ltl_sampler="Dataset_e54", shuffle_tasks=True, save_obs=False, wrap_around_map=True, 
-        agent_centric_view=True):
+    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False,
+        randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54", shuffle_tasks=True, save_obs=False,
+        wrap_around_map=True, agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
         self.randomize_locations = randomize_loc
+        self.randomize_start = randomize_start
 
         self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
         self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
@@ -71,12 +72,17 @@ class GridWorldEnv_multitask(gym.Env):
             3: np.array([-1, 0]),  # LEFT
         }
 
-        # default locations
-        self._pickaxe_locations = [(1,1), (5,2)]
-        self._lava_locations = [(3,3), (1,4)]
-        self._door_locations = [(3,0), (3,5)]
-        self._gem_locations = [(0,3), (6,4)]
-        self._egg_locations = [(2,1), (5,6)]
+        # default positions
+        all_positions = {(x, y) for x in range(self.size) for y in range(self.size)}
+        default_positions = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+
+        self._pickaxe_locations = [default_positions[0], default_positions[1]]
+        self._lava_locations = [default_positions[2], default_positions[3]]
+        self._door_locations = [default_positions[4], default_positions[5]]
+        self._gem_locations = [default_positions[6], default_positions[7]]
+        self._egg_locations = [default_positions[8], default_positions[9]]
+
+        self.free_positions = all_positions - set(default_positions)
         self._initial_agent_location = (0,0)
 
         # precompute symbols per location
@@ -170,20 +176,23 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.curr_step = 0
 
-        # randomize item locations and recompute
+        # randomize item locations and recompute observations
         if self.randomize_locations and self.sampler.sampled_tasks % 10 == 0:
 
-            all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
+            all_positions = {(x, y) for x in range(self.size) for y in range(self.size)}
 
-            # select 11 random locations
+            # select 10 random locations
             num_items = 10
-            item_positions = random.sample(all_positions, num_items+1)
-            self._gem_locations = [item_positions[0], item_positions[1]]
-            self._pickaxe_locations = [item_positions[2], item_positions[3]]
-            self._door_locations = [item_positions[4], item_positions[5]]
-            self._lava_locations = [item_positions[6], item_positions[7]]
-            self._egg_locations = [item_positions[8], item_positions[9]]
-            self._initial_agent_location = item_positions[10]
+            sampled_positions = random.sample(all_positions, num_items)
+
+            self._gem_locations = [sampled_positions[0], sampled_positions[1]]
+            self._pickaxe_locations = [sampled_positions[2], sampled_positions[3]]
+            self._door_locations = [sampled_positions[4], sampled_positions[5]]
+            self._lava_locations = [sampled_positions[6], sampled_positions[7]]
+            self._egg_locations = [sampled_positions[8], sampled_positions[9]]
+
+            self.free_positions = all_positions - set(items_positions)
+            self._initial_agent_location = random.sample(self.free_positions)
 
             # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
@@ -223,6 +232,10 @@ class GridWorldEnv_multitask(gym.Env):
                     for c in range(self.size):
                         self._agent_location = np.array([r, c])
                         self.loc_to_obs[r,c] = self._get_symbol_obs()
+
+        # extract new initial location
+        elif self.randomize_start:
+            self._initial_agent_location = random.sample(self.free_positions, 1)[0]
 
         # reset the agent location
         self._agent_location = np.array(self._initial_agent_location)
