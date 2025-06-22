@@ -14,11 +14,13 @@ class Agent:
 
     def __init__(self, env, obs_space, action_space, model_dir, ignoreLTL, progression_mode,
                 gnn, recurrence = 1, dumb_ac = False, device=None, argmax=False, num_envs=1, verbose = True):
-        try:
-            if verbose:
-                print(model_dir)
-            status = get_status(model_dir, device)
-        except OSError:
+
+        if verbose:
+            print(model_dir)
+
+        status = get_status(model_dir, device)
+
+        if status == None:
             status = {"num_frames": 0, "update": 0}
 
         using_gnn = (gnn != "GRU" and gnn != "LSTM")
