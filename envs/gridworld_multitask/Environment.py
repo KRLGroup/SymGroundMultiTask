@@ -10,6 +10,7 @@ import os
 from ltl_wrappers import LTLEnv
 from ltl_samplers import getLTLSampler
 
+
 OBS_SIZE = 64
 WIN_SIZE = 896
 
@@ -453,7 +454,6 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         return self.dictionary_symbols.copy()
 
 
-    
     def get_events(self):
 
         # returns the proposition that currently holds
