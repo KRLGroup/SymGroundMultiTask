@@ -34,31 +34,47 @@ def train_grounder(args: Args, device: str = None):
     model_dir = os.path.join(storage_dir, args.model_name)
     os.makedirs(model_dir, exist_ok=True)
 
+    txt_logger = utils.get_txt_logger(model_dir)
+
     # environment used for training (fixed)
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
     n_propositions = len(env.dictionary_symbols)
+    txt_logger.info("Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
+    txt_logger.info("Test environment loaded.")
 
     # create model
     sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions)
     sym_grounder.to(device)
+    txt_logger.info("Grounder loaded.")
+
     # load previous training status
     status = utils.get_status(model_dir, device)
+    txt_logger.info("-) Looking for status of previous training.")
     if status == None:
         status = {"epoch": 0}
+        txt_logger.info("-) Previous status not found.")
+    else:
+        txt_logger.info("-) Previous status found.")
 
     # load existing model
     if "grounder_state" in status:
         sym_grounder.load_state_dict(status["grounder_state"])
+        txt_logger.info("Loading grounder from existing run.")
 
     # setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
 
-    txt_logger = utils.get_txt_logger(model_dir)
+    # load optimizer of existing model
+    if "optimizer_state" in status:
+        algo.optimizer.load_state_dict(status["optimizer_state"])
+        txt_logger.info("Loading optimizer from existing run.")
+
+    txt_logger.info("Optimizer loaded.")
 
     epoch = 0
     n_won = 0
