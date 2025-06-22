@@ -27,8 +27,8 @@ class GridWorldEnv_multitask(gym.Env):
     }
 
     def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False,
-        randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54", shuffle_tasks=True, save_obs=False,
-        wrap_around_map=True, agent_centric_view=True):
+        randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54", save_obs=False, wrap_around_map=True,
+        agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
@@ -45,7 +45,6 @@ class GridWorldEnv_multitask(gym.Env):
         self.max_num_steps = max_num_steps
         self.curr_step = 0
         self.has_window = False
-        self.shuffle_tasks = shuffle_tasks
 
         # environment map size
         self.size = size
