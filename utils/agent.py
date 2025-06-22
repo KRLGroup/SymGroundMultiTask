@@ -28,7 +28,6 @@ class Agent:
         if "vocab" in status and self.preprocess_obss.vocab is not None:
             self.preprocess_obss.vocab.load_vocab(status["vocab"])
 
-
         if recurrence > 1:
             self.acmodel = RecurrentACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, verbose=verbose)
             self.memories = torch.zeros(num_envs, self.acmodel.memory_size, device=device)
@@ -60,13 +59,16 @@ class Agent:
 
         return actions.cpu().numpy()
 
+
     def get_action(self, obs):
         return self.get_actions([obs])[0]
+
 
     def analyze_feedbacks(self, rewards, dones):
         if self.acmodel.recurrent:
             masks = 1 - torch.tensor(dones, dtype=torch.float).unsqueeze(1)
             self.memories *= masks
+
 
     def analyze_feedback(self, reward, done):
         return self.analyze_feedbacks([reward], [done])
