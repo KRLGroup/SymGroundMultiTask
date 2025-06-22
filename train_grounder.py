@@ -36,7 +36,7 @@ def train_grounder(args: Args, device: str = None):
 
     txt_logger = utils.get_txt_logger(model_dir)
 
-    # environment used for training (fixed)
+    # environment used for training
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
     n_propositions = len(env.dictionary_symbols)
     txt_logger.info("Environment loaded.")
@@ -126,7 +126,6 @@ def train_grounder(args: Args, device: str = None):
             # add to the buffer
             obss = np.stack(episode_obss)
             obss = torch.tensor(obss, device=device, dtype=torch.float64)
-            # obss = torch.stack(episode_obss, dim=0)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
             rews = torch.LongTensor(episode_rews)
@@ -182,7 +181,6 @@ def train_grounder(args: Args, device: str = None):
                     train_labels.append(train_env_labels[r, c])
             train_images = np.stack(train_images)
             train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
-            # train_images = torch.stack(train_images, dim=0).to(device)
             train_labels = torch.LongTensor(train_labels).to(device)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
@@ -194,7 +192,6 @@ def train_grounder(args: Args, device: str = None):
                     test_labels.append(test_env_labels[r, c])
             test_images = np.stack(test_images)
             test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
-            # test_images = torch.stack(test_images, dim=0).to(device)
             test_labels = torch.LongTensor(test_labels).to(device)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
