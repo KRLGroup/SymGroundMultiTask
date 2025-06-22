@@ -36,19 +36,32 @@ def train_grounder(args: Args, device: str = None):
 
     txt_logger = utils.get_txt_logger(model_dir)
 
+    # log script arguments
+    txt_logger.info("\n---\n")
+    txt_logger.info("Args:")
+    for field_name, value in vars(args).items():
+        txt_logger.info(f"\t{field_name}: {value}")
+    txt_logger.info(f"\nDevice: {device}")
+    txt_logger.info("\n---\n")
+
+
+    # INITIALIZATION
+
+    txt_logger.info("Initialization\n")
+
     # environment used for training
     env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
     n_propositions = len(env.dictionary_symbols)
-    txt_logger.info("Environment loaded.")
+    txt_logger.info("-) Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
-    txt_logger.info("Test environment loaded.")
+    txt_logger.info("-) Test environment loaded.")
 
     # create model
     sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions)
     sym_grounder.to(device)
-    txt_logger.info("Grounder loaded.")
+    txt_logger.info("-) Grounder loaded.")
 
     # load previous training status
     status = utils.get_status(model_dir, device)
@@ -62,7 +75,7 @@ def train_grounder(args: Args, device: str = None):
     # load existing model
     if "grounder_state" in status:
         sym_grounder.load_state_dict(status["grounder_state"])
-        txt_logger.info("Loading grounder from existing run.")
+        txt_logger.info("-) Loading grounder from existing run.")
 
     # setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
@@ -72,9 +85,15 @@ def train_grounder(args: Args, device: str = None):
     # load optimizer of existing model
     if "optimizer_state" in status:
         algo.optimizer.load_state_dict(status["optimizer_state"])
-        txt_logger.info("Loading optimizer from existing run.")
+        txt_logger.info("-) Loading optimizer from existing run.")
 
-    txt_logger.info("Optimizer loaded.")
+    txt_logger.info("-) Optimizer loaded.")
+    txt_logger.info("\n---\n")
+
+
+    # TRAINING
+
+    txt_logger.info("Training\n")
 
     epoch = 0
     n_won = 0
@@ -149,7 +168,7 @@ def train_grounder(args: Args, device: str = None):
             txt_logger.info(f"\nEpoch {epoch}")
             epoch += 1
 
-            # TRAINING
+            # TRAINING STEP
 
             optimizer.zero_grad()
 
