@@ -71,17 +71,19 @@ class GridWorldEnv_multitask(gym.Env):
             3: np.array([-1, 0]),  # LEFT
         }
 
-        # default positions
-        all_positions = {(x, y) for x in range(self.size) for y in range(self.size)}
-        default_positions = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+        # default locations
+        all_locations = {(x, y) for x in range(self.size) for y in range(self.size)}
+        default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
 
-        self._pickaxe_locations = [default_positions[0], default_positions[1]]
-        self._lava_locations = [default_positions[2], default_positions[3]]
-        self._door_locations = [default_positions[4], default_positions[5]]
-        self._gem_locations = [default_positions[6], default_positions[7]]
-        self._egg_locations = [default_positions[8], default_positions[9]]
+        # assign items locations
+        self._pickaxe_locations = [default_locations[0], default_locations[1]]
+        self._lava_locations = [default_locations[2], default_locations[3]]
+        self._door_locations = [default_locations[4], default_locations[5]]
+        self._gem_locations = [default_locations[6], default_locations[7]]
+        self._egg_locations = [default_locations[8], default_locations[9]]
 
-        self.free_positions = all_positions - set(default_positions)
+        # assign agent initial location
+        self.free_locations = all_locations - set(default_locations)
         self._initial_agent_location = (0,0)
 
         # precompute symbols per location
@@ -178,20 +180,22 @@ class GridWorldEnv_multitask(gym.Env):
         # randomize item locations and recompute observations
         if self.randomize_locations and self.sampler.sampled_tasks % 10 == 0:
 
-            all_positions = {(x, y) for x in range(self.size) for y in range(self.size)}
+            all_locations = {(x, y) for x in range(self.size) for y in range(self.size)}
 
             # select 10 random locations
             num_items = 10
-            sampled_positions = random.sample(all_positions, num_items)
+            sampled_locations = random.sample(all_locations, num_items)
 
-            self._gem_locations = [sampled_positions[0], sampled_positions[1]]
-            self._pickaxe_locations = [sampled_positions[2], sampled_positions[3]]
-            self._door_locations = [sampled_positions[4], sampled_positions[5]]
-            self._lava_locations = [sampled_positions[6], sampled_positions[7]]
-            self._egg_locations = [sampled_positions[8], sampled_positions[9]]
+            # assign item locations
+            self._gem_locations = [sampled_locations[0], sampled_locations[1]]
+            self._pickaxe_locations = [sampled_locations[2], sampled_locations[3]]
+            self._door_locations = [sampled_locations[4], sampled_locations[5]]
+            self._lava_locations = [sampled_locations[6], sampled_locations[7]]
+            self._egg_locations = [sampled_locations[8], sampled_locations[9]]
 
-            self.free_positions = all_positions - set(items_positions)
-            self._initial_agent_location = random.sample(self.free_positions)
+            # assign agent initial location
+            self.free_locations = all_locations - set(items_locations)
+            self._initial_agent_location = random.sample(self.free_locations)
 
             # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
@@ -234,7 +238,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         # extract new initial location
         elif self.randomize_start:
-            self._initial_agent_location = random.sample(self.free_positions, 1)[0]
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
         # reset the agent location
         self._agent_location = np.array(self._initial_agent_location)
@@ -247,7 +251,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def step(self, action):
 
-        # update position
+        # update agent location
         direction = self._action_to_direction[action]
         if self.wrap_around_map:
             self._agent_location = (self._agent_location + direction) % self.size
