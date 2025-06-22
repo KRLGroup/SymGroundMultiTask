@@ -19,6 +19,7 @@ class Args:
     batch_size: int = 32
     sym_grounder_model: str = "ObjectCNN"
     model_name: str = "sym_grounder"
+    seed: int = 1
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -43,6 +44,9 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info(f"\t{field_name}: {value}")
     txt_logger.info(f"\nDevice: {device}")
     txt_logger.info("\n---\n")
+
+    # set seed for all randomness sources
+    utils.set_seed(args.seed)
 
 
     # INITIALIZATION
