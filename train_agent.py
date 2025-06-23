@@ -125,7 +125,7 @@ def train_agent(args: Args, device: str = None):
     tb_writer = tensorboardX.SummaryWriter(train_dir)
     utils.save_config(model_dir, args)
 
-    # log command and all script arguments
+    # log script arguments
     txt_logger.info("\n---\n")
     txt_logger.info("Args:")
     for field_name, value in vars(args).items():
