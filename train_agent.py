@@ -4,7 +4,7 @@ import torch_ac
 import tensorboardX
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import utils
 from ac_model import ACModel
@@ -27,9 +27,10 @@ class Args:
 
     # Environment parameters
     env: str = "GridWorld-v1"
+    ltl_sampler: str = "Default"
+    obs_size: Tuple[int,int] = (64,64)
     noLTL: bool = False
     progression_mode: str = "full" # full, partial, or none
-    ltl_sampler: str = "Default"
     int_reward: float = 0.0
 
     # GNN parameters
@@ -152,12 +153,13 @@ def train_agent(args: Args, device: str = None):
             seed = args.seed,
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
-            grounder = None
+            grounder = None,
+            obs_size = args.obs_size
         ))
 
     # create grounder
     n_propositions = len(envs[0].propositions)
-    sym_grounder = utils.make_grounder(args.grounder_model, n_propositions)
+    sym_grounder = utils.make_grounder(args.grounder_model, n_propositions, args.obs_size)
     for env in envs:
         env.env.sym_grounder = sym_grounder
 
@@ -257,6 +259,7 @@ def train_agent(args: Args, device: str = None):
                 seed = args.seed,
                 device = device,
                 grounder = sym_grounder,
+                obs_size = args.obs_size,
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
                 progression_mode = progression_mode,

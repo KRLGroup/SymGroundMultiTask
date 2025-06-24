@@ -26,13 +26,19 @@ env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc
 storage_dir = os.path.join(REPO_DIR, "storage")
 grounder_dir = os.path.join(storage_dir, args.grounder)
 
+# load training config
+with open(os.path.join(grounder_dir, "config.pickle"), "rb") as f:
+    config = pickle.load(f)
+print(f"\nConfig:\n{config}")
+
 # load training status
 status = utils.get_status(grounder_dir, device)
 
 # load grounder
-sym_grounder = utils.make_grounder("ObjectCNN", len(env.dictionary_symbols))
+sym_grounder = utils.make_grounder("ObjectCNN", len(env.dictionary_symbols), config.obs_size)
 sym_grounder.load_state_dict(status["grounder_state"])
 sym_grounder.to(device)
+
 
 # TEST
 

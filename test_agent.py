@@ -40,7 +40,8 @@ env = utils.make_env(
     seed = 1,
     intrinsic = config.int_reward,
     noLTL = config.noLTL,
-    grounder = None
+    grounder = None,
+    obs_size = config.obs_size
 )
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
@@ -48,7 +49,7 @@ action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 env.sampler.sampled_tasks = args.formula_id
 
 # create and load grounder
-sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions))
+sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions), config.obs_size)
 sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder
@@ -68,6 +69,7 @@ agent = utils.Agent(
     num_envs = 1,
     verbose = False
 )
+
 
 # TEST
 

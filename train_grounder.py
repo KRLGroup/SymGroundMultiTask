@@ -3,7 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import utils
 from utils import EarlyStopping
@@ -16,6 +16,7 @@ from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 class Args:
 
     sym_grounder_model: str = "ObjectCNN"
+    obs_size: Tuple[int,int] = (64,64)
     model_name: str = "sym_grounder"
 
     num_samples: int = 10000
@@ -63,6 +64,7 @@ def train_grounder(args: Args, device: str = None):
     # environment used for training
     env = GridWorldEnv_multitask(
         state_type = "image",
+        obs_size = args.obs_size,
         max_num_steps = args.max_num_steps,
         randomize_loc = args.randomize_loc
     )
@@ -72,12 +74,13 @@ def train_grounder(args: Args, device: str = None):
     # environent used for testing and logging about the symbol grounder
     test_env = GridWorldEnv_multitask(
         state_type = "image",
+        obs_size = args.obs_size,
         randomize_loc = args.randomize_test_loc
     )
     txt_logger.info("-) Test environment loaded.")
 
     # create model
-    sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions)
+    sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions, args.obs_size)
     sym_grounder.to(device)
     txt_logger.info("-) Grounder loaded.")
 
