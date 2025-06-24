@@ -1,5 +1,6 @@
 import torch
 import os
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
@@ -37,8 +38,6 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 def train_grounder(args: Args, device: str = None):
 
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    buffer = ReplayBuffer()
 
     # create model dir
     storage_dir = os.path.join(REPO_DIR, "storage")
@@ -106,6 +105,8 @@ def train_grounder(args: Args, device: str = None):
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
 
+    buffer = ReplayBuffer()
+
     # load optimizer of existing model
     if "optimizer_state" in status:
         optimizer.load_state_dict(status["optimizer_state"])
@@ -127,6 +128,8 @@ def train_grounder(args: Args, device: str = None):
     loss_values = []
     test_class_accs = []
     train_class_accs = []
+
+    start_time = time.time()
 
     # training loop
     while n_episodes < args.num_samples:
@@ -167,15 +170,19 @@ def train_grounder(args: Args, device: str = None):
                 episode_obss.extend([last_obs] * extension_length)
 
             # add to the buffer
-            obss = np.stack(episode_obss)
-            obss = torch.tensor(obss, device=device, dtype=torch.float64)
+            obss = torch.tensor(np.stack(episode_obss), device=device, dtype=torch.float64)
+            rews = torch.LongTensor(episode_rews)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
-            rews = torch.LongTensor(episode_rews)
             buffer.push(obss, rews, dfa_trans, dfa_rew)
 
-        # at each iteration train the sym_grounder after the buffer is full enough
+        # after the buffer is full enough after each episode train the sym_grounder
         if len(buffer) >= 10 * args.batch_size:
+
+            txt_logger.info(f"\nEpoch {epoch}")
+            epoch += 1
+
+            # TRAINING STEP
 
             # sample from the buffer
             obss, rews, dfa_trans, dfa_rew = buffer.sample(args.batch_size)
@@ -188,11 +195,6 @@ def train_grounder(args: Args, device: str = None):
                 reward_type = "ternary"
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
-
-            txt_logger.info(f"\nEpoch {epoch}")
-            epoch += 1
-
-            # TRAINING STEP
 
             optimizer.zero_grad()
 
@@ -222,8 +224,7 @@ def train_grounder(args: Args, device: str = None):
                 for r in range(7):
                     train_images.append(train_env_images[r, c])
                     train_labels.append(train_env_labels[r, c])
-            train_images = np.stack(train_images)
-            train_images = torch.tensor(train_images, device=device, dtype=torch.float64)
+            train_images = torch.tensor(np.stack(train_images), device=device, dtype=torch.float64)
             train_labels = torch.LongTensor(train_labels).to(device)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
@@ -233,8 +234,7 @@ def train_grounder(args: Args, device: str = None):
                 for r in range(7):
                     test_images.append(test_env_images[r, c])
                     test_labels.append(test_env_labels[r, c])
-            test_images = np.stack(test_images)
-            test_images = torch.tensor(test_images, device=device, dtype=torch.float64)
+            test_images = torch.tensor(np.stack(test_images), device=device, dtype=torch.float64)
             test_labels = torch.LongTensor(test_labels).to(device)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
@@ -245,7 +245,9 @@ def train_grounder(args: Args, device: str = None):
             test_correct_preds = torch.sum((pred_sym_test == test_labels).long())
             test_class_acc = torch.mean((pred_sym_test == test_labels).float())
 
-            txt_logger.info(f"loss: {loss.item():.4e}")
+            duration = int(time.time() - start_time)
+
+            txt_logger.info(f"loss: {loss.item():.4e} | duration: {duration:05}")
             txt_logger.info(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {pred_sym_train.shape[0]} ({train_class_acc.item():.4f})")
             txt_logger.info(f"grounder TEST accuracy = {test_correct_preds.item()} / {pred_sym_test.shape[0]} ({test_class_acc.item():.4f})")
 
