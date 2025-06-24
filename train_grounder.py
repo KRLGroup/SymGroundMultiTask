@@ -15,17 +15,20 @@ from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 @dataclass
 class Args:
 
+    # Grounder parameters
     sym_grounder_model: str = "ObjectCNN"
     obs_size: Tuple[int,int] = (64,64)
     model_name: str = "sym_grounder"
 
-    num_samples: int = 10000
-    batch_size: int = 32
-    seed: int = 1
-
+    # Environment parameters
     max_num_steps: int = 50
     randomize_loc: bool = False
     randomize_test_loc: bool = False
+
+    # Training parameters
+    num_samples: int = 10000
+    batch_size: int = 32
+    seed: int = 1
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
