@@ -484,34 +484,37 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
 class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder):
+    def __init__(self, grounder, obs_size):
         super().__init__(
-            grounder=grounder,
-            randomize_loc=False,
-            wrap_around_map=True,
-            agent_centric_view=False
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = False
         )
 
 
 
 class GridWorldEnv_Agent_Centric(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder):
+    def __init__(self, grounder, obs_size):
         super().__init__(
-            grounder=grounder,
-            randomize_loc=False,
-            wrap_around_map=True,
-            agent_centric_view=True
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = True
         )
 
 
 
 class GridWorldEnv_No_Wrap_Around(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder):
+    def __init__(self, grounder, obs_size):
         super().__init__(
-            grounder=grounder,
-            randomize_loc=False,
-            wrap_around_map=False,
-            agent_centric_view=False
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = False,
+            agent_centric_view = False
         )
 
 
