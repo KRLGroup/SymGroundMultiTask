@@ -15,11 +15,16 @@ from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 @dataclass
 class Args:
 
-    num_samples: int = 10000
-    batch_size: int = 32
     sym_grounder_model: str = "ObjectCNN"
     model_name: str = "sym_grounder"
+
+    num_samples: int = 10000
+    batch_size: int = 32
     seed: int = 1
+
+    max_num_steps: int = 50
+    randomize_loc: bool = False
+    randomize_test_loc: bool = False
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,11 +36,13 @@ def train_grounder(args: Args, device: str = None):
 
     buffer = ReplayBuffer()
 
+    # create model dir
     storage_dir = os.path.join(REPO_DIR, "storage")
     model_dir = os.path.join(storage_dir, args.model_name)
     os.makedirs(model_dir, exist_ok=True)
 
     txt_logger = utils.get_txt_logger(model_dir)
+    utils.save_config(model_dir, args)
 
     # log script arguments
     txt_logger.info("\n---\n")
@@ -54,12 +61,19 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
+    env = GridWorldEnv_multitask(
+        state_type = "image",
+        max_num_steps = args.max_num_steps,
+        randomize_loc = args.randomize_loc
+    )
     n_propositions = len(env.dictionary_symbols)
     txt_logger.info("-) Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
-    test_env = GridWorldEnv_multitask(state_type="image", max_num_steps=50, randomize_loc=False)
+    test_env = GridWorldEnv_multitask(
+        state_type = "image",
+        randomize_loc = args.randomize_test_loc
+    )
     txt_logger.info("-) Test environment loaded.")
 
     # create model
@@ -88,7 +102,7 @@ def train_grounder(args: Args, device: str = None):
 
     # load optimizer of existing model
     if "optimizer_state" in status:
-        algo.optimizer.load_state_dict(status["optimizer_state"])
+        optimizer.load_state_dict(status["optimizer_state"])
         txt_logger.info("-) Loading optimizer from existing run.")
 
     txt_logger.info("-) Optimizer loaded.")
