@@ -13,4 +13,4 @@ if __name__ == "__main__":
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_grounder(train_grounder_without_agent, device=device)
+    train_grounder(train_grounder_base, device=device)
