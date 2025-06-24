@@ -212,18 +212,19 @@ class MultiTaskProbabilisticAutoma(nn.Module):
             self.reward_values = torch.tensor([-1, 0, 1], device=device)
             self.reward_to_index = {-1: 0, 0: 1, 1: 2}
 
-        # gaussian initialization
-        self.trans_prob = torch.empty(
-            batch_size, numb_of_actions, numb_of_states, numb_of_states,
-            device=device, dtype=torch.float64
-        ).normal_(mean=0, std=0.1)
-        self.rew_matrix = torch.empty(
-            batch_size, numb_of_states, self.numb_of_rewards,
-            device=device, dtype=torch.float64
-        ).normal_(mean=0, std=0.1)
+        if initialization == "gaussian":
+            self.trans_prob = torch.empty(
+                batch_size, numb_of_actions, numb_of_states, numb_of_states,
+                device=device, dtype=torch.float64
+            ).normal_(mean=0, std=0.1)
+            self.rew_matrix = torch.empty(
+                batch_size, numb_of_states, self.numb_of_rewards,
+                device=device, dtype=torch.float64
+            ).normal_(mean=0, std=0.1)
 
 
     def forward(self, action_seq, current_state=None):
+
         batch_size, length_size, _ = action_seq.shape
 
         pred_states = torch.zeros((batch_size, length_size, self.numb_of_states), device=device, dtype=torch.float64)
@@ -233,26 +234,29 @@ class MultiTaskProbabilisticAutoma(nn.Module):
             s = torch.zeros((batch_size, self.numb_of_states), device=device, dtype=torch.float64)
             s[:, 0] = 1.0
         else:
-            s = current_state.to(device).double()
+            s = current_state.to(device=device, dtype=torch.float64)
 
         for i in range(length_size):
             a = action_seq[:, i, :]
             s, r = self.step(s, a)
-            pred_states[:, i, :] = s
-            pred_rew[:, i, :] = r
+            pred_states.select(1, i).copy_(s)
+            pred_rew.select(1, i).copy_(r)
 
         return pred_states, pred_rew
 
 
     def step(self, state, action):
-        state = state.unsqueeze(1).unsqueeze(-2)  # (batch, 1, 1, num_states)
-        action = action.unsqueeze(1)  # (batch, 1, num_actions)
 
-        selected_prob = torch.matmul(state, self.trans_prob)  # (batch, 1, num_actions, num_states)
-        next_state = torch.matmul(action, selected_prob.squeeze(2))  # (batch, num_states)
-        next_reward = torch.matmul(next_state, self.rew_matrix)  # (batch, num_rewards)
+        # state: (batch, num_states)
+        # action: (batch, num_actions)
+        # trans_prob: (batch, num_actions, num_states, num_states)
+        # rew_matrix: (batch, num_states, num_rewards)
 
-        return next_state.squeeze(1), next_reward.squeeze(1)
+        selected_prob = torch.einsum('bs,basn->ban', state, self.trans_prob)  # (batch, num_actions, num_states)
+        next_state = torch.einsum('ba,bas->bs', action, selected_prob)  # (batch, num_states)
+        next_reward = torch.einsum('bs,bsr->br', next_state, self.rew_matrix)  # (batch, num_rewards)
+
+        return next_state, next_reward
 
 
     def initFromDfas(self, reduced_dfa_list, outputs_list, weigth=10):
