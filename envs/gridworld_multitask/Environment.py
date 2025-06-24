@@ -11,9 +11,6 @@ from ltl_wrappers import LTLEnv
 from ltl_samplers import getLTLSampler
 
 
-OBS_SIZE = 64
-WIN_SIZE = 896
-
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 
@@ -26,9 +23,9 @@ class GridWorldEnv_multitask(gym.Env):
         "render_fps": 4
     }
 
-    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=75, randomize_loc=False,
-        randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54", save_obs=False, wrap_around_map=True,
-        agent_centric_view=True):
+    def __init__(self, render_mode="human", state_type="image", obs_size=(64,64), win_size=(896,896), size=7,
+        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54",
+        save_obs=False, wrap_around_map=True, agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
@@ -46,8 +43,9 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
         self.has_window = False
 
-        # environment map size
         self.size = size
+        self.obs_size = obs_size
+        self.win_size = win_size
 
         assert not agent_centric_view or (self.size%2==1 and wrap_around_map)
         self.wrap_around_map = wrap_around_map
@@ -293,7 +291,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def _get_image_obs(self):
         obs = self._render_frame()
-        obs = cv2.resize(obs, (OBS_SIZE, OBS_SIZE))
+        obs = cv2.resize(obs, self.obs_size)
         obs = obs.astype(np.float64) / 255.0
         obs = np.transpose(obs, (2, 0, 1)) # from w*h*c to c*w*h
         return obs
@@ -429,10 +427,10 @@ class GridWorldEnv_multitask(gym.Env):
         if not self.has_window:
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("Frame", WIN_SIZE, WIN_SIZE)
+            cv2.resizeWindow("Frame", self.win_size[0], self.win_size[1])
             cv2.moveWindow('Frame', 100, 100)
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
-        canvas = cv2.resize(canvas, (WIN_SIZE, WIN_SIZE), interpolation=cv2.INTER_NEAREST)
+        canvas = cv2.resize(canvas, self.win_size, interpolation=cv2.INTER_NEAREST)
         cv2.imshow("Frame", canvas)
         cv2.waitKey(1)
 
