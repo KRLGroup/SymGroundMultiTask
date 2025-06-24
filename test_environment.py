@@ -20,10 +20,7 @@ env = utils.make_env(
     args.env,
     progression_mode = "full",
     ltl_sampler = args.sampler,
-    seed = 1,
-    intrinsic = 0,
-    noLTL = False,
-    grounder = None
+    seed = 1
 )
 
 if "GridWorld" in args.env:
@@ -36,6 +33,7 @@ if "Letter" in args.env:
 
 # set formula
 env.sampler.sampled_tasks = args.formula_id
+
 
 # TEST
 
