@@ -16,13 +16,28 @@ register(
 )
 
 register(
+    id='GridWorld-v0-fixed',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Base_FixedMap'
+)
+
+register(
     id='GridWorld-v1',
-    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Agent_Centric'
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_AgentCentric'
+)
+
+register(
+    id='GridWorld-v1-fixed',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_AgentCentric_FixedMap'
 )
 
 register(
     id='GridWorld-v2',
-    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_No_Wrap_Around'
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_NoWrapAround'
+)
+
+register(
+    id='GridWorld-v2-fixed',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_NoWrapAround_FixedMap'
 )
 
 
