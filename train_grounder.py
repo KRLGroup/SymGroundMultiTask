@@ -64,13 +64,13 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    env = GridWorldEnv_multitask(
+    train_env = GridWorldEnv_multitask(
         state_type = "image",
         obs_size = args.obs_size,
         max_num_steps = args.max_num_steps,
         randomize_loc = args.randomize_loc
     )
-    n_propositions = len(env.dictionary_symbols)
+    n_propositions = len(train_env.dictionary_symbols)
     txt_logger.info("-) Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
@@ -136,7 +136,7 @@ def train_grounder(args: Args, device: str = None):
         n_episodes += 1
 
         # reset environments
-        obs, task, train_env_images, train_env_labels = env.reset()
+        obs, task, train_env_images, train_env_labels = train_env.reset()
         _, _, test_env_images, test_env_labels = test_env.reset()
 
         # agent starts in an empty cell (never terminates in 0 actions)
@@ -146,8 +146,8 @@ def train_grounder(args: Args, device: str = None):
 
         # play the episode until termination
         while not done:
-            action = env.action_space.sample()
-            obs, rw, done = env.step(action)
+            action = train_env.action_space.sample()
+            obs, rw, done = train_env.step(action)
             episode_obss.append(obs)
             episode_rews.append(rw)
 
@@ -162,10 +162,10 @@ def train_grounder(args: Args, device: str = None):
             txt_logger.info(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
 
             # extend shorter vectors to the max length
-            if len(episode_rews) < env.max_num_steps+1:
+            if len(episode_rews) < train_env.max_num_steps+1:
                 last_rew = episode_rews[-1]
                 last_obs = episode_obss[-1]
-                extension_length = env.max_num_steps+1 - len(episode_rews)
+                extension_length = train_env.max_num_steps+1 - len(episode_rews)
                 episode_rews.extend([last_rew] * extension_length)
                 episode_obss.extend([last_obs] * extension_length)
 
