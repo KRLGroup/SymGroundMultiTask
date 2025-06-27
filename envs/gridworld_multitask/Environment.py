@@ -38,7 +38,7 @@ class GridWorldEnv_multitask(gym.Env):
         self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
         self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
-        self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
+        self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
 
         self.max_num_steps = max_num_steps
         self.curr_step = 0
@@ -101,7 +101,7 @@ class GridWorldEnv_multitask(gym.Env):
         # variables to hide icons
         self._gem_display = True
         self._pickaxe_display = True
-        self._robot_display = True
+        self._agent_display = True
 
         # load icons using OpenCV (if they are used)
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
@@ -109,7 +109,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
             self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
             self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
-            self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
+            self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
 
@@ -300,7 +300,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def _get_info(self):
         info = {
-            "robot location": self._agent_location,
+            "agent location": self._agent_location,
             "inventory": "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
         }
         return info
@@ -349,7 +349,7 @@ class GridWorldEnv_multitask(gym.Env):
         blit_item(self.door_img, self._door_locations)
         blit_item(self.lava_img, self._lava_locations)
         blit_item(self.egg_img, self._egg_locations)
-        blit_item(self.robot_img, [self._agent_location], self._robot_display)
+        blit_item(self.agent_img, [self._agent_location], self._agent_display)
 
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
