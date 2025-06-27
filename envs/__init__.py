@@ -16,7 +16,7 @@ register(
 )
 
 register(
-    id='GridWorld-v0-fixed',
+    id='GridWorld-fixed-v0',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Base_FixedMap'
 )
 
@@ -26,7 +26,7 @@ register(
 )
 
 register(
-    id='GridWorld-v1-fixed',
+    id='GridWorld-fixed-v1',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_AgentCentric_FixedMap'
 )
 
@@ -36,7 +36,7 @@ register(
 )
 
 register(
-    id='GridWorld-v2-fixed',
+    id='GridWorld-fixed-v2',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_NoWrapAround_FixedMap'
 )
 
