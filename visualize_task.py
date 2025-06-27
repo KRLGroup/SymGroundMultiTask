@@ -8,7 +8,7 @@ from ltl_samplers import getLTLSampler
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", type=str, default="file", choices=["file", "manual", "sampler"])
-parser.add_argument("--folder", type=str, default="envs/gridworld_multitask/tasks")
+parser.add_argument("--folder", type=str, default="datasets/e54")
 parser.add_argument("--id", type=int, default=0)
 parser.add_argument("--symbols", nargs="+", type=str, default=["a", "b", "c", "d", "e"])
 parser.add_argument("--formula", type=ast.literal_eval, default=('eventually', 'b'))

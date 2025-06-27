@@ -26,7 +26,7 @@ class Args:
     checkpoint_dir: Optional[str] = None
 
     # Environment parameters
-    env: str = "GridWorld-v1-fixed"
+    env: str = "GridWorld-fixed-v1"
     ltl_sampler: str = "Default"
     obs_size: Tuple[int,int] = (64,64)
     noLTL: bool = False

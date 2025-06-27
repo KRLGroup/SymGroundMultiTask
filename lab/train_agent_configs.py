@@ -27,7 +27,7 @@ test_gridworld = Args(
     frames = 20000000,
 
     # Environment parameters
-    env = "GridWorld-v1-fixed",
+    env = "GridWorld-fixed-v1",
     obs_size = (64,64),
     ltl_sampler = "Dataset_e54",
 
@@ -45,7 +45,7 @@ test_gridworld = Args(
 
     # Evaluation parameters
     eval = True,
-    eval_env = "GridWorld-v1-fixed",
+    eval_env = "GridWorld-fixed-v1",
     eval_interval = 500,
     ltl_samplers_eval = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
