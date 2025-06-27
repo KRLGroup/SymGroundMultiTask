@@ -193,8 +193,8 @@ class GridWorldEnv_multitask(gym.Env):
             self._egg_locations = [sampled_locations[8], sampled_locations[9]]
 
             # assign agent initial location
-            self.free_locations = all_locations - set(items_locations)
-            self._initial_agent_location = random.sample(self.free_locations)
+            self.free_locations = all_locations - set(sampled_locations)
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
             # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for r in range(self.map_size) for c in range(self.map_size)}
@@ -558,7 +558,7 @@ class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
         )
 
 
-class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
+class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
     def __init__(self, grounder, obs_size):
         super().__init__(
             grounder = grounder,
@@ -569,12 +569,12 @@ class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
         )
 
 
-class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
+class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
     def __init__(self, grounder, obs_size):
         super().__init__(
             grounder = grounder,
             obs_size = obs_size,
-            randomize_loc = False,
+            randomize_loc = True,
             wrap_around_map = True,
             agent_centric_view = True
         )
