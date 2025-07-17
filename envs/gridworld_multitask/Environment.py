@@ -166,7 +166,9 @@ class GridWorldEnv_multitask(gym.Env):
     def reset(self):
 
         # extract task
-        self.current_formula, self.current_automaton = self.sampler.sample()
+        self.current_formula = self.sampler.sample()
+        self.current_automaton = self.sampler.get_current_automaton()
+        self.current_index = self.sampler.get_current_index()
 
         # the initial state is always 0
         self.curr_automaton_state = 0
@@ -501,7 +503,7 @@ class LTLWrapper(LTLEnv):
         self.ltl_goal = self.progression(self.ltl_goal, truth_assignment)
         self.obs = next_obs
 
-        # Computing the LTL reward and done signal
+        # computing the LTL reward and done signal
         ltl_reward = 0.0
         ltl_done = False
         if self.ltl_goal == 'True':
@@ -513,13 +515,25 @@ class LTLWrapper(LTLEnv):
         else:
             ltl_reward = int_reward
 
-        # Computing the new observation and returning the outcome of this action
+        # computing the new observation and returning the outcome of this action
         if self.progression_mode == "full":
-            ltl_obs = {'features': self.obs,'text': self.ltl_goal}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_goal,
+                'task_id': self.env.current_index
+            }
         elif self.progression_mode == "none":
-            ltl_obs = {'features': self.obs,'text': self.ltl_original}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_original,
+                'task_id': self.env.current_index
+            }
         elif self.progression_mode == "partial":
-            ltl_obs = {'features': self.obs, 'progress_info': self.progress_info(self.ltl_goal)}
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.ltl_goal),
+                'task_id': self.env.current_index
+            }
         else:
             raise NotImplementedError
 

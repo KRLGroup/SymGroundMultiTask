@@ -251,18 +251,22 @@ class DatasetSampler(LTLSampler):
         self.sampled_tasks = 0
         self.propositions = propositions
 
+        self.current_index = None
+        self.current_formula = None
+        self.current_automaton = None
+
+        # load config
         with open(os.path.join(dataset_folder, 'config.pkl'), 'rb') as f:
             self.config = pickle.load(f)
-
-        # the first n-1 propositons are used in the tasks
         assert self.config["propositions"] == self.propositions[:-1]
-        # the last proposition means no propositions
-        no_prop = len(self.propositions) - 1
+        self.n_prop = len(self.propositions) - 1
 
         # load formulas
         with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
             formulas = pickle.load(f)
         assert len(formulas) == self.config["n_formulas"]
+
+        automata = [None] * self.config["n_formulas"]
 
         if self.use_automata:
 
@@ -271,41 +275,62 @@ class DatasetSampler(LTLSampler):
                 automata = pickle.load(f)
             assert len(automata) == self.config["n_formulas"]
 
-            for i in range(len(formulas)):
+            for i, automaton in enumerate(automata):
 
                 # add self-loops when no proposition occurs
                 new_transitions = automata[i].transitions
-                for state in automata[i].transitions.keys():
-                    new_transitions[state][no_prop] = state
+                for state in new_transitions:
+                    new_transitions[state][self.n_prop] = state
 
                 # rebuild the automaton with new transitions
                 automata[i] = MooreMachine(
                     new_transitions,
-                    automata[i].acceptance,
+                    automaton.acceptance,
                     None,
                     reward = "ternary",
                     dictionary_symbols = self.propositions
                 )
 
-            self.items = list(zip(formulas, automata))
-
-        else:
-            self.items = formulas
+        self.items = [{"formula": f, "automaton": a} for f, a in zip(formulas, automata)]
 
         # filter for ids
-        if self.ids != None:
-            self.items = self.items[ids]
+        if self.ids is not None:
+            self.items = [self.items[i] for i in self.ids]
 
         self.n_tasks = len(self.items)
+        self.order = list(range(self.n_tasks))
 
 
     def sample(self):
 
         # shuffle at each cycle
         if self.shuffle and self.sampled_tasks % self.n_tasks == 0:
-            np.random.shuffle(self.items)
+            np.random.shuffle(self.order)
 
-        sample = self.items[self.sampled_tasks % self.n_tasks]
+        self.current_index = self.order[self.sampled_tasks % self.n_tasks]
+        item = self.items[self.current_index]
+        self.current_formula = item["formula"]
+        self.current_automaton = item["automaton"]
         self.sampled_tasks += 1
 
-        return sample
+        return self.current_formula
+
+
+    def get_current_index(self):
+        return self.current_index
+
+
+    def get_current_formula(self):
+        return self.current_formula
+
+
+    def get_current_automaton(self):
+        return self.current_automaton
+
+
+    def get_formula(self, index):
+        return self.items[index]['formula']
+
+
+    def get_automaton(self, index):
+        return self.items[index]['automaton']
