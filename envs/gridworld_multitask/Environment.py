@@ -493,6 +493,31 @@ class LTLWrapper(LTLEnv):
         self.env.sampler = self.sampler
 
 
+    def reset(self):
+        self.known_progressions = {}
+        self.obs = self.env.reset()
+
+        # defining an LTL goal
+        self.ltl_goal = self.sample_ltl_goal()
+        self.ltl_original = self.ltl_goal
+
+        # adding the ltl goal to the observation
+        if self.progression_mode == "partial":
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.ltl_goal),
+                'task_id': self.env.current_index
+            }
+        else:
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_goal,
+                'task_id': self.env.current_index
+            }
+
+        return ltl_obs
+
+
     def step(self, action):
         int_reward = 0
         # executing the action in the environment
