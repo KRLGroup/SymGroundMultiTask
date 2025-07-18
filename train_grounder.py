@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
+import pickle
 
 import utils
 from utils import EarlyStopping
@@ -23,13 +24,18 @@ class Args:
 
     # Environment parameters
     max_num_steps: int = 50
-    randomize_loc: bool = False
-    randomize_test_loc: bool = False
+    env: str = "GridWorld-fixed-v1"
+    test_env: str = "GridWorld-fixed-v1"
+    ltl_sampler: str = "Dataset_e54"
 
     # Training parameters
     num_samples: int = 10000
     batch_size: int = 32
     seed: int = 1
+
+    # Agent parameters
+    use_agent: bool = False
+    agent_dir: Optional[str] = None
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -64,22 +70,50 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    train_env = GridWorldEnv_multitask(
-        state_type = "image",
-        obs_size = args.obs_size,
-        max_num_steps = args.max_num_steps,
-        randomize_loc = args.randomize_loc
+    train_env = utils.make_env(
+        args.env,
+        progression_mode = "full",
+        ltl_sampler = args.ltl_sampler,
+        grounder = None,
+        obs_size = args.obs_size
     )
-    n_propositions = len(train_env.dictionary_symbols)
+    train_env.env.max_num_steps = 50 # add as parameter (of train_grounder and make_env)
+    n_propositions = len(train_env.propositions)
     txt_logger.info("-) Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
-    test_env = GridWorldEnv_multitask(
-        state_type = "image",
-        obs_size = args.obs_size,
-        randomize_loc = args.randomize_test_loc
+    test_env = utils.make_env(
+        args.test_env,
+        progression_mode = "full",
+        ltl_sampler = args.ltl_sampler,
+        grounder = None,
+        obs_size = args.obs_size
     )
     txt_logger.info("-) Test environment loaded.")
+
+    # load agent
+    agent = None
+    if args.use_agent:
+
+        agent_dir = os.path.join(storage_dir, args.agent_dir)
+        with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
+            config = pickle.load(f)
+
+        agent = utils.Agent(
+            train_env,
+            train_env.observation_space,
+            train_env.action_space,
+            agent_dir,
+            config.ignoreLTL,
+            config.progression_mode,
+            config.gnn_model,
+            recurrence = config.recurrence,
+            dumb_ac = config.dumb_ac,
+            device = device,
+            argmax = True,
+            num_envs = 1,
+            verbose = False
+        )
 
     # create model
     sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions, args.obs_size)
@@ -136,27 +170,34 @@ def train_grounder(args: Args, device: str = None):
         n_episodes += 1
 
         # reset environments
-        obs, task, train_env_images, train_env_labels = train_env.reset()
-        _, _, test_env_images, test_env_labels = test_env.reset()
+        obs = train_env.reset()
+        test_env.reset()
+
+        task = train_env.env.current_automaton
+        train_env_images = train_env.env.loc_to_obs
+        train_env_labels = train_env.env.loc_to_label
+
+        test_env_images = test_env.env.loc_to_obs
+        test_env_labels = test_env.env.loc_to_label
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
-        episode_obss = [obs]
+        episode_obss = [obs['features']]
         episode_rews = [0]
 
-        # play the episode until termination
+        # Play the episode until termination
         while not done:
-            action = train_env.action_space.sample()
-            obs, rw, done = train_env.step(action)
-            episode_obss.append(obs)
-            episode_rews.append(rw)
+            action = agent.get_action(obs).item() if agent else train_env.action_space.sample()
+            obs, reward, done, _ = train_env.step(action)
+            episode_obss.append(obs['features'])
+            episode_rews.append(reward)
 
         # if the rewards are all 0 there is no supervision
-        if rw != 0:
+        if reward != 0:
 
-            if rw == 1:
+            if reward == 1:
                 n_won += 1
-            elif rw == -1:
+            elif reward == -1:
                 n_failed += 1
 
             txt_logger.info(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
