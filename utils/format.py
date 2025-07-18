@@ -30,8 +30,8 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
-                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0).to(device),
-                        "task_id": [obs["task_id"] for obs in obss]
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device),
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device)
                     })
 
             else:
@@ -43,7 +43,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "text":  preprocess_texts([obs["text"] for obs in obss], vocab, vocab_space, gnn=gnn, device=device, ast=tree_builder),
-                        "task_id": [obs["task_id"] for obs in obss]
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device)
                     })
 
             preprocess_obss.vocab = vocab
