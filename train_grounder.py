@@ -77,7 +77,7 @@ def train_grounder(args: Args, device: str = None):
         grounder = None,
         obs_size = args.obs_size
     )
-    train_env.env.max_num_steps = 50 # add as parameter (of train_grounder and make_env)
+    train_env.env.max_num_steps = args.max_num_steps
     n_propositions = len(train_env.propositions)
     txt_logger.info("-) Environment loaded.")
 
@@ -139,7 +139,7 @@ def train_grounder(args: Args, device: str = None):
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
 
-    buffer = ReplayBuffer()
+    buffer = ReplayBuffer(device=device)
 
     # load optimizer of existing model
     if "optimizer_state" in status:
@@ -212,7 +212,7 @@ def train_grounder(args: Args, device: str = None):
 
             # add to the buffer
             obss = torch.tensor(np.stack(episode_obss), device=device, dtype=torch.float64)
-            rews = torch.LongTensor(episode_rews)
+            rews = torch.LongTensor(episode_rews, device=device)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
             buffer.push(obss, rews, dfa_trans, dfa_rew)
@@ -233,7 +233,8 @@ def train_grounder(args: Args, device: str = None):
                 batch_size = args.batch_size,
                 numb_of_actions = n_propositions,
                 numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
-                reward_type = "ternary"
+                reward_type = "ternary",
+                device = device
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
