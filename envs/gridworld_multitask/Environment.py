@@ -24,8 +24,8 @@ class GridWorldEnv_multitask(gym.Env):
     }
 
     def __init__(self, render_mode="human", state_type="image", obs_size=(64,64), win_size=(896,896), map_size=7,
-        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", ltl_sampler="Dataset_e54",
-        save_obs=False, wrap_around_map=True, agent_centric_view=True):
+        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False, 
+        wrap_around_map=True, agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
@@ -57,10 +57,7 @@ class GridWorldEnv_multitask(gym.Env):
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
 
-        self.sampler = getLTLSampler(ltl_sampler, self.dictionary_symbols)
-
-        # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
-        # print(f"Iter {self.sampler.sampled_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        self.n_resets = 0
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -165,21 +162,11 @@ class GridWorldEnv_multitask(gym.Env):
 
     def reset(self):
 
-        # extract task
-        self.current_formula = self.sampler.sample()
-        self.current_automaton = self.sampler.get_current_automaton()
-        self.current_index = self.sampler.get_current_index()
-
-        # the initial state is always 0
-        self.curr_automaton_state = 0
-
-        # self.singletask_urs, _ = find_reasoning_shortcuts(self.current_automaton)
-        # print(f"Iter {self.sampler.sampled_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
-
+        self.n_resets += 1
         self.curr_step = 0
 
         # randomize item locations and recompute observations
-        if self.randomize_locations and self.sampler.sampled_tasks % 10 == 0:
+        if self.randomize_locations and self.n_resets % 10 == 0:
 
             all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
 
@@ -247,7 +234,7 @@ class GridWorldEnv_multitask(gym.Env):
         # compute initial observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        return observation, self.current_automaton, self.loc_to_obs, self.loc_to_label
+        return observation, self.loc_to_obs, self.loc_to_label
 
 
     def step(self, action):
@@ -261,24 +248,19 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.curr_step += 1
 
-        # update automaton
-        sym = self.loc_to_label[tuple(self._agent_location)]
-        self.new_automaton_state = self.current_automaton.transitions[self.curr_automaton_state][sym]
-        reward = self.current_automaton.rewards[self.new_automaton_state]
-        self.curr_automaton_state = self.new_automaton_state
+        # compute reward
+        reward = 0.0
 
         # compute observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
 
         # compute completion state
-        done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
+        done = self.curr_step >= self.max_num_steps
 
-        # info = self._get_info()
+        # compute info
+        info = None
 
-        # if reward == 1:
-        #    self.multitask_urs = self.multitask_urs.intersection(self.singletask_urs)
-
-        return observation, reward, done
+        return observation, reward, done, info
 
 
     def _get_symbol_obs(self):
@@ -456,27 +438,31 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
     def reset(self):
-        obs, _, _, _ = super().reset()
+        obs, _, _ = super().reset()
         self.current_obs = obs
         return obs
 
 
     def step(self, action):
-        obs, rew, done = super().step(action)
+        obs, rew, done, info = super().step(action)
         self.current_obs = obs
-        return obs, rew, done, {}
+        return obs, rew, done, info
 
 
     def get_propositions(self):
         return self.dictionary_symbols.copy()
 
 
+    def get_real_events(self):
+        real_sym = self.loc_to_label[tuple(self._agent_location)]
+        return self.dictionary_symbols[real_sym]
+
+
     def get_events(self):
 
         # returns the proposition that currently holds
         if self.sym_grounder == None:
-            true_sym = self.loc_to_label[tuple(self._agent_location)]
-            return self.dictionary_symbols[true_sym]
+            return self.get_real_events()
 
         # returns the proposition that currently holds according to the grounder
         else:
@@ -490,86 +476,117 @@ class LTLWrapper(LTLEnv):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.env.sampler = self.sampler
 
 
     def reset(self):
-        self.known_progressions = {}
+    
+        self.real_known_progressions = {}
+        self.pred_known_progressions = {}
         self.obs = self.env.reset()
 
         # defining an LTL goal
-        self.ltl_goal = self.sample_ltl_goal()
-        self.ltl_original = self.ltl_goal
+        self.ltl_original = self.sample_ltl_goal()
+        self.current_index = self.sampler.get_current_index()
+        self.real_ltl_goal = self.ltl_original
+        self.pred_ltl_goal = self.ltl_original
 
         # adding the ltl goal to the observation
         if self.progression_mode == "partial":
             ltl_obs = {
                 'features': self.obs,
-                'progress_info': self.progress_info(self.ltl_goal),
-                'task_id': self.env.current_index
+                'progress_info': self.progress_info(self.pred_ltl_goal),
+                'task_id': self.current_index
             }
         else:
             ltl_obs = {
                 'features': self.obs,
-                'text': self.ltl_goal,
-                'task_id': self.env.current_index
+                'text': self.pred_ltl_goal,
+                'task_id': self.current_index
             }
 
         return ltl_obs
 
 
     def step(self, action):
-        int_reward = 0
-        # executing the action in the environment
-        next_obs, original_reward, env_done, info = self.env.step(action)
 
-        # progressing the ltl formula
-        truth_assignment = self.get_events(self.obs, action, next_obs)
-        self.ltl_goal = self.progression(self.ltl_goal, truth_assignment)
+        int_reward = 0
+
+        # executing the action in the environment
+        next_obs, env_reward, env_done, info = self.env.step(action)
+
+        # progressing real ltl formula
+        real_label = self.env.get_real_events()
+        self.real_ltl_goal = self.progression(self.real_ltl_goal, real_label)
+
+        # progressing pred ltl formula
+        pred_label = self.env.get_events()
+        self.pred_ltl_goal = self.progression(self.pred_ltl_goal, pred_label)
+        
         self.obs = next_obs
 
-        # computing the LTL reward and done signal
-        ltl_reward = 0.0
-        ltl_done = False
-        if self.ltl_goal == 'True':
-            ltl_reward = 1.0
-            ltl_done = True
-        elif self.ltl_goal == 'False':
-            ltl_reward = -1.0
-            ltl_done = True
+        # computing real reward and done
+        if self.real_ltl_goal == 'True':
+            real_ltl_reward = 1.0
+            real_ltl_done = True
+        elif self.real_ltl_goal == 'False':
+            real_ltl_reward = -1.0
+            real_ltl_done = True
         else:
-            ltl_reward = int_reward
+            real_ltl_reward = 0.0
+            real_ltl_done = False
+
+        # computing pred reward and done
+        if self.pred_ltl_goal == 'True':
+            pred_ltl_reward = 1.0
+            pred_ltl_done = True
+        elif self.pred_ltl_goal == 'False':
+            pred_ltl_reward = -1.0
+            pred_ltl_done = True
+        else:
+            pred_ltl_reward = int_reward
+            pred_ltl_done = False
 
         # computing the new observation and returning the outcome of this action
+        # the observation considers the expected formula (unless using 'real')
         if self.progression_mode == "full":
             ltl_obs = {
                 'features': self.obs,
-                'text': self.ltl_goal,
-                'task_id': self.env.current_index
+                'text': self.pred_ltl_goal,
+                'task_id': self.current_index
             }
         elif self.progression_mode == "none":
             ltl_obs = {
                 'features': self.obs,
                 'text': self.ltl_original,
-                'task_id': self.env.current_index
+                'task_id': self.current_index
             }
         elif self.progression_mode == "partial":
             ltl_obs = {
                 'features': self.obs,
-                'progress_info': self.progress_info(self.ltl_goal),
-                'task_id': self.env.current_index
+                'progress_info': self.progress_info(self.pred_ltl_goal),
+                'task_id': self.current_index
+            }
+        elif self.progression_mode == "real":
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.real_ltl_goal),
+                'task_id': self.current_index
             }
         else:
             raise NotImplementedError
 
-        reward = original_reward # + ltl_reward [not used?]
-        done = env_done or ltl_done
+        # the reward considers the real evolution of the formula
+        reward = env_reward + real_ltl_reward # + pred_ltl_reward
+
+        # the termination checks both real termination or expected one
+        done = env_done or real_ltl_done or pred_ltl_done
+
         return ltl_obs, reward, done, info
 
 
     # the formula is set by the environment
     def sample_ltl_goal(self):
-        return self.env.current_formula
+        return self.sampler.sample()
 
 
 
