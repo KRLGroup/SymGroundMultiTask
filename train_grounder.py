@@ -173,7 +173,7 @@ def train_grounder(args: Args, device: str = None):
         obs = train_env.reset()
         test_env.reset()
 
-        task = train_env.env.current_automaton
+        task = train_env.sampler.get_current_automaton()
         train_env_images = train_env.env.loc_to_obs
         train_env_labels = train_env.env.loc_to_label
 
