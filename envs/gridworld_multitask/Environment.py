@@ -613,7 +613,7 @@ class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
         super().__init__(
             grounder = grounder,
             obs_size = obs_size,
-            randomize_loc = True,
+            randomize_loc = False,
             wrap_around_map = True,
             agent_centric_view = True
         )
