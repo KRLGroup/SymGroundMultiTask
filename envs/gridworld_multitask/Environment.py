@@ -569,7 +569,7 @@ class LTLWrapper(LTLEnv):
         elif self.progression_mode == "real":
             ltl_obs = {
                 'features': self.obs,
-                'progress_info': self.progress_info(self.real_ltl_goal),
+                'progress_info': self.real_ltl_goal,
                 'task_id': self.task_id
             }
         else:
