@@ -22,6 +22,9 @@ class LTLSampler():
     def sample(self):
         raise NotImplementedError
 
+    def get_current_id(self):
+        return None
+
 
 
 # Samples from one of the other samplers at random. The other samplers are sampled by their default args.
