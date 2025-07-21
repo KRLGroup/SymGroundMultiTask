@@ -134,7 +134,7 @@ def train_grounder(args: Args, device: str = None):
         sym_grounder.load_state_dict(status["grounder_state"])
         txt_logger.info("-) Loading grounder from existing run.")
 
-    # setup optimizer (train the grounder and not the DeepDFA)
+    # define loss and setup optimizer (train the grounder and not the DeepDFA)
     optimizer = torch.optim.Adam(sym_grounder.parameters(), lr=0.001)
     cross_entr = torch.nn.CrossEntropyLoss()
     optimizer.zero_grad()
@@ -238,6 +238,7 @@ def train_grounder(args: Args, device: str = None):
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
+            # reset gradient
             optimizer.zero_grad()
 
             # obtain probability of symbols from observations with sym_grounder
@@ -251,6 +252,7 @@ def train_grounder(args: Args, device: str = None):
             # maps rewards to label
             labels = (rews + 1).view(-1)
 
+            # compute loss
             loss = cross_entr(pred, labels)
 
             # update sym_grounder
