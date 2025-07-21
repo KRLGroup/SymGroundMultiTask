@@ -475,8 +475,13 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 # A subclass of LTLEnv to distinguish between "real" progrssion and "predicted" progression
 class LTLWrapper(LTLEnv):
 
+    num_envs = 0
+
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.id = LTLWrapper.num_envs
+        LTLWrapper.num_envs += 1
 
 
     def reset(self):
@@ -496,14 +501,16 @@ class LTLWrapper(LTLEnv):
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
         else:
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
 
         return ltl_obs
@@ -555,28 +562,32 @@ class LTLWrapper(LTLEnv):
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
         elif self.progression_mode == "none":
             ltl_obs = {
                 'features': self.obs,
                 'text': self.ltl_original,
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
         elif self.progression_mode == "partial":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
         elif self.progression_mode == "real":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.real_ltl_goal,
                 'task_id': self.task_id,
-                'episode_id': self.env.num_episodes
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
             }
         else:
             raise NotImplementedError
