@@ -57,7 +57,7 @@ class GridWorldEnv_multitask(gym.Env):
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
 
-        self.n_resets = 0
+        self.num_episodes = 0
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -162,11 +162,11 @@ class GridWorldEnv_multitask(gym.Env):
 
     def reset(self):
 
-        self.n_resets += 1
+        self.num_episodes += 1
         self.curr_step = 0
 
         # randomize item locations and recompute observations
-        if self.randomize_locations and self.n_resets % 10 == 0:
+        if self.randomize_locations and self.num_episodes % 10 == 0:
 
             all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
 
@@ -495,13 +495,15 @@ class LTLWrapper(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
         else:
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
 
         return ltl_obs
@@ -552,25 +554,29 @@ class LTLWrapper(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
         elif self.progression_mode == "none":
             ltl_obs = {
                 'features': self.obs,
                 'text': self.ltl_original,
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
         elif self.progression_mode == "partial":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
         elif self.progression_mode == "real":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.real_ltl_goal,
-                'task_id': self.task_id
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes
             }
         else:
             raise NotImplementedError

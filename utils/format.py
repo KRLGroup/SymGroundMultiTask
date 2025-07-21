@@ -26,16 +26,17 @@ def get_obss_preprocessor(env, gnn, progression_mode):
         if isinstance(env, GridWorldEnv_LTL2Action):
 
             if progression_mode == "partial":
-                obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space), "task_id": 1}
+                obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space), "task_id": 1, "episode_id": 1}
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device),
-                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device)
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int, device=device)
                     })
 
             else:
-                obs_space = {"image": obs_space.spaces["features"].shape, "text": max(22, len(vocab_space) + 10), "task_id": 1}
+                obs_space = {"image": obs_space.spaces["features"].shape, "text": max(22, len(vocab_space) + 10), "task_id": 1, "episode_id": 1}
                 vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
                 vocab = Vocabulary(vocab_space)
                 tree_builder = ASTBuilder(vocab_space["tokens"])
@@ -43,7 +44,8 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "text":  preprocess_texts([obs["text"] for obs in obss], vocab, vocab_space, gnn=gnn, device=device, ast=tree_builder),
-                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device)
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int, device=device)
                     })
 
             preprocess_obss.vocab = vocab
