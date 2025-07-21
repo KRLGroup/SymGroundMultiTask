@@ -17,6 +17,7 @@ class CNN_grounder(nn.Module):
         self.fc2 = nn.Linear(50, num_symbols)
         self.softmax = nn.Softmax(dim=1) # TODO double check if correct (dim 0 should be batch size)
 
+        self.num_symbols = num_symbols
         self.device = None
 
 
@@ -41,7 +42,7 @@ class CNN_grounder(nn.Module):
 
 class GridworldClassifier(nn.Module):
 
-    def __init__(self, num_classes):  # 10 items da classificare
+    def __init__(self, num_symbols):  # 10 items da classificare
         super(GridworldClassifier, self).__init__()
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)  # Ridotto da 32 a 16 filtri
@@ -49,9 +50,10 @@ class GridworldClassifier(nn.Module):
 
         self.pool = nn.MaxPool2d(2, 2)  # Pooling invariato
         self.fc1 = nn.Linear(32 * 16 * 16, 128)  # Input più piccolo
-        self.fc2 = nn.Linear(128, num_classes)
+        self.fc2 = nn.Linear(128, num_symbols)
         self.softmax = nn.Softmax(dim=-1)
 
+        self.num_symbols = num_symbols
         self.device = None
 
 
@@ -76,7 +78,7 @@ class GridworldClassifier(nn.Module):
 
 class ObjectCNN(nn.Module):
 
-    def __init__(self, input_size=(64,64), num_classes=2):
+    def __init__(self, input_size=(64,64), num_symbols=2):
         super(ObjectCNN, self).__init__()
 
         self.features = nn.Sequential(
@@ -104,10 +106,11 @@ class ObjectCNN(nn.Module):
             nn.Flatten(),  # -> 4096
             nn.Linear(self.flattened_size, 64),  # -> 64
             nn.ReLU(),
-            nn.Linear(64, num_classes),  # -> num_classes
+            nn.Linear(64, num_symbols),  # -> num_symbols
             nn.Softmax(dim=-1)
         )
 
+        self.num_symbols = num_symbols
         self.device = None
 
 
@@ -126,7 +129,7 @@ class ObjectCNN(nn.Module):
 
 class Linear_grounder_no_droput(nn.Module):
 
-    def __init__(self, num_inputs, hidden_size, num_output):
+    def __init__(self, num_inputs, hidden_size, num_symbols):
         super(Linear_grounder_no_droput, self).__init__()
 
         self.grounder = nn.Sequential(
@@ -134,9 +137,10 @@ class Linear_grounder_no_droput(nn.Module):
             nn.Tanh(),
             nn.Linear(hidden_size, hidden_size),
             nn.Softmax(dim=-1),
-            nn.Linear(hidden_size, num_output),
+            nn.Linear(hidden_size, num_symbols),
         )
 
+        self.num_symbols = num_symbols
         self.device = None
 
 
@@ -153,7 +157,7 @@ class Linear_grounder_no_droput(nn.Module):
 
 class Linear_grounder(nn.Module):
 
-    def __init__(self, num_inputs, hidden_size, num_output):
+    def __init__(self, num_inputs, hidden_size, num_symbols):
         super(Linear_grounder, self).__init__()
 
         self.grounder = nn.Sequential(
@@ -163,9 +167,10 @@ class Linear_grounder(nn.Module):
             nn.Linear(hidden_size, hidden_size),
             nn.Dropout(0.2),
             nn.Softmax(dim=-1),
-            nn.Linear(hidden_size, num_output),
+            nn.Linear(hidden_size, num_symbols),
         )
 
+        self.num_symbols = num_symbols
         self.device = None
 
 
