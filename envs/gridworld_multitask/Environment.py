@@ -472,6 +472,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
 
+# A subclass of LTLEnv to distinguish between "real" progrssion and "predicted" progression
 class LTLWrapper(LTLEnv):
 
     def __init__(self, *args, **kwargs):
@@ -485,8 +486,7 @@ class LTLWrapper(LTLEnv):
         self.obs = self.env.reset()
 
         # defining an LTL goal
-        self.ltl_original = self.sample_ltl_goal()
-        self.current_index = self.sampler.get_current_index()
+        self.ltl_original, self.task_id = self.sample_ltl_goal()
         self.real_ltl_goal = self.ltl_original
         self.pred_ltl_goal = self.ltl_original
 
@@ -495,13 +495,13 @@ class LTLWrapper(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
         else:
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
 
         return ltl_obs
@@ -552,25 +552,25 @@ class LTLWrapper(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
         elif self.progression_mode == "none":
             ltl_obs = {
                 'features': self.obs,
                 'text': self.ltl_original,
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
         elif self.progression_mode == "partial":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
         elif self.progression_mode == "real":
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.real_ltl_goal),
-                'task_id': self.current_index
+                'task_id': self.task_id
             }
         else:
             raise NotImplementedError
@@ -584,9 +584,9 @@ class LTLWrapper(LTLEnv):
         return ltl_obs, reward, done, info
 
 
-    # the formula is set by the environment
+    # returns formula and id
     def sample_ltl_goal(self):
-        return self.sampler.sample()
+        return self.sampler.sample(), self.sampler.get_current_id()
 
 
 

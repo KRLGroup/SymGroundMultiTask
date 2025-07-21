@@ -251,7 +251,7 @@ class DatasetSampler(LTLSampler):
         self.sampled_tasks = 0
         self.propositions = propositions
 
-        self.current_index = None
+        self.current_id = None
         self.current_formula = None
         self.current_automaton = None
 
@@ -307,8 +307,8 @@ class DatasetSampler(LTLSampler):
         if self.shuffle and self.sampled_tasks % self.n_tasks == 0:
             np.random.shuffle(self.order)
 
-        self.current_index = self.order[self.sampled_tasks % self.n_tasks]
-        item = self.items[self.current_index]
+        self.current_id = self.order[self.sampled_tasks % self.n_tasks]
+        item = self.items[self.current_id]
         self.current_formula = item["formula"]
         self.current_automaton = item["automaton"]
         self.sampled_tasks += 1
@@ -316,8 +316,8 @@ class DatasetSampler(LTLSampler):
         return self.current_formula
 
 
-    def get_current_index(self):
-        return self.current_index
+    def get_current_id(self):
+        return self.current_id
 
 
     def get_current_formula(self):
