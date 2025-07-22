@@ -28,7 +28,7 @@ test_gridworld = Args(
 
     # Environment parameters
     env = "GridWorld-fixed-v1",
-    obs_size = (64,64),
+    obs_size = (56,56),
     ltl_sampler = "Dataset_e54",
 
     # GNN parameters
@@ -55,7 +55,6 @@ test_gridworld = Args(
     epochs = 4,
     discount = 0.94,
     lr = 0.0003,
-
 
 )
 
