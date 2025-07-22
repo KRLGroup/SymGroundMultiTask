@@ -61,10 +61,10 @@ for i in range(args.iters):
     images = np.stack(images)
     images = torch.tensor(images, device=device, dtype=torch.float32)
     # images = torch.stack(images, dim=0).to(device)
-    labels = torch.LongTensor(labels).to(device)
+    labels = torch.tensor(labels, device=device, dtype=torch.int32)
 
     pred_sym = torch.argmax(sym_grounder(images), dim=-1)
-    correct_preds = torch.sum((pred_sym == labels).long())
+    correct_preds = torch.sum((pred_sym == labels).int())
     class_acc = torch.mean((pred_sym == labels).float())
 
     print(f"grounder accuracy = {correct_preds.item()} / {pred_sym.shape[0]} ({class_acc.item():.4f})")

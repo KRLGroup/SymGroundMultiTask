@@ -75,7 +75,7 @@ class ProbabilisticAutoma(nn.Module):
     def step(self, state, action):
 
         if type(action) == int:
-            action= torch.IntTensor([action])
+            action= torch.tensor([action], dtype=torch.int32)
 
         trans_prob = self.trans_prob
         rew_matrix = self.rew_matrix
@@ -102,7 +102,7 @@ class ProbabilisticAutoma(nn.Module):
         print("trans prob:", self.trans_prob)
 
         if type(action) == int:
-            action = torch.IntTensor([action])
+            action = torch.tensor([action], dtype=torch.int32)
 
         trans_prob = self.trans_prob
         rew_matrix = self.rew_matrix

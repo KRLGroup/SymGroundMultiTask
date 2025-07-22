@@ -212,7 +212,7 @@ def train_grounder(args: Args, device: str = None):
 
             # add to the buffer
             obss = torch.tensor(np.stack(obss), device=device, dtype=torch.float32)
-            rews = torch.LongTensor(rews, device=device)
+            rews = torch.tensor(rews, device=device, dtype=torch.int64)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
             buffer.push(obss, rews, dfa_trans, dfa_rew)
@@ -269,7 +269,7 @@ def train_grounder(args: Args, device: str = None):
                     train_images.append(train_env_images[r, c])
                     train_labels.append(train_env_labels[r, c])
             train_images = torch.tensor(np.stack(train_images), device=device, dtype=torch.float32)
-            train_labels = torch.LongTensor(train_labels).to(device)
+            train_labels = torch.tensor(train_labels, device=device, dtype=torch.int32)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
             test_images = []
@@ -279,14 +279,14 @@ def train_grounder(args: Args, device: str = None):
                     test_images.append(test_env_images[r, c])
                     test_labels.append(test_env_labels[r, c])
             test_images = torch.tensor(np.stack(test_images), device=device, dtype=torch.float32)
-            test_labels = torch.LongTensor(test_labels).to(device)
+            test_labels = torch.tensor(test_labels, device=device, dtype=torch.int32)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
-            train_correct_preds = torch.sum((pred_sym_train == train_labels).long())
+            train_correct_preds = torch.sum((pred_sym_train == train_labels).int())
             train_class_acc = torch.mean((pred_sym_train == train_labels).float())
 
             pred_sym_test = torch.argmax(sym_grounder(test_images), dim=-1)
-            test_correct_preds = torch.sum((pred_sym_test == test_labels).long())
+            test_correct_preds = torch.sum((pred_sym_test == test_labels).int())
             test_class_acc = torch.mean((pred_sym_test == test_labels).float())
 
             duration = int(time.time() - start_time)

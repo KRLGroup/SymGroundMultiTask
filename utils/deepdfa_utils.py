@@ -188,7 +188,7 @@ def eval_learnt_DFA_acceptance(automa, dataset, automa_implementation='logic_cir
                 output = torch.argmax(pred_acceptace, dim= 1)
             elif automa_implementation == 'dfa':
 
-                output = torch.zeros((sym.size()[0]), dtype=torch.int)
+                output = torch.zeros((sym.size()[0]), dtype=torch.int32)
                 for k in range(sym.size()[0]):
 
                     sym_trace = tensor2string(sym[k])

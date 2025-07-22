@@ -31,9 +31,9 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device),
-                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device),
-                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int, device=device),
-                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int, device=device)
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32, device=device)
                     })
 
             else:
@@ -45,9 +45,9 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "text":  preprocess_texts([obs["text"] for obs in obss], vocab, vocab_space, gnn=gnn, device=device, ast=tree_builder),
-                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int, device=device),
-                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int, device=device),
-                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int, device=device)
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32, device=device)
                     })
 
             preprocess_obss.vocab = vocab
@@ -152,7 +152,7 @@ def preprocess4rnn(texts, vocab, device=None):
     for i, indexed_text in enumerate(var_indexed_texts):
         indexed_texts[i, :len(indexed_text)] = indexed_text
 
-    return torch.tensor(indexed_texts, device=device, dtype=torch.long)
+    return torch.tensor(indexed_texts, device=device, dtype=torch.int64)
 
 def preprocess4gnn(texts, ast, device=None):
     """
