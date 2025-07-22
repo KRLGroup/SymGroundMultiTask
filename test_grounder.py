@@ -59,7 +59,7 @@ for i in range(args.iters):
             images.append(env_images[r, c])
             labels.append(env_labels[r, c])
     images = np.stack(images)
-    images = torch.tensor(images, device=device, dtype=torch.float64)
+    images = torch.tensor(images, device=device, dtype=torch.float32)
     # images = torch.stack(images, dim=0).to(device)
     labels = torch.LongTensor(labels).to(device)
 
@@ -70,7 +70,7 @@ for i in range(args.iters):
     print(f"grounder accuracy = {correct_preds.item()} / {pred_sym.shape[0]} ({class_acc.item():.4f})")
 
     class_accs.append(class_acc.item())
-    mean_class_acc = torch.mean(torch.tensor(class_accs, device=device, dtype=torch.float64))
+    mean_class_acc = torch.mean(torch.tensor(class_accs, device=device, dtype=torch.float32))
     print(f"cumulative accuracy = {mean_class_acc:.10f}")
 
     print("---")

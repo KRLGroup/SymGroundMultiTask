@@ -143,7 +143,12 @@ class GridWorldEnv_multitask(gym.Env):
                     norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
                     self.loc_to_obs[r,c] = norm_img
 
-            self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=self.loc_to_obs[0,0].shape, dtype=np.float64)
+            self.observation_space = spaces.Box(
+                low = np.float32(-np.inf),
+                high = np.float32(np.inf),
+                shape = self.loc_to_obs[0, 0].shape,
+                dtype = np.float32
+            )
 
         elif self.state_type == "symbol":
 
@@ -277,7 +282,7 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_image_obs(self):
         obs = self._render_frame()
         obs = cv2.resize(obs, self.obs_size)
-        obs = obs.astype(np.float64) / 255.0
+        obs = obs.astype(np.float32) / 255.0
         obs = np.transpose(obs, (2, 0, 1)) # from w*h*c to c*w*h
         return obs
 

@@ -211,7 +211,7 @@ def train_grounder(args: Args, device: str = None):
                 episode_obss.extend([last_obs] * extension_length)
 
             # add to the buffer
-            obss = torch.tensor(np.stack(episode_obss), device=device, dtype=torch.float64)
+            obss = torch.tensor(np.stack(episode_obss), device=device, dtype=torch.float32)
             rews = torch.LongTensor(episode_rews, device=device)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
@@ -268,7 +268,7 @@ def train_grounder(args: Args, device: str = None):
                 for r in range(7):
                     train_images.append(train_env_images[r, c])
                     train_labels.append(train_env_labels[r, c])
-            train_images = torch.tensor(np.stack(train_images), device=device, dtype=torch.float64)
+            train_images = torch.tensor(np.stack(train_images), device=device, dtype=torch.float32)
             train_labels = torch.LongTensor(train_labels).to(device)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
@@ -278,7 +278,7 @@ def train_grounder(args: Args, device: str = None):
                 for r in range(7):
                     test_images.append(test_env_images[r, c])
                     test_labels.append(test_env_labels[r, c])
-            test_images = torch.tensor(np.stack(test_images), device=device, dtype=torch.float64)
+            test_images = torch.tensor(np.stack(test_images), device=device, dtype=torch.float32)
             test_labels = torch.LongTensor(test_labels).to(device)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)

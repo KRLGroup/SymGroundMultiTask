@@ -30,11 +30,11 @@ class ProbabilisticAutoma(nn.Module):
         # gaussian initialization
         self.trans_prob = torch.empty(
             batch_size, numb_of_actions, numb_of_states, numb_of_states,
-            device=self.device, dtype=torch.float64
+            device=self.device, dtype=torch.float32
         ).normal_(mean=0, std=0.1)
         self.rew_matrix = torch.empty(
             batch_size, numb_of_states, self.numb_of_rewards,
-            device=self.device, dtype=torch.float64
+            device=self.device, dtype=torch.float32
         ).normal_(mean=0, std=0.1)
 
         '''
@@ -83,7 +83,7 @@ class ProbabilisticAutoma(nn.Module):
         trans_prob = trans_prob.unsqueeze(0)
         state = state.unsqueeze(1).unsqueeze(-2)
 
-        selected_prob = torch.matmul(state.double(), trans_prob)
+        selected_prob = torch.matmul(state.float(), trans_prob)
         next_state = torch.matmul(action.unsqueeze(1), selected_prob.squeeze())
         next_reward = torch.matmul(next_state, rew_matrix)
        
@@ -219,11 +219,11 @@ class MultiTaskProbabilisticAutoma(nn.Module):
         if initialization == "gaussian":
             self.trans_prob = torch.empty(
                 batch_size, numb_of_actions, numb_of_states, numb_of_states,
-                device=self.device, dtype=torch.float64
+                device=self.device, dtype=torch.float32
             ).normal_(mean=0, std=0.1)
             self.rew_matrix = torch.empty(
                 batch_size, numb_of_states, self.numb_of_rewards,
-                device=self.device, dtype=torch.float64
+                device=self.device, dtype=torch.float32
             ).normal_(mean=0, std=0.1)
 
 
@@ -231,14 +231,14 @@ class MultiTaskProbabilisticAutoma(nn.Module):
 
         batch_size, length_size, _ = action_seq.shape
 
-        pred_states = torch.zeros((batch_size, length_size, self.numb_of_states), device=self.device, dtype=torch.float64)
-        pred_rew = torch.zeros((batch_size, length_size, self.numb_of_rewards), device=self.device, dtype=torch.float64)
+        pred_states = torch.zeros((batch_size, length_size, self.numb_of_states), device=self.device, dtype=torch.float32)
+        pred_rew = torch.zeros((batch_size, length_size, self.numb_of_rewards), device=self.device, dtype=torch.float32)
 
         if current_state is None:
-            s = torch.zeros((batch_size, self.numb_of_states), device=self.device, dtype=torch.float64)
+            s = torch.zeros((batch_size, self.numb_of_states), device=self.device, dtype=torch.float32)
             s[:, 0] = 1.0
         else:
-            s = current_state.to(device=self.device, dtype=torch.float64)
+            s = current_state.to(device=self.device, dtype=torch.float32)
 
         for i in range(length_size):
             a = action_seq[:, i, :]

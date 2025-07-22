@@ -132,7 +132,7 @@ def eval_acceptance(classifier, automa, alphabet, dataset, automa_implementation
                 pixels_h = image_sequences.size()[4]
                 symbols = classifier(image_sequences.view(-1, num_channels, pixels_v, pixels_h))
             else:
-                symbols = classifier(image_sequences.view(-1, num_channels).double())
+                symbols = classifier(image_sequences.view(-1, num_channels).float())
             '''
             if discretize_labels:
                 symbols[:,0] = torch.where(symbols[:,0] > 0.5, 1., 0.)
@@ -224,7 +224,7 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
                 pixels_v, pixels_h = list(batch_t_img.size())[3:]
                 pred_symbols = classifier(batch_t_img.view(-1, num_channels, pixels_v, pixels_h))
             else:
-                pred_symbols = classifier(batch_t_img.view(-1, num_channels).double())
+                pred_symbols = classifier(batch_t_img.view(-1, num_channels).float())
 
             gt_symbols = batch_t_sym.view(-1, batch_t_sym.size()[-1])
             if  not mutually_exclusive:
