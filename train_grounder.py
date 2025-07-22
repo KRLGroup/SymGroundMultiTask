@@ -4,14 +4,12 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 import pickle
 
 import utils
-from utils import EarlyStopping
 from ReplayBuffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
-from envs.gridworld_multitask.Environment import GridWorldEnv_multitask
 
 
 @dataclass
