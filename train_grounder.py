@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 import pickle
 
 import utils
-from ReplayBuffer import ReplayBuffer
+from replay_buffer import ReplayBuffer
 from DeepAutoma import MultiTaskProbabilisticAutoma
 
 

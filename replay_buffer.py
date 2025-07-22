@@ -13,17 +13,14 @@ class ReplayBuffer:
 
 
     def push(self, obss, rews, dfa_trans, dfa_rew):
-        # Store a transition in the buffer
         self.buffer.append((obss, rews, dfa_trans, dfa_rew))
 
 
     def sample(self, batch_size):
-        # Sample a random batch of transitions
         batch = random.sample(self.buffer, batch_size)
-        #obss, revs, dfa_trans, dfa_rew = map(np.array, zip(*batch))
         obss, rews, dfa_trans, dfa_rew = zip(*batch)
-        obss = torch.stack(obss, device=self.device)
-        rews = torch.stack(rews, device=self.device)
+        obss = torch.stack(obss).to(self.device)
+        rews = torch.stack(rews).to(self.device)
         return obss, rews, dfa_trans, dfa_rew
 
 
