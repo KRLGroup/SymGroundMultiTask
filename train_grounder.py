@@ -182,37 +182,37 @@ def train_grounder(args: Args, device: str = None):
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
-        episode_obss = [obs['features']]
-        episode_rews = [0]
+        obss = [obs['features']]
+        rews = [0]
 
         # Play the episode until termination
         while not done:
             action = agent.get_action(obs).item() if agent else train_env.action_space.sample()
-            obs, reward, done, _ = train_env.step(action)
-            episode_obss.append(obs['features'])
-            episode_rews.append(reward)
+            obs, rew, done, _ = train_env.step(action)
+            obss.append(obs['features'])
+            rews.append(rew)
 
         # if the rewards are all 0 there is no supervision
-        if reward != 0:
+        if rew != 0:
 
-            if reward == 1:
+            if rew == 1:
                 n_won += 1
-            elif reward == -1:
+            elif rew == -1:
                 n_failed += 1
 
             txt_logger.info(f"won {n_won} tasks and failed {n_failed} over {n_episodes}")
 
             # extend shorter vectors to the max length
-            if len(episode_rews) < train_env.max_num_steps+1:
-                last_rew = episode_rews[-1]
-                last_obs = episode_obss[-1]
-                extension_length = train_env.max_num_steps+1 - len(episode_rews)
-                episode_rews.extend([last_rew] * extension_length)
-                episode_obss.extend([last_obs] * extension_length)
+            if len(rews) < train_env.max_num_steps+1:
+                last_rew = rews[-1]
+                last_obs = obss[-1]
+                extension = train_env.max_num_steps+1 - len(rews)
+                rews.extend([last_rew] * extension)
+                obss.extend([last_obs] * extension)
 
             # add to the buffer
-            obss = torch.tensor(np.stack(episode_obss), device=device, dtype=torch.float32)
-            rews = torch.LongTensor(episode_rews, device=device)
+            obss = torch.tensor(np.stack(obss), device=device, dtype=torch.float32)
+            rews = torch.LongTensor(rews, device=device)
             dfa_trans = task.transitions
             dfa_rew = task.rewards
             buffer.push(obss, rews, dfa_trans, dfa_rew)
