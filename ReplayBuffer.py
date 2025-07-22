@@ -22,8 +22,8 @@ class ReplayBuffer:
         batch = random.sample(self.buffer, batch_size)
         #obss, revs, dfa_trans, dfa_rew = map(np.array, zip(*batch))
         obss, rews, dfa_trans, dfa_rew = zip(*batch)
-        obss = torch.stack(obss).to(self.device)
-        rews = torch.stack(rews).to(self.device)
+        obss = torch.stack(obss, device=self.device)
+        rews = torch.stack(rews, device=self.device)
         return obss, rews, dfa_trans, dfa_rew
 
 

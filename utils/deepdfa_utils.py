@@ -209,7 +209,7 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
     total = 0
     correct = 0
     classifier.eval()
-    errors = torch.zeros((0,2)).to(device)
+    errors = torch.zeros((0,2), device=device)
 
     LEN = min(len(traces_images),len(traces_labels))
  
@@ -229,8 +229,8 @@ def eval_image_classification_from_traces(traces_images, traces_labels, classifi
             gt_symbols = batch_t_sym.view(-1, batch_t_sym.size()[-1])
             if  not mutually_exclusive:
 
-                y1 = torch.ones(batch_t_sym.size()).to(device)
-                y2 = torch.zeros(batch_t_sym.size()).to(device)
+                y1 = torch.ones(batch_t_sym.size(), device=device)
+                y2 = torch.zeros(batch_t_sym.size(), device=device)
 
                 output_sym = pred_symbols.where(pred_symbols <= 0.5, y1)
                 output_sym = output_sym.where(pred_symbols > 0.5, y2)

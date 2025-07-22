@@ -59,7 +59,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
-                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0).to(device)
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device)
                     })
 
             else:
@@ -81,7 +81,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                 obs_space = {"progress_info": len(vocab_space)}
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
-                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0).to(device)
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device)
                     })
 
             else:

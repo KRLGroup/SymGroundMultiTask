@@ -24,7 +24,7 @@ class ProbabilisticAutoma(nn.Module):
         self.alphabet = [str(i) for i in range(numb_of_actions)]
         self.numb_of_states = numb_of_states
         self.numb_of_rewards = numb_of_rewards
-        self.reward_values = torch.Tensor(list(range(numb_of_rewards)))
+        self.reward_values = torch.tensor(list(range(numb_of_rewards)))
         self.activation = sftmx_with_temp
 
         # gaussian initialization
@@ -58,7 +58,7 @@ class ProbabilisticAutoma(nn.Module):
         pred_rew = torch.zeros((batch_size, length_size, self.numb_of_rewards))
 
         if current_state == None:
-            s = torch.zeros((batch_size,self.numb_of_states)).to(self.device)
+            s = torch.zeros((batch_size,self.numb_of_states), device=device)
             s[:,0] = 1.0
         else:
             s = current_state

@@ -60,7 +60,6 @@ for i in range(args.iters):
             labels.append(env_labels[r, c])
     images = np.stack(images)
     images = torch.tensor(images, device=device, dtype=torch.float32)
-    # images = torch.stack(images, dim=0).to(device)
     labels = torch.tensor(labels, device=device, dtype=torch.int32)
 
     pred_sym = torch.argmax(sym_grounder(images), dim=-1)
