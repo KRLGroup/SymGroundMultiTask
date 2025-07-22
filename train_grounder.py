@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import Optional, Tuple
 import pickle
+import random
 
 import utils
 from replay_buffer import ReplayBuffer
@@ -34,6 +35,7 @@ class Args:
     # Agent parameters
     use_agent: bool = False
     agent_dir: Optional[str] = None
+    agent_prob: float = 1.0
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -152,7 +154,7 @@ def train_grounder(args: Args, device: str = None):
 
     txt_logger.info("Training\n")
 
-    epoch = 0
+    epoch = status["epoch"]
     n_won = 0
     n_failed = 0
     n_episodes = 0
@@ -177,6 +179,8 @@ def train_grounder(args: Args, device: str = None):
 
         test_env_images = test_env.env.loc_to_obs
         test_env_labels = test_env.env.loc_to_label
+        # choose whether to use agent or random
+        agent_ep = (args.use_agent and random.random() <= args.agent_prob)
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
@@ -185,7 +189,7 @@ def train_grounder(args: Args, device: str = None):
 
         # Play the episode until termination
         while not done:
-            action = agent.get_action(obs).item() if agent else train_env.action_space.sample()
+            action = agent.get_action(obs).item() if agent_ep else train_env.action_space.sample()
             obs, rew, done, _ = train_env.step(action)
             obss.append(obs['features'])
             rews.append(rew)
