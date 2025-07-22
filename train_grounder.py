@@ -78,7 +78,7 @@ def train_grounder(args: Args, device: str = None):
         obs_size = args.obs_size
     )
     train_env.env.max_num_steps = args.max_num_steps
-    n_propositions = len(train_env.propositions)
+    num_symbols = len(train_env.propositions)
     txt_logger.info("-) Environment loaded.")
 
     # environent used for testing and logging about the symbol grounder
@@ -116,7 +116,7 @@ def train_grounder(args: Args, device: str = None):
         )
 
     # create model
-    sym_grounder = utils.make_grounder(args.sym_grounder_model, n_propositions, args.obs_size)
+    sym_grounder = utils.make_grounder(args.sym_grounder_model, num_symbols, args.obs_size)
     sym_grounder.to(device)
     txt_logger.info("-) Grounder loaded.")
 
@@ -160,8 +160,8 @@ def train_grounder(args: Args, device: str = None):
     n_episodes = 0
 
     loss_values = []
-    test_class_accs = []
-    train_class_accs = []
+    test_accs = []
+    train_accs = []
 
     start_time = time.time()
 
@@ -226,7 +226,7 @@ def train_grounder(args: Args, device: str = None):
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
                 batch_size = args.batch_size,
-                numb_of_actions = n_propositions,
+                numb_of_actions = num_symbols,
                 numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
                 reward_type = "ternary",
                 device = device
@@ -261,32 +261,32 @@ def train_grounder(args: Args, device: str = None):
             # collect data to compute accuracy on the train enviornment (only for logging)
             train_images = np.stack([train_env.env.loc_to_obs[(r, c)] for (r, c) in coords])
             train_images = torch.tensor(train_images, device=device, dtype=torch.float32)
-            train_labels = [train_env.env.loc_to_label[(r, c)] for (r, c) in coords]
-            train_labels = torch.tensor(train_labels, device=device, dtype=torch.int32)
+            train_true_syms = [train_env.env.loc_to_label[(r, c)] for (r, c) in coords]
+            train_true_syms = torch.tensor(train_true_syms, device=device, dtype=torch.int32)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
             test_images = np.stack([test_env.env.loc_to_obs[(r, c)] for (r, c) in coords])
             test_images = torch.tensor(test_images, device=device, dtype=torch.float32)
-            test_labels = [test_env.env.loc_to_label[(r, c)] for (r, c) in coords]
-            test_labels = torch.tensor(test_labels, device=device, dtype=torch.int32)
+            test_true_syms = [test_env.env.loc_to_label[(r, c)] for (r, c) in coords]
+            test_true_syms = torch.tensor(test_true_syms, device=device, dtype=torch.int32)
 
-            pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
-            train_correct_preds = torch.sum((pred_sym_train == train_labels).int())
-            train_class_acc = torch.mean((pred_sym_train == train_labels).float())
+            train_pred_syms = torch.argmax(sym_grounder(train_images), dim=-1)
+            train_correct_preds = torch.sum((train_pred_syms == train_true_syms).int())
+            train_acc = torch.mean((train_pred_syms == train_true_syms).float())
 
-            pred_sym_test = torch.argmax(sym_grounder(test_images), dim=-1)
-            test_correct_preds = torch.sum((pred_sym_test == test_labels).int())
-            test_class_acc = torch.mean((pred_sym_test == test_labels).float())
+            test_pred_syms = torch.argmax(sym_grounder(test_images), dim=-1)
+            test_correct_preds = torch.sum((test_pred_syms == test_true_syms).int())
+            test_acc = torch.mean((test_pred_syms == test_true_syms).float())
 
             duration = int(time.time() - start_time)
 
             txt_logger.info(f"loss: {loss.item():.4e} | duration: {duration:05}")
-            txt_logger.info(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {pred_sym_train.shape[0]} ({train_class_acc.item():.4f})")
-            txt_logger.info(f"grounder TEST accuracy = {test_correct_preds.item()} / {pred_sym_test.shape[0]} ({test_class_acc.item():.4f})")
+            txt_logger.info(f"grounder TRAIN accuracy = {train_correct_preds.item()} / {train_pred_syms.shape[0]} ({train_acc.item():.4f})")
+            txt_logger.info(f"grounder TEST accuracy = {test_correct_preds.item()} / {test_pred_syms.shape[0]} ({test_acc.item():.4f})")
 
             loss_values.append(loss.item())
-            test_class_accs.append(test_class_acc.item())
-            train_class_accs.append(train_class_acc.item())
+            test_accs.append(test_acc.item())
+            train_accs.append(train_acc.item())
 
             # every 10 epochs print comparison between true and predicted labels
             if epoch % 10 == 0:
@@ -294,11 +294,11 @@ def train_grounder(args: Args, device: str = None):
                 txt_logger.info("\n---")
                 txt_logger.info("Comparison:")
                 txt_logger.info("Train")
-                txt_logger.info(f"true: {train_labels.tolist()}")
-                txt_logger.info(f"pred: {pred_sym_train.tolist()}")
+                txt_logger.info(f"true: {train_true_syms.tolist()}")
+                txt_logger.info(f"pred: {train_pred_syms.tolist()}")
                 txt_logger.info("Test")
-                txt_logger.info(f"true: {test_labels.tolist()}")
-                txt_logger.info(f"pred: {pred_sym_test.tolist()}")
+                txt_logger.info(f"true: {test_true_syms.tolist()}")
+                txt_logger.info(f"pred: {test_pred_syms.tolist()}")
                 txt_logger.info("---")
 
             # every 100 epochs plot loss and accuracies and save the sym_grounder model
@@ -318,8 +318,8 @@ def train_grounder(args: Args, device: str = None):
                 plt.close()
 
                 plt.figure(figsize=(8, 5))
-                plt.plot(test_class_accs, label="Test Accuracy", color="red")
-                plt.plot(train_class_accs, label="Train Accuracy", color="green")
+                plt.plot(test_accs, label="Test Accuracy", color="red")
+                plt.plot(train_accs, label="Train Accuracy", color="green")
                 plt.title("Classification Accuracy Over Epochs")
                 plt.xlabel("Epoch")
                 plt.ylabel("Accuracy")
