@@ -173,12 +173,6 @@ def train_grounder(args: Args, device: str = None):
         obs = train_env.reset()
         test_env.reset()
 
-        task = train_env.sampler.get_current_automaton()
-        train_env_images = train_env.env.loc_to_obs
-        train_env_labels = train_env.env.loc_to_label
-
-        test_env_images = test_env.env.loc_to_obs
-        test_env_labels = test_env.env.loc_to_label
         # choose whether to use agent or random
         agent_ep = (args.use_agent and random.random() <= args.agent_prob)
 
@@ -187,7 +181,7 @@ def train_grounder(args: Args, device: str = None):
         obss = [obs['features']]
         rews = [0]
 
-        # Play the episode until termination
+        # play the episode until termination
         while not done:
             action = agent.get_action(obs).item() if agent_ep else train_env.action_space.sample()
             obs, rew, done, _ = train_env.step(action)
@@ -215,9 +209,8 @@ def train_grounder(args: Args, device: str = None):
             # add to the buffer
             obss = torch.tensor(np.stack(obss), device=device, dtype=torch.float32)
             rews = torch.tensor(rews, device=device, dtype=torch.int64)
-            dfa_trans = task.transitions
-            dfa_rew = task.rewards
-            buffer.push(obss, rews, dfa_trans, dfa_rew)
+            task = train_env.sampler.get_current_automaton()
+            buffer.push(obss, rews, task.transitions, task.rewards)
 
         # after the buffer is full enough after each episode train the sym_grounder
         if len(buffer) >= 10 * args.batch_size:
@@ -263,24 +256,18 @@ def train_grounder(args: Args, device: str = None):
 
             # LOGGING
 
+            coords = train_env.env.loc_to_label.keys()
+
             # collect data to compute accuracy on the train enviornment (only for logging)
-            train_images = []
-            train_labels = []
-            for c in range(7):
-                for r in range(7):
-                    train_images.append(train_env_images[r, c])
-                    train_labels.append(train_env_labels[r, c])
-            train_images = torch.tensor(np.stack(train_images), device=device, dtype=torch.float32)
+            train_images = np.stack([train_env.env.loc_to_obs[(r, c)] for (r, c) in coords])
+            train_images = torch.tensor(train_images, device=device, dtype=torch.float32)
+            train_labels = [train_env.env.loc_to_label[(r, c)] for (r, c) in coords]
             train_labels = torch.tensor(train_labels, device=device, dtype=torch.int32)
 
             # collect data to compute accuracy on the test enviornment (only for logging)
-            test_images = []
-            test_labels = []
-            for c in range(7):
-                for r in range(7):
-                    test_images.append(test_env_images[r, c])
-                    test_labels.append(test_env_labels[r, c])
-            test_images = torch.tensor(np.stack(test_images), device=device, dtype=torch.float32)
+            test_images = np.stack([test_env.env.loc_to_obs[(r, c)] for (r, c) in coords])
+            test_images = torch.tensor(test_images, device=device, dtype=torch.float32)
+            test_labels = [test_env.env.loc_to_label[(r, c)] for (r, c) in coords]
             test_labels = torch.tensor(test_labels, device=device, dtype=torch.int32)
 
             pred_sym_train = torch.argmax(sym_grounder(train_images), dim=-1)
