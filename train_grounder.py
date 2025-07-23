@@ -179,6 +179,7 @@ def train_grounder(args: Args, device: str = None):
 
         # choose whether to use agent or random
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
+        train_env.env.sym_grounder = sym_grounder if agent_ep else None
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
