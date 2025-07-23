@@ -22,7 +22,8 @@ env = utils.make_env(
     args.env,
     progression_mode = "full",
     ltl_sampler = args.sampler,
-    seed = 1
+    seed = 1,
+    obs_size = (56,56)
 )
 
 if "GridWorld" in args.env:
