@@ -3,7 +3,7 @@ import numpy as np
 
 import utils
 from replay_buffer import ReplayBuffer
-from DeepAutoma import MultiTaskProbabilisticAutoma
+from deep_automa import MultiTaskProbabilisticAutoma
 
 
 # class for training the grounder

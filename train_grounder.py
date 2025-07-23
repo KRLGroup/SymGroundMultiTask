@@ -10,7 +10,7 @@ import random
 
 import utils
 from replay_buffer import ReplayBuffer
-from DeepAutoma import MultiTaskProbabilisticAutoma
+from deep_automa import MultiTaskProbabilisticAutoma
 
 
 @dataclass
