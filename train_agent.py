@@ -38,6 +38,7 @@ class Args:
     gnn_model: str = "RGCN_8x32_ROOT_SHARED"
     use_pretrained_gnn: bool = False
     gnn_pretrain: Optional[str] = None
+    freeze_gnn: bool = False
 
     # Grounder parameters
     grounder_model: Optional[str] = "ObjectCNN"
@@ -46,7 +47,6 @@ class Args:
 
     # Agent parameters
     dumb_ac: bool = False
-    freeze_ltl: bool = False
     ignoreLTL: bool = False
     recurrence: int = 1
 
@@ -96,8 +96,8 @@ def train_agent(args: Args, device: str = None):
         gnn_name = gnn_name + "-dumb_ac"
     if args.use_pretrained_gnn:
         gnn_name = gnn_name + "-pretrained"
-    if args.freeze_ltl:
-        gnn_name = gnn_name + "-freeze_ltl"
+    if args.freeze_gnn:
+        gnn_name = gnn_name + "-freeze_gnn"
     if use_mem:
         gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
 
@@ -193,9 +193,9 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
 
     # load existing model
     if "model_state" in status:

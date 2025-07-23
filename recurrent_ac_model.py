@@ -25,7 +25,7 @@ from ac_model import LSTMModel, GRUModel, init_params
 
 
 class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
-    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, device, verbose=True):
+    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_gnn, device, verbose=True):
         super().__init__()
 
         # Decide which components are enabled
@@ -37,7 +37,7 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
         self.action_space = action_space
         self.dumb_ac = dumb_ac
 
-        self.freeze_pretrained_params = freeze_ltl
+        self.freeze_pretrained_params = freeze_gnn
         if self.freeze_pretrained_params and verbose:
             print("Freezing the LTL module.")
 

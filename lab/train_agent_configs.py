@@ -35,6 +35,7 @@ test_gridworld = Args(
     gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
     gnn_pretrain = "pretrain",
+    freeze_gnn = False,
 
     # Grounder parameters
     grounder_model = "ObjectCNN",
