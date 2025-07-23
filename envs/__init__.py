@@ -12,7 +12,32 @@ __all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action"
 ### GridWorld multi-task Envs
 register(
     id='GridWorld-v0',
-    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_LTL2Action'
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Base'
+)
+
+register(
+    id='GridWorld-fixed-v0',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Base_FixedMap'
+)
+
+register(
+    id='GridWorld-v1',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_AgentCentric'
+)
+
+register(
+    id='GridWorld-fixed-v1',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_AgentCentric_FixedMap'
+)
+
+register(
+    id='GridWorld-v2',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_NoWrapAround'
+)
+
+register(
+    id='GridWorld-fixed-v2',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_NoWrapAround_FixedMap'
 )
 
 
@@ -23,8 +48,8 @@ register(
 )
 
 register(
-    id='Simple-LTL-Env-6L-v0',
-    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnv6Letters'
+    id='Simple-LTL-Env-5L-v0',
+    entry_point='envs.simple_ltl.simple_ltl_env:SimpleLTLEnv5Letters'
 )
 
 
@@ -89,11 +114,13 @@ register(
     entry_point='envs.gym_letters.letter_env:LetterEnvAgentCentricFixedMap7x7'
 )
 
+
 ### Minigrid Envs
 register(
     id='Adversarial-v0',
     entry_point='envs.minigrid.minigrid_env:AdversarialMinigridEnv'
 )
+
 
 # ### Safety Envs
 # register(

@@ -10,10 +10,10 @@ import torch
 import torch_ac
 import gym
 import numpy as np
-import utils
-
-from envs import *
+from .ast_builder import ASTBuilder
 from ltl_wrappers import LTLEnv
+from envs import *
+
 
 def get_obss_preprocessor(env, gnn, progression_mode):
     obs_space = env.observation_space
@@ -22,21 +22,51 @@ def get_obss_preprocessor(env, gnn, progression_mode):
 
     if isinstance(env, LTLEnv): #LTLEnv Wrapped env
         env = env.unwrapped
-        if isinstance(env, LetterEnv) or isinstance(env, MinigridEnv) or isinstance(env, GridWorldEnv_LTL2Action): #or isinstance(env, ZonesEnv):
+
+        if isinstance(env, GridWorldEnv_LTL2Action):
+
+            if progression_mode == "partial":
+                obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space), "task_id": 1, "episode_id": 1, "env_id": 1}
+                def preprocess_obss(obss, device=None):
+                    return torch_ac.DictList({
+                        "image": preprocess_images([obs["features"] for obs in obss], device=device),
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device),
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32, device=device)
+                    })
+
+            else:
+                obs_space = {"image": obs_space.spaces["features"].shape, "text": max(22, len(vocab_space) + 10), "task_id": 1, "episode_id": 1, "env_id": 1}
+                vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
+                vocab = Vocabulary(vocab_space)
+                tree_builder = ASTBuilder(vocab_space["tokens"])
+                def preprocess_obss(obss, device=None):
+                    return torch_ac.DictList({
+                        "image": preprocess_images([obs["features"] for obs in obss], device=device),
+                        "text":  preprocess_texts([obs["text"] for obs in obss], vocab, vocab_space, gnn=gnn, device=device, ast=tree_builder),
+                        "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32, device=device),
+                        "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32, device=device)
+                    })
+
+            preprocess_obss.vocab = vocab
+
+        elif isinstance(env, LetterEnv) or isinstance(env, MinigridEnv): #or isinstance(env, ZonesEnv):
+
             if progression_mode == "partial":
                 obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space)}
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
-                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0).to(device)
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device)
                     })
 
             else:
                 obs_space = {"image": obs_space.spaces["features"].shape, "text": max(22, len(vocab_space) + 10)}
                 vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
-
                 vocab = Vocabulary(vocab_space)
-                tree_builder = utils.ASTBuilder(vocab_space["tokens"])
+                tree_builder = ASTBuilder(vocab_space["tokens"])
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
@@ -46,18 +76,20 @@ def get_obss_preprocessor(env, gnn, progression_mode):
             preprocess_obss.vocab = vocab
 
         elif isinstance(env, SimpleLTLEnv):
+
             if progression_mode == "partial":
                 obs_space = {"progress_info": len(vocab_space)}
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
-                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0).to(device)
+                        "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device)
                     })
+
             else:
                 obs_space = {"text": max(22, len(vocab_space) + 10)}
                 vocab_space = {"max_size": obs_space["text"], "tokens": vocab_space}
 
                 vocab = Vocabulary(vocab_space)
-                tree_builder = utils.ASTBuilder(vocab_space["tokens"])
+                tree_builder = ASTBuilder(vocab_space["tokens"])
 
                 def preprocess_obss(obss, device=None):
                     return torch_ac.DictList({
@@ -68,14 +100,15 @@ def get_obss_preprocessor(env, gnn, progression_mode):
 
         else:
             raise ValueError("Unknown observation space: " + str(obs_space))
+
     # Check if obs_space is an image space
     elif isinstance(obs_space, gym.spaces.Box):
         obs_space = {"image": obs_space.shape}
-
         def preprocess_obss(obss, device=None):
             return torch_ac.DictList({
                 "image": preprocess_images(obss, device=device)
             })
+
     else:
         raise ValueError("Unknown observation space: " + str(obs_space))
 
@@ -119,7 +152,7 @@ def preprocess4rnn(texts, vocab, device=None):
     for i, indexed_text in enumerate(var_indexed_texts):
         indexed_texts[i, :len(indexed_text)] = indexed_text
 
-    return torch.tensor(indexed_texts, device=device, dtype=torch.long)
+    return torch.tensor(indexed_texts, device=device, dtype=torch.int64)
 
 def preprocess4gnn(texts, ast, device=None):
     """

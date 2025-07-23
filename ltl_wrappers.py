@@ -18,10 +18,14 @@ Notes about LTLEnv:
 import numpy as np
 import gym
 from gym import spaces
-import ltl_progression, random
+
+import ltl_progression
 from ltl_samplers import getLTLSampler, SequenceSampler
 
+
+
 class LTLEnv(gym.Wrapper):
+
     def __init__(self, env, progression_mode="full", ltl_sampler=None, intrinsic=0.0):
         """
         LTL environment
@@ -59,10 +63,6 @@ class LTLEnv(gym.Wrapper):
         # NOTE: The propositions must be represented by a char
         raise NotImplementedError
 
-    def get_events(self, obs, act, next_obs):
-        # This function must return the events that currently hold on the environment
-        # NOTE: The events are represented by a string containing the propositions with positive values only (e.g., "ac" means that only propositions 'a' and 'b' hold)
-        raise NotImplementedError
 
     def reset(self):
         self.known_progressions = {}
@@ -116,6 +116,7 @@ class LTLEnv(gym.Wrapper):
         done    = env_done or ltl_done
         return ltl_obs, reward, done, info
 
+
     def progression(self, ltl_formula, truth_assignment):
 
         if (ltl_formula, truth_assignment) not in self.known_progressions:
@@ -137,6 +138,7 @@ class LTLEnv(gym.Wrapper):
             elif progress_i != ltl_formula:
                 X[i] = 1.
         return X
+
 
     def sample_ltl_goal(self):
         # NOTE: The propositions must be represented by a char
@@ -162,7 +164,9 @@ class LTLEnv(gym.Wrapper):
         return self.env.get_events()
 
 
+
 class NoLTLWrapper(gym.Wrapper):
+
     def __init__(self, env):
         """
         Removes the LTL formula from an LTLEnv
@@ -172,11 +176,13 @@ class NoLTLWrapper(gym.Wrapper):
         self.observation_space = env.observation_space
         # self.observation_space =  env.observation_space['features']
 
+
     def reset(self):
         obs = self.env.reset()
         # obs = obs['features']
         # obs = {'features': obs}
         return obs
+
 
     def step(self, action):
         # executing the action in the environment
@@ -184,6 +190,7 @@ class NoLTLWrapper(gym.Wrapper):
         # obs = obs['features']
         # obs = {'features': obs}
         return obs, reward, done, info
+
 
     def get_propositions(self):
         return list([])

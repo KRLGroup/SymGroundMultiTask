@@ -1,29 +1,24 @@
-import argparse
 import time
-import datetime
 import torch
 import torch_ac
 import tensorboardX
-import sys
-import glob
-from math import floor
+import os
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 import utils
 from ac_model import ACModel
-from recurrent_model import RecurrentACModel
+from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
-from dataclasses import dataclass, field
-from typing import List, Optional
+from grounder_algo import GrounderAlgo
 
-# Parse arguments
 
 @dataclass
 class Args:
+
     # General parameters
-    algo: str # a2c or ppo
-    env: str
-    ltl_sampler: str = "Default" # Must be None for GridWorld
-    model: Optional[str] = None
+    model_name: Optional[str] = None
+    algo: str = "ppo"
     seed: int = 1
     log_interval: int = 10
     save_interval: int = 100
@@ -31,14 +26,39 @@ class Args:
     frames: int = 2 * 10**8
     checkpoint_dir: Optional[str] = None
 
+    # Environment parameters
+    env: str = "GridWorld-fixed-v1"
+    ltl_sampler: str = "Default"
+    obs_size: Tuple[int,int] = (56,56)
+    noLTL: bool = False
+    progression_mode: str = "full" # full, partial, or none
+    int_reward: float = 0.0
+
+    # GNN parameters
+    gnn_model: str = "RGCN_8x32_ROOT_SHARED"
+    use_pretrained_gnn: bool = False
+    gnn_pretrain: Optional[str] = None
+
+    # Grounder parameters
+    grounder_model: Optional[str] = "ObjectCNN"
+    use_pretrained_grounder: bool = False
+    grounder_pretrain: Optional[str] = None
+
+    # Agent parameters
+    dumb_ac: bool = False
+    freeze_ltl: bool = False
+    ignoreLTL: bool = False
+    recurrence: int = 1
+
     # Evaluation parameters
     eval: bool = False
-    eval_episodes: int = 5
     eval_env: Optional[str] = None
-    ltl_samplers_eval: Optional[List[str]] = None # at least 1 if present
+    eval_interval: int = 100
+    ltl_samplers_eval: Optional[List[str]] = None
+    eval_episodes: List[int] = None
     eval_procs: int = 1
 
-    # Parameters for main algorithm
+    # Train parameters
     epochs: int = 4
     batch_size: int = 256
     frames_per_proc: Optional[int] = None
@@ -51,16 +71,9 @@ class Args:
     optim_eps: float = 1e-8
     optim_alpha: float = 0.99
     clip_eps: float = 0.2
-    ignoreLTL: bool = False
-    noLTL: bool = False
-    progression_mode: str = "full" # full, partial, or none
-    recurrence: int = 1
-    gnn: str = "RGCN_8x32_ROOT_SHARED"
-    int_reward: float = 0.0
-    pretrained_gnn: bool = False
-    dumb_ac: bool = False
-    freeze_ltl: bool = False
 
+
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def train_agent(args: Args, device: str = None):
@@ -69,109 +82,150 @@ def train_agent(args: Args, device: str = None):
 
     use_mem = args.recurrence > 1
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M-%S")
 
-    # Set run dir
-    gnn_name = args.gnn
+    # checkpoint dirs
+    storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
+    storage_dir = os.path.join(REPO_DIR, storage_dir)
+    pretrain_dir = os.path.join(REPO_DIR, "symbol-storage")
+
+    # build GNN name
+    gnn_name = args.gnn_model
     if args.ignoreLTL:
         gnn_name = "IgnoreLTL"
     if args.dumb_ac:
         gnn_name = gnn_name + "-dumb_ac"
-    if args.pretrained_gnn:
+    if args.use_pretrained_gnn:
         gnn_name = gnn_name + "-pretrained"
     if args.freeze_ltl:
         gnn_name = gnn_name + "-freeze_ltl"
     if use_mem:
         gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
 
+    # compute default_model_name
     default_model_name = f"{gnn_name}_{args.ltl_sampler}_{args.env}_seed:{args.seed}_epochs:{args.epochs}_bs:{args.batch_size}_fpp:{args.frames_per_proc}_dsc:{args.discount}_lr:{args.lr}_ent:{args.entropy_coef}_clip:{args.clip_eps}_prog:{args.progression_mode}"
 
-    model_name = args.model or default_model_name
-    storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
+    # model dir
+    model_name = args.model_name or default_model_name
     model_dir = utils.get_model_dir(model_name, storage_dir)
+    train_dir = os.path.join(model_dir, "train")
 
-    pretrained_model_dir = None
-    if args.pretrained_gnn:
-        assert(args.progression_mode == "full")
-        default_dir = f"symbol-storage/{args.gnn}-dumb_ac_{args.ltl_sampler}_Simple-LTL-Env-v0_seed:{args.seed}_*_prog:{args.progression_mode}/train"
-        print(default_dir)
-        model_dirs = glob.glob(default_dir)
-        if len(model_dirs) == 0:
-            raise Exception("Pretraining directory not found.")
-        elif len(model_dirs) > 1:
-            raise Exception("More than 1 candidate pretraining directory found.")
-        pretrained_model_dir = model_dirs[0]
+    # pretrained gnn dir
+    pretrained_gnn_dir = None
+    if args.use_pretrained_gnn:
+        assert(args.progression_mode == "full" and args.gnn_pretrain != None)
+        pretrained_gnn_dir = utils.get_model_dir(args.gnn_pretrain, pretrain_dir)
 
-    # Load loggers and Tensorboard writer
-    txt_logger = utils.get_txt_logger(model_dir + "/train")
-    csv_file, csv_logger = utils.get_csv_logger(model_dir + "/train")
-    tb_writer = tensorboardX.SummaryWriter(model_dir + "/train")
-    utils.save_config(model_dir + "/train", args)
+    # pretrained grounder dir
+    pretrained_grounder_dir = None
+    if args.use_pretrained_grounder:
+        assert(args.grounder_pretrain != None)
+        pretrained_grounder_dir = utils.get_model_dir(args.grounder_pretrain, pretrain_dir)
 
-    # Log command and all script arguments
-    txt_logger.info("{}\n".format(" ".join(sys.argv)))
-    txt_logger.info("{}\n".format(args))
+    # load loggers and Tensorboard writer
+    txt_logger = utils.get_txt_logger(model_dir)
+    csv_file, csv_logger = utils.get_csv_logger(train_dir)
+    tb_writer = tensorboardX.SummaryWriter(train_dir)
+    utils.save_config(model_dir, args)
 
-    # Set seed for all randomness sources
-    utils.seed(args.seed)
+    # log script arguments
+    txt_logger.info("\n---\n")
+    txt_logger.info("Args:")
+    for field_name, value in vars(args).items():
+        txt_logger.info(f"\t{field_name}: {value}")
+    txt_logger.info(f"\nDevice: {device}")
+    txt_logger.info("\n---\n")
 
-    # Set device
-    txt_logger.info(f"Device: {device}\n")
+    # set seed for all randomness sources
+    utils.set_seed(args.seed)
 
-    # Load environments
+
+    # INITIALIZATION
+
+    txt_logger.info("Initialization\n")
+
+    # load environments
     envs = []
     progression_mode = args.progression_mode
     for i in range(args.procs):
-        envs.append(utils.make_env(args.env, progression_mode, args.ltl_sampler, args.seed, args.int_reward, args.noLTL, device))
+        envs.append(utils.make_env(
+            env_key = args.env,
+            progression_mode = progression_mode,
+            ltl_sampler = args.ltl_sampler,
+            seed = args.seed,
+            intrinsic = args.int_reward,
+            noLTL = args.noLTL,
+            grounder = None,
+            obs_size = args.obs_size
+        ))
 
-    # Sync environments
+    num_symbols = len(envs[0].propositions)
+    sampler = envs[0].sampler
+
+    # create grounder
+    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size)
+    for env in envs:
+        env.env.sym_grounder = sym_grounder
+
+    # sync environments
     envs[0].reset()
     if isinstance(envs[0].env, LetterEnv):
         txt_logger.info("Using fixed maps.")
         for env in envs:
             env.env.map = envs[0].env.map
 
-    txt_logger.info("Environments loaded\n")
+    txt_logger.info("-) Environments loaded.")
 
-    # Load training status
-    try:
-        status = utils.get_status(model_dir + "/train", device)
-    except OSError:
+    # load previous training status
+    status = utils.get_status(model_dir, device)
+    txt_logger.info("-) Looking for status of previous training.")
+    if status == None:
         status = {"num_frames": 0, "update": 0}
-    txt_logger.info("Training status loaded.\n")
+        txt_logger.info("-) Previous status not found.")
+    else:
+        txt_logger.info("-) Previous status found.")
 
-    if pretrained_model_dir is not None:
-        try:
-            pretrained_status = utils.get_status(pretrained_model_dir, device)
-        except:
-            txt_logger.info("Failed to load pretrained model.\n")
-            exit(1)
-
-    # Load observations preprocessor
-    using_gnn = (args.gnn != "GRU" and args.gnn != "LSTM")
+    # load observations preprocessor
+    using_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
     obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], using_gnn, progression_mode)
     if "vocab" in status and preprocess_obss.vocab is not None:
         preprocess_obss.vocab.load_vocab(status["vocab"])
-    txt_logger.info("Observations preprocessor loaded.\n")
+    txt_logger.info("-) Observations preprocessor loaded.")
 
-    # Load model
+    # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn, args.dumb_ac, args.freeze_ltl, device)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
 
+    # load existing model
     if "model_state" in status:
         acmodel.load_state_dict(status["model_state"])
-        txt_logger.info("Loading model from existing run.\n")
-    elif args.pretrained_gnn:
-        acmodel.load_pretrained_gnn(pretrained_status["model_state"])
-        txt_logger.info("Pretrained model loaded.\n")
+        txt_logger.info("-) Loading model from existing run.")
 
+    # otherwise load existing pretrained GNN
+    elif args.use_pretrained_gnn:
+        gnn_status = utils.get_status(pretrained_gnn_dir, device)
+        acmodel.load_pretrained_gnn(gnn_status["model_state"])
+        txt_logger.info("-) Loading GNN from pretrain.")
+
+    # load existing grounder
+    if "grounder_state" in status:
+        sym_grounder.load_state_dict(status["grounder_state"])
+        txt_logger.info("-) Loading grounder from existing run.")
+
+    # otherwise load existing pretrained grounder
+    elif args.use_pretrained_grounder:
+        grounder_status = utils.get_status(pretrained_grounder_dir, device)
+        sym_grounder.load_state_dict(grounder_status["grounder_state"])
+        txt_logger.info("-) Loading grounder from pretrain.")
+
+    sym_grounder.to(device) if sym_grounder is not None else None
     acmodel.to(device)
-    txt_logger.info("Model loaded.\n")
-    txt_logger.info("{}\n".format(acmodel))
 
-    # Load algo
+    txt_logger.info("-) Model loaded.")
+    # txt_logger.info(f"{acmodel}")
+
+    # load algo
     if args.algo == "a2c":
         algo = torch_ac.A2CAlgo(envs, acmodel, device, args.frames_per_proc, args.discount, args.lr, args.gae_lambda,
                                 args.entropy_coef, args.value_loss_coef, args.max_grad_norm, args.recurrence,
@@ -183,43 +237,82 @@ def train_agent(args: Args, device: str = None):
     else:
         raise ValueError("Incorrect algorithm name: {}".format(args.algo))
 
+    # load optimizer of existing model
     if "optimizer_state" in status:
         algo.optimizer.load_state_dict(status["optimizer_state"])
-        txt_logger.info("Loading optimizer from existing run.\n")
-    txt_logger.info("Optimizer loaded.\n")
+        txt_logger.info("-) Loading optimizer from existing run.")
 
-    # init the evaluator
+    txt_logger.info("-) Optimizer loaded.")
+
+    # load grounder algo
+    grounder_algo = GrounderAlgo(sym_grounder, sampler, envs[0], batch_size=32, device=device)
+
+    # initialize the evaluators
     if args.eval:
+
         eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
 
+        assert len(eval_samplers) == len(args.eval_episodes)
+
         evals = []
-        for eval_sampler in eval_samplers:
-            evals.append(utils.Eval(eval_env, model_name, eval_sampler,
-                        seed=args.seed, device=device, num_procs=eval_procs, ignoreLTL=args.ignoreLTL, progression_mode=progression_mode, gnn=args.gnn, dumb_ac = args.dumb_ac))
+        for sampler in eval_samplers:
+            evals.append(utils.Eval(
+                env = eval_env,
+                model_dir = model_dir,
+                ltl_sampler = sampler,
+                seed = args.seed,
+                device = device,
+                grounder = sym_grounder,
+                obs_size = args.obs_size,
+                num_procs = eval_procs,
+                ignoreLTL = args.ignoreLTL,
+                progression_mode = progression_mode,
+                gnn = args.gnn_model,
+                dumb_ac = args.dumb_ac
+            ))
+
+        txt_logger.info("-) Evaluators loaded.")
+
+    txt_logger.info("\n---\n")
+
 
     # TRAINING
+
+    txt_logger.info("Training\n")
 
     num_frames = status["num_frames"]
     update = status["update"]
     start_time = time.time()
 
+    # populate buffer
+    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size:
+        grounder_algo.collect_experiences()
+
     while num_frames < args.frames:
 
-        # Update model parameters
         update_start_time = time.time()
+
+        # collect experiences from environments
         exps, logs1 = algo.collect_experiences()
-        logs2 = algo.update_parameters(exps)
-        logs = {**logs1, **logs2}
+        logs2 = grounder_algo.process_experiences(exps)
+
+        # updated agent and grounder
+        logs3 = algo.update_parameters(exps)
+        logs4 = grounder_algo.update_parameters()
+        logs5 = grounder_algo.evaluate()
+
         update_end_time = time.time()
 
+        logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
         num_frames += logs["num_frames"]
         update += 1
 
-        # Print logs
+        # Print logs (they refer only to the last update)
 
         if update % args.log_interval == 0:
+    
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
@@ -239,13 +332,15 @@ def train_agent(args: Args, device: str = None):
             data += num_frames_per_episode.values()
             header += ["entropy", "value", "policy_loss", "value_loss", "grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
+            header += ["grounder_loss", "grounder_acc", "buffer"]
+            data += [logs["grounder_loss"], logs["grounder_acc"], logs["buffer"]]
 
             # μ: mean | σ: std | m: min | M: max
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
-            # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
+            # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm | gL: grounder loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                "U {} | F {:06} | FPS {:04.0f} | D {} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:.1f} {:.1f} {} {} | H {:.3f} | V {:.3f} | pL {:.3f} | vL {:.3f} | ∇ {:.3f}"
-                .format(*data))
+                "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.4f} | gA {:.3f} | b {:5}"
+            .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
             data += return_per_episode.values()
@@ -260,15 +355,50 @@ def train_agent(args: Args, device: str = None):
 
         # Save status
 
-        if args.save_interval > 0 and update % args.save_interval == 0:
-            status = {"num_frames": num_frames, "update": update,
-                    "model_state": algo.acmodel.state_dict(), "optimizer_state": algo.optimizer.state_dict()}
+        if (args.save_interval > 0 and update % args.save_interval == 0) or (args.eval and args.eval_interval > 0 and update % args.eval_interval == 0):
+
+            status = {
+                "num_frames": num_frames,
+                "update": update,
+                "model_state": algo.acmodel.state_dict(),
+                "optimizer_state": algo.optimizer.state_dict(),
+                "grounder_state": sym_grounder.state_dict()
+            }
+
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
                 status["vocab"] = preprocess_obss.vocab.vocab
-            utils.save_status(status, model_dir + "/train")
+
+            utils.save_status(status, model_dir)
             txt_logger.info("Status saved")
 
-            if args.eval:
-                # we send the num_frames to align the eval curves with the training curves on TB
-                for evalu in evals:
-                    evalu.eval(num_frames, episodes=args.eval_episodes)
+        # Compute Evaluation
+
+        if args.eval and args.eval_interval > 0 and update % args.eval_interval == 0:
+
+            for i, evalu in enumerate(evals):
+
+                eval_start_time = time.time()
+                logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
+                eval_end_time = time.time()
+
+                duration = int(eval_end_time - eval_start_time)
+
+                num_frame_pe = sum(logs_num_frames_per_episode)
+                return_per_episode = utils.synthesize(logs_returns_per_episode)
+                average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
+                num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
+
+                header = ["frames", "duration"]
+                data = [num_frame_pe, duration]
+                header += ["return_" + key for key in return_per_episode.keys()]
+                data += return_per_episode.values()
+                header += ["average_discounted_return"]
+                data += [average_discounted_return]
+                header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
+                data += num_frames_per_episode.values()
+
+                txt_logger.info(f"Evaluator {i}")
+                txt_logger.info("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}".format(*data))
+
+                for field, value in zip(header, data):
+                    evalu.tb_writer.add_scalar(field, value, num_frames)

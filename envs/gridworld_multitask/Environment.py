@@ -2,72 +2,62 @@ import gym
 from gym import spaces
 import random
 import numpy as np
-import torch, torchvision
-from FiniteStateMachine import MooreMachine
+import torch
 from itertools import product
 import pickle
 import cv2
 import os
 from ltl_wrappers import LTLEnv
+from ltl_samplers import getLTLSampler
 
-OBS_SIZE = 64
-obs_resize = torchvision.transforms.Resize((OBS_SIZE, OBS_SIZE))
-
-WIN_SIZE = 896
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(os.path.dirname(ENV_DIR))
 
 
 class GridWorldEnv_multitask(gym.Env):
 
-    metadata = {"render_modes": ["human", "rgb_array", "terminal"], "state_types": ["image", "symbol"], "render_fps": 4}
+    metadata = {
+        "render_modes": ["human", "rgb_array", "terminal"],
+        "state_types": ["image", "symbol"],
+        "render_fps": 4
+    }
 
-    def __init__(self, render_mode="human", state_type="image", size=7, max_num_steps=70, randomize_loc=False, 
-        img_dir="imgs_16x16", shuffle_tasks=False, save_obs=False):
+    def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
+        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False, 
+        wrap_around_map=True, agent_centric_view=True):
 
-        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', 'f']
+        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
 
         self.randomize_locations = randomize_loc
-        self.produced_tasks = 0
+        self.randomize_start = randomize_start
 
+        # icons file paths
         self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
         self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
         self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
         self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
         self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
-        self._ROBOT = os.path.join(ENV_DIR, img_dir, "robot.png")
+        self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
 
         self.max_num_steps = max_num_steps
         self.curr_step = 0
         self.has_window = False
 
-        # environment map size
-        self.size = size
+        self.map_size = map_size
+        self.obs_size = obs_size
+        self.win_size = win_size
+
+        assert not agent_centric_view or (self.map_size%2==1 and wrap_around_map)
+        self.wrap_around_map = wrap_around_map
+        self.agent_centric_view = agent_centric_view
 
         assert render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
 
-        # load automata and formulas
-        with open(os.path.join(ENV_DIR, "tasks/formulas.pkl"), "rb") as f:
-            self.formulas = pickle.load(f)
-        with open(os.path.join(ENV_DIR, "tasks/automata.pkl"), "rb") as f:
-            self.automata = pickle.load(f)
-
-        if shuffle_tasks:
-            tasks = list(zip(self.formulas, self.automata))
-            random.shuffle(tasks)
-            self.formulas, self.automata = zip(*tasks)
-
-        for i in range(len(self.formulas)):
-            new_transitions = self.automata[i].transitions
-            for state in self.automata[i].transitions.keys():
-                new_transitions[state][5]= state
-            self.automata[i].transitions = new_transitions
-
-        # self.multitask_urs = set(product(list(range(len(self.dictionary_symbols))), repeat=len(self.dictionary_symbols)))
-        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
+        self.num_episodes = 0
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -78,203 +68,235 @@ class GridWorldEnv_multitask(gym.Env):
         }
 
         # default locations
-        self._pickaxe_locations = [np.array([1,1]), np.array([5,2])]
-        self._lava_locations = [np.array([3,3]), np.array([1,4])]
-        self._door_locations = [np.array([3,0]), np.array([3,5])]
-        self._gem_locations = [np.array([0,3]), np.array([6,4])]
-        self._egg_locations = [np.array([2,1]), np.array([5,6])]
-        self._initial_agent_location = np.array([0,0])
+        all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
+        default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+
+        # assign items locations
+        self._pickaxe_locations = [default_locations[0], default_locations[1]]
+        self._lava_locations = [default_locations[2], default_locations[3]]
+        self._door_locations = [default_locations[4], default_locations[5]]
+        self._gem_locations = [default_locations[6], default_locations[7]]
+        self._egg_locations = [default_locations[8], default_locations[9]]
+
+        # assign agent initial location
+        self.free_locations = all_locations - set(default_locations)
+        self._initial_agent_location = (0,0)
 
         # precompute symbols per location
-        self.loc_to_label = {(r, c): 5 for r in range(self.size) for c in range(self.size)}
+        self.loc_to_label = {(r, c): 5 for r in range(self.map_size) for c in range(self.map_size)}
         for loc in self._pickaxe_locations:
-            self.loc_to_label[tuple(loc)] = 0
+            self.loc_to_label[loc] = 0
         for loc in self._lava_locations:
-            self.loc_to_label[tuple(loc)] = 1
+            self.loc_to_label[loc] = 1
         for loc in self._door_locations:
-            self.loc_to_label[tuple(loc)] = 2
+            self.loc_to_label[loc] = 2
         for loc in self._gem_locations:
-            self.loc_to_label[tuple(loc)] = 3
+            self.loc_to_label[loc] = 3
         for loc in self._egg_locations:
-            self.loc_to_label[tuple(loc)] = 4
+            self.loc_to_label[loc] = 4
 
-        # ???
+        # variables to hide icons
         self._gem_display = True
         self._pickaxe_display = True
-        self._robot_display = True
+        self._agent_display = True
 
-        # load images using OpenCV (if used)
-        if state_type == 'image' or render_mode in ['human', 'rgb_array']:
+        # load icons using OpenCV (if they are used)
+        if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
             self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
             self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
-            self.robot_img = cv2.imread(self._ROBOT, cv2.IMREAD_UNCHANGED)
+            self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
 
             # dimensions of true canvas
             self.cell_size = self.pickaxe_img.shape[0]
-            self.canvas_size = self.size * self.cell_size
+            self.canvas_size = self.map_size * self.cell_size
 
-        # precompute observations per locations
-        if state_type == "image":
+        if self.state_type == "image":
 
-            # precompute observations per location
+            # precompute image observations per location
             self.loc_to_obs = {}
-            for r in range(self.size):
-                for c in range(self.size):
+            for r in range(self.map_size):
+                for c in range(self.map_size):
                     self._agent_location = np.array([r, c])
-                    self.loc_to_obs[r,c] = self._get_obs()
+                    self.loc_to_obs[r,c] = self._get_image_obs()
 
             # save images as seen by the agent
             if save_obs:
-                for r in range(self.size):
-                    for c in range(self.size):
-                        image = (self.loc_to_obs[r,c].permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                obs_folder = os.path.join(REPO_DIR, 'saves/env_obs')
+                if not os.path.exists(obs_folder):
+                    os.makedirs(obs_folder)
+                for r in range(self.map_size):
+                    for c in range(self.map_size):
+                        image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
                         image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        cv2.imwrite(f"saves/env_obs/obs_{r}_{c}.jpg", image_bgr)
+                        obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
+                        cv2.imwrite(obs_path, image_bgr)
 
             # normalize observations
-            stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
-            for r in range(self.size):
-                for c in range(self.size):
+            mean = np.mean(self.loc_to_obs[self._initial_agent_location])
+            stdev = np.std(self.loc_to_obs[self._initial_agent_location])
+            for r in range(self.map_size):
+                for c in range(self.map_size):
                     norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                    self.loc_to_obs[r,c] = norm_img.numpy() # passing back to numpy?
+                    self.loc_to_obs[r,c] = norm_img
 
-            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(1), shape=self.loc_to_obs[0,0].shape, dtype=np.float32)
+            self.observation_space = spaces.Box(
+                low = np.float32(-np.inf),
+                high = np.float32(np.inf),
+                shape = self.loc_to_obs[0, 0].shape,
+                dtype = np.float32
+            )
+
+        elif self.state_type == "symbol":
+
+            # precompute symbol observations per location
+            self.loc_to_obs = {}
+            for r in range(self.map_size):
+                for c in range(self.map_size):
+                    self._agent_location = np.array([r, c])
+                    self.loc_to_obs[r,c] = self._get_symbol_obs()
+
+            self.observation_space = spaces.Box(low=0, high=1, shape=self.loc_to_obs[0,0].shape, dtype=np.uint8)
 
         # reset the agent location
-        self._agent_location = self._initial_agent_location
+        self._agent_location = np.array(self._initial_agent_location)
 
 
     def reset(self):
 
-        # extract task
-        self.current_formula = self.formulas[self.produced_tasks % len(self.formulas)]
-        current_automa = self.automata[self.produced_tasks % len(self.automata)]
-        self.produced_tasks += 1
-        self.automaton = MooreMachine(
-            current_automa.transitions,
-            current_automa.acceptance,
-            f"random_task_{self.produced_tasks}",
-            reward="ternary",
-            dictionary_symbols=self.dictionary_symbols
-        )
-        self.curr_automaton_state = 0
-
-        # self.singletask_urs, _ = find_reasoning_shortcuts(self.automaton)
-        # print(f"Iter {self.produced_tasks}:\t num shortcuts: {len(self.multitask_urs)}")
-
+        self.num_episodes += 1
         self.curr_step = 0
 
-        # randomize item locations and recompute
-        if self.randomize_locations and self.produced_tasks % 100 == 0:
+        # randomize item locations and recompute observations
+        if self.randomize_locations and self.num_episodes % 10 == 0:
 
-            all_positions = [(x, y) for x in range(self.size) for y in range(self.size)]
+            all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
 
-            # select 11 random locations
+            # select 10 random locations
             num_items = 10
-            item_positions = random.sample(all_positions, num_items+1)
-            self._gem_locations = [np.array(item_positions[0]), np.array(item_positions[1])]
-            self._pickaxe_locations = [np.array(item_positions[2]), np.array(item_positions[3])]
-            self._door_locations = [np.array(item_positions[4]), np.array(item_positions[5])]
-            self._lava_locations = [np.array(item_positions[6]), np.array(item_positions[7])]
-            self._egg_locations = [np.array(item_positions[8]), np.array(item_positions[9])]
-            self._initial_agent_location = np.array(item_positions[10])
+            sampled_locations = random.sample(all_locations, num_items)
+
+            # assign item locations
+            self._gem_locations = [sampled_locations[0], sampled_locations[1]]
+            self._pickaxe_locations = [sampled_locations[2], sampled_locations[3]]
+            self._door_locations = [sampled_locations[4], sampled_locations[5]]
+            self._lava_locations = [sampled_locations[6], sampled_locations[7]]
+            self._egg_locations = [sampled_locations[8], sampled_locations[9]]
+
+            # assign agent initial location
+            self.free_locations = all_locations - set(sampled_locations)
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
             # precompute symbols per location
-            self.loc_to_label = {(r, c): 5 for r in range(size) for c in range(size)}
+            self.loc_to_label = {(r, c): 5 for r in range(self.map_size) for c in range(self.map_size)}
             for loc in self._pickaxe_locations:
-                self.loc_to_label[tuple(loc)] = 0
+                self.loc_to_label[loc] = 0
             for loc in self._lava_locations:
-                self.loc_to_label[tuple(loc)] = 1
+                self.loc_to_label[loc] = 1
             for loc in self._door_locations:
-                self.loc_to_label[tuple(loc)] = 2
+                self.loc_to_label[loc] = 2
             for loc in self._gem_locations:
-                self.loc_to_label[tuple(loc)] = 3
+                self.loc_to_label[loc] = 3
             for loc in self._egg_locations:
-                self.loc_to_label[tuple(loc)] = 4
+                self.loc_to_label[loc] = 4
 
-            if state_type == "image":
+            if self.state_type == "image":
 
-                # precompute observations per location
+                # precompute image observations per location
                 self.loc_to_obs = {}
-                for r in range(self.size):
-                    for c in range(self.size):
+                for r in range(self.map_size):
+                    for c in range(self.map_size):
                         self._agent_location = np.array([r, c])
-                        self.loc_to_obs[r,c] = self._get_obs()
+                        self.loc_to_obs[r,c] = self._get_image_obs()
 
                 # normalize observations
-                stdev, mean = torch.std_mean(self.loc_to_obs[tuple(self._initial_agent_location)])
-                for r in range(self.size):
-                    for c in range(self.size):
+                mean = np.mean(self.loc_to_obs[self._initial_agent_location])
+                stdev = np.std(self.loc_to_obs[self._initial_agent_location])
+                for r in range(self.map_size):
+                    for c in range(self.map_size):
                         norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                        self.loc_to_obs[r,c] = norm_img.numpy()
+                        self.loc_to_obs[r,c] = norm_img
+
+            elif self.state_type == "symbol":
+
+                # precompute symbol observations per location
+                self.loc_to_obs = {}
+                for r in range(self.map_size):
+                    for c in range(self.map_size):
+                        self._agent_location = np.array([r, c])
+                        self.loc_to_obs[r,c] = self._get_symbol_obs()
+
+        # extract new initial location
+        elif self.randomize_start:
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
         # reset the agent location
-        self._agent_location = self._initial_agent_location
+        self._agent_location = np.array(self._initial_agent_location)
 
         # compute initial observation
-        if self.state_type == "symbol":
-            # doesn't see world and see automaton stata!
-            observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
-        elif self.state_type == "image":
-            observation = self.loc_to_obs[tuple(self._agent_location)]
+        observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        # TODO: add reward and done to reset?
-
-        return observation, self.automaton, self.loc_to_obs, self.loc_to_label
+        return observation, self.loc_to_obs, self.loc_to_label
 
 
     def step(self, action):
 
-        # update position
+        # update agent location
         direction = self._action_to_direction[action]
-        self._agent_location = np.clip(self._agent_location + direction, 0, self.size - 1)
+        if self.wrap_around_map:
+            self._agent_location = (self._agent_location + direction) % self.map_size
+        else:
+            self._agent_location = np.clip(self._agent_location + direction, 0, self.map_size - 1)
+
         self.curr_step += 1
 
-        # update automaton
-        sym = self.loc_to_label[tuple(self._agent_location)]
-        self.new_automaton_state = self.automaton.transitions[self.curr_automaton_state][sym]
-        reward = self.automaton.rewards[self.new_automaton_state]
-        self.curr_automaton_state = self.new_automaton_state
+        # compute reward
+        reward = 0.0
 
         # compute observation
-        if self.state_type == "symbol":
-            observation = np.array(list(self._agent_location) + [self.curr_automaton_state])
-        elif self.state_type == "image":
-            observation = self.loc_to_obs[tuple(self._agent_location)]
+        observation = self.loc_to_obs[tuple(self._agent_location)]
 
         # compute completion state
-        done = (reward == 1) or (reward == -1) or (self.curr_step >= self.max_num_steps)
+        done = self.curr_step >= self.max_num_steps
 
-        # info = self._get_info()
+        # compute info
+        info = None
 
-        # if reward == 1:
-        #    self.multitask_urs = self.multitask_urs.intersection(self.singletask_urs)
-
-        return observation, reward, done
+        return observation, reward, done, info
 
 
-    def _get_obs(self):
+    def _get_symbol_obs(self):
+        obs = np.zeros(shape=(self.map_size,self.map_size,len(self.dictionary_symbols)+1),dtype=np.uint8)
+        for loc in self.loc_to_label:
+            if self.agent_centric_view:
+                loc = self._absolute_to_agent_centric(loc)
+            label = self.loc_to_label[loc]
+            obs[loc[0],loc[1],label] = 1
+        obs[self._agent_location[0],self._agent_location[1],len(self.dictionary_symbols)] = 1
+        return obs
+
+
+    def _get_image_obs(self):
         obs = self._render_frame()
-        obs = torch.tensor(obs.copy(), dtype=torch.float64) / 255
-        obs = torch.permute(obs, (2, 0, 1)) # from w*h*c to c*w*h
-        obs = obs_resize(obs) # resized to 64x64
+        obs = cv2.resize(obs, self.obs_size)
+        obs = obs.astype(np.float32) / 255.0
+        obs = np.transpose(obs, (2, 0, 1)) # from w*h*c to c*w*h
         return obs
 
 
     def _get_info(self):
         info = {
-            "robot location": self._agent_location,
+            "agent location": self._agent_location,
             "inventory": "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
         }
         return info
 
 
     # create the visualization of the environment (for rendering and for observations)
-    def _render_frame(self, draw_grid = False):
+    def _render_frame(self, draw_grid=False):
 
         # create a white canvas
         canvas = 255 * np.ones((self.canvas_size, self.canvas_size, 3), dtype=np.uint8)
@@ -303,7 +325,9 @@ class GridWorldEnv_multitask(gym.Env):
         def blit_item(item_img, locations, display=True):
             if display:
                 for loc in locations:
-                    # loc is assumed to be a numpy array [col, row] or [x, y]
+                    # loc is assumed to be a tuple
+                    if self.agent_centric_view:
+                        loc = self._absolute_to_agent_centric(loc)
                     x = int(loc[0] * self.cell_size)
                     y = int(loc[1] * self.cell_size)
                     overlay_image(canvas, item_img, (x, y))
@@ -314,9 +338,25 @@ class GridWorldEnv_multitask(gym.Env):
         blit_item(self.door_img, self._door_locations)
         blit_item(self.lava_img, self._lava_locations)
         blit_item(self.egg_img, self._egg_locations)
-        blit_item(self.robot_img, [self._agent_location], self._robot_display)
+        blit_item(self.agent_img, [self._agent_location], self._agent_display)
 
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+
+
+    def _absolute_to_agent_centric(self, pos):
+        center = self.map_size // 2
+        delta  = (center - self._agent_location[0], center - self._agent_location[1])
+        new_pos_r = (pos[0] + delta[0] + self.map_size) % self.map_size
+        new_pos_c = (pos[1] + delta[1] + self.map_size) % self.map_size
+        return (new_pos_r, new_pos_c)
+
+
+    def _agent_centric_to_absolute(self, pos):
+        center = self.map_size // 2
+        delta  = (center - self._agent_location[0], center - self._agent_location[1])
+        orig_r = (pos[0] - delta[0] + self.map_size) % self.map_size
+        orig_c = (pos[1] - delta[1] + self.map_size) % self.map_size
+        return (orig_r, orig_c)
 
 
     def render(self):
@@ -336,7 +376,7 @@ class GridWorldEnv_multitask(gym.Env):
             'c': 'door',
             'd': 'gem',
             'e': 'egg',
-            'f': 'nothing'
+            '': 'nothing'
         }
 
         if isinstance(formula, tuple):
@@ -358,13 +398,15 @@ class GridWorldEnv_multitask(gym.Env):
             5: '.',
         }
 
-        for c in range(self.size):
+        for c in range(self.map_size):
             row_str = ""
-            for r in range(self.size):
-                pos = (r, c)
-                label = self.loc_to_label.get(pos, 5)
+            for r in range(self.map_size):
+                loc = (r, c)
+                if self.agent_centric_view:
+                    loc = self._agent_centric_to_absolute(loc)
+                label = self.loc_to_label.get(loc, 5)
                 symbol = label_to_icon.get(label, '?')
-                if tuple(self._agent_location) == pos:
+                if tuple(self._agent_location) == loc:
                     row_str += f"[{symbol}]"
                 else:
                     row_str += f" {symbol} "
@@ -375,10 +417,10 @@ class GridWorldEnv_multitask(gym.Env):
         if not self.has_window:
             self.has_window = True
             cv2.namedWindow("Frame", cv2.WINDOW_NORMAL)
-            cv2.resizeWindow("Frame", WIN_SIZE, WIN_SIZE)
+            cv2.resizeWindow("Frame", self.win_size[0], self.win_size[1])
             cv2.moveWindow('Frame', 100, 100)
         canvas = cv2.cvtColor(self._render_frame(), cv2.COLOR_RGB2BGR)
-        canvas = cv2.resize(canvas, (WIN_SIZE, WIN_SIZE), interpolation=cv2.INTER_NEAREST)
+        canvas = cv2.resize(canvas, self.win_size, interpolation=cv2.INTER_NEAREST)
         cv2.imshow("Frame", canvas)
         cv2.waitKey(1)
 
@@ -394,79 +436,245 @@ class GridWorldEnv_multitask(gym.Env):
 # incorporates the symbol grounder
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
-    def __init__(self, device, *args, **kwargs):
+    def __init__(self, grounder, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.device = device
-        self.sym_grounder = torch.load('sym_grounder.pth', map_location=self.device)
+        self.sym_grounder = grounder
         self.current_obs = None
 
 
     def reset(self):
-        obs, _, _, _ = super().reset()
+        obs, _, _ = super().reset()
         self.current_obs = obs
         return obs
 
 
     def step(self, action):
-        obs, rew, done = super().step(action)
+        obs, rew, done, info = super().step(action)
         self.current_obs = obs
-        return obs, rew, done, {}
+        return obs, rew, done, info
 
 
     def get_propositions(self):
         return self.dictionary_symbols.copy()
 
 
+    def get_real_events(self):
+        real_sym = self.loc_to_label[tuple(self._agent_location)]
+        return self.dictionary_symbols[real_sym]
+
+
     def get_events(self):
-        img = self.current_obs
-        pred_sym = torch.argmax(self.sym_grounder(torch.tensor(img, device=self.device).unsqueeze(0)), dim=-1)[0]
-        return self.dictionary_symbols[pred_sym]
+
+        # returns the proposition that currently holds
+        if self.sym_grounder == None:
+            return self.get_real_events()
+
+        # returns the proposition that currently holds according to the grounder
+        else:
+            img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+            pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
+            return self.dictionary_symbols[pred_sym]
 
 
 
+# A subclass of LTLEnv to distinguish between "real" progrssion and "predicted" progression
 class LTLWrapper(LTLEnv):
+
+    num_envs = 0
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sampler = None # make sure we don't use this
+        self.id = LTLWrapper.num_envs
+        LTLWrapper.num_envs += 1
+
+
+    def reset(self):
+    
+        self.real_known_progressions = {}
+        self.pred_known_progressions = {}
+        self.obs = self.env.reset()
+
+        # defining an LTL goal
+        self.ltl_original, self.task_id = self.sample_ltl_goal()
+        self.real_ltl_goal = self.ltl_original
+        self.pred_ltl_goal = self.ltl_original
+
+        # adding the ltl goal to the observation
+        if self.progression_mode == "partial":
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.pred_ltl_goal),
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
+        else:
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.pred_ltl_goal,
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
+
+        return ltl_obs
 
 
     def step(self, action):
-        int_reward = 0
-        # executing the action in the environment
-        next_obs, original_reward, env_done, info = self.env.step(action)
 
-        # progressing the ltl formula
-        truth_assignment = self.get_events(self.obs, action, next_obs)
-        self.ltl_goal = self.progression(self.ltl_goal, truth_assignment)
+        int_reward = 0
+
+        # executing the action in the environment
+        next_obs, env_reward, env_done, info = self.env.step(action)
+
+        # progressing real ltl formula
+        real_label = self.env.get_real_events()
+        self.real_ltl_goal = self.progression(self.real_ltl_goal, real_label)
+
+        # progressing pred ltl formula
+        pred_label = self.env.get_events()
+        self.pred_ltl_goal = self.progression(self.pred_ltl_goal, pred_label)
+        
         self.obs = next_obs
 
-        # Computing the LTL reward and done signal
-        ltl_reward = 0.0
-        ltl_done = False
-        if self.ltl_goal == 'True':
-            ltl_reward = 1.0
-            ltl_done = True
-        elif self.ltl_goal == 'False':
-            ltl_reward = -1.0
-            ltl_done = True
+        # computing real reward and done
+        if self.real_ltl_goal == 'True':
+            real_ltl_reward = 1.0
+            real_ltl_done = True
+        elif self.real_ltl_goal == 'False':
+            real_ltl_reward = -1.0
+            real_ltl_done = True
         else:
-            ltl_reward = int_reward
+            real_ltl_reward = 0.0
+            real_ltl_done = False
 
-        # Computing the new observation and returning the outcome of this action
+        # computing pred reward and done
+        if self.pred_ltl_goal == 'True':
+            pred_ltl_reward = 1.0
+            pred_ltl_done = True
+        elif self.pred_ltl_goal == 'False':
+            pred_ltl_reward = -1.0
+            pred_ltl_done = True
+        else:
+            pred_ltl_reward = int_reward
+            pred_ltl_done = False
+
+        # computing the new observation and returning the outcome of this action
+        # the observation considers the expected formula (unless using 'real')
         if self.progression_mode == "full":
-            ltl_obs = {'features': self.obs,'text': self.ltl_goal}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.pred_ltl_goal,
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
         elif self.progression_mode == "none":
-            ltl_obs = {'features': self.obs,'text': self.ltl_original}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_original,
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
         elif self.progression_mode == "partial":
-            ltl_obs = {'features': self.obs, 'progress_info': self.progress_info(self.ltl_goal)}
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.pred_ltl_goal),
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
+        elif self.progression_mode == "real":
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.real_ltl_goal,
+                'task_id': self.task_id,
+                'episode_id': self.env.num_episodes,
+                'env_id': self.id
+            }
         else:
             raise NotImplementedError
 
-        reward = original_reward # + ltl_reward [not used?]
-        done = env_done or ltl_done
+        # the reward considers the real evolution of the formula
+        reward = env_reward + real_ltl_reward # + pred_ltl_reward
+
+        # the termination checks both real termination or expected one
+        done = env_done or real_ltl_done or pred_ltl_done
+
         return ltl_obs, reward, done, info
 
 
+    # returns formula and id
     def sample_ltl_goal(self):
-        return self.env.current_formula
+        return self.sampler.sample(), self.sampler.get_current_id()
+
+
+
+# Preconstructed Environments
+
+class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = True,
+            wrap_around_map = True,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = True,
+            wrap_around_map = True,
+            agent_centric_view = True
+        )
+
+
+class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = True
+        )
+
+
+class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = True,
+            wrap_around_map = False,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, grounder, obs_size):
+        super().__init__(
+            grounder = grounder,
+            obs_size = obs_size,
+            randomize_loc = False,
+            wrap_around_map = False,
+            agent_centric_view = False
+        )

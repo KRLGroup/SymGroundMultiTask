@@ -35,6 +35,8 @@ How to subclass this:
     3. In your forward() method call the super().forward as the default case.
     4. Add the if statement in the getEnvModel() method
 """
+
+
 class EnvModel(nn.Module):
     def __init__(self, obs_space):
         super().__init__()
@@ -45,6 +47,7 @@ class EnvModel(nn.Module):
 
     def size(self):
         return self.embedding_size
+
 
 
 class LetterEnvModel(EnvModel):
@@ -74,6 +77,8 @@ class LetterEnvModel(EnvModel):
 
         return super().forward(obs)
 
+
+
 class MinigridEnvModel(EnvModel):
     def __init__(self, obs_space):
         super().__init__(obs_space)
@@ -102,6 +107,8 @@ class MinigridEnvModel(EnvModel):
 
         return super().forward(obs)
 
+
+
 class ZonesEnvModel(EnvModel):
     def __init__(self, obs_space):
         super().__init__(obs_space)
@@ -125,6 +132,8 @@ class ZonesEnvModel(EnvModel):
 
         return super().forward(obs)
 
+
+
 class PendulumEnvModel(EnvModel):
     def __init__(self, obs_space):
         super().__init__(obs_space)
@@ -146,6 +155,7 @@ class PendulumEnvModel(EnvModel):
             return x
 
         return super().forward(obs)
+
 
 
 class GridWorldEnvModel(EnvModel):

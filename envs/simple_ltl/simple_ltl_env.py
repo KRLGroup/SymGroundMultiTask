@@ -73,7 +73,7 @@ class SimpleLTLEnvDefault(SimpleLTLEnv):
 
 
 
-# 6-letters environment
-class SimpleLTLEnv6Letters(SimpleLTLEnv):
+# 5-letters environment
+class SimpleLTLEnv5Letters(SimpleLTLEnv):
     def __init__(self):
-        super().__init__(letters="abcdef", timeout=75)
+        super().__init__(letters="abcde", timeout=75)

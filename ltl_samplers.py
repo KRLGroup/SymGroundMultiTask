@@ -10,8 +10,9 @@ import random
 import os
 import pickle
 import yaml
-
 import numpy as np
+
+from finite_state_machine import MooreMachine
 
 
 class LTLSampler():
@@ -20,6 +21,10 @@ class LTLSampler():
 
     def sample(self):
         raise NotImplementedError
+
+    def get_current_id(self):
+        return None
+
 
 
 # Samples from one of the other samplers at random. The other samplers are sampled by their default args.
@@ -30,6 +35,8 @@ class SuperSampler(LTLSampler):
 
     def sample(self):
         return random.choice(self.reg_samplers).sample()
+
+
 
 # This class samples formulas of form (or, op_1, op_2), where op_1 and 2 can be either specified as samplers_ids
 # or by default they will be sampled at random via SuperSampler.
@@ -42,6 +49,8 @@ class OrSampler(LTLSampler):
         return ('or', getLTLSampler(self.sampler_ids[0], self.propositions).sample(),
                         getLTLSampler(self.sampler_ids[1], self.propositions).sample())
 
+
+
 # This class generates random LTL formulas using the following template:
 #   ('until',('not','a'),('and', 'b', ('until',('not','c'),'d')))
 # where p1, p2, p3, and p4 are randomly sampled propositions
@@ -49,6 +58,8 @@ class DefaultSampler(LTLSampler):
     def sample(self):
         p = random.sample(self.propositions,4)
         return ('until',('not',p[0]),('and', p[1], ('until',('not',p[2]),p[3])))
+
+
 
 # This class generates random conjunctions of Until-Tasks.
 # Each until tasks has *n* levels, where each level consists
@@ -86,6 +97,7 @@ class UntilTaskSampler(LTLSampler):
         return ltl
 
 
+
 # This class generates random LTL formulas that form a sequence of actions.
 # @ min_len, max_len: min/max length of the random sequence to generate.
 class SequenceSampler(LTLSampler):
@@ -111,6 +123,8 @@ class SequenceSampler(LTLSampler):
         if len(seq) == 1:
             return ('eventually',seq)
         return ('eventually',('and', seq[0], self._get_sequence(seq[1:])))
+
+
 
 # This generates several sequence tasks which can be accomplished in parallel. 
 # e.g. in (eventually (a and eventually c)) and (eventually b)
@@ -163,6 +177,7 @@ class EventuallySampler(LTLSampler):
         return ('eventually',('and', term, self._get_sequence(seq[1:])))
 
 
+
 class AdversarialEnvSampler(LTLSampler):
     def sample(self):
         p = random.randint(0,1)
@@ -171,11 +186,15 @@ class AdversarialEnvSampler(LTLSampler):
         else:
             return ('eventually', ('and', 'a', ('eventually', 'c')))
 
+
+
 def getRegisteredSamplers(propositions):
     return [SequenceSampler(propositions),
             UntilTaskSampler(propositions),
             DefaultSampler(propositions),
             EventuallySampler(propositions)]
+
+
 
 # The LTLSampler factory method that instantiates the proper sampler
 # based on the @sampler_id.
@@ -184,134 +203,137 @@ def getLTLSampler(sampler_id, propositions):
     if (sampler_id != None):
         tokens = sampler_id.split("_")
 
-    # Don't change the order of ifs here otherwise the OR sampler will fail
     if (tokens[0] == "Dataset"):
-        formula = None
-        if 'formula' in tokens[-1]:
-            formula = int(tokens[-1].split(":")[1])
-            tokens = tokens[:-1]
-        shuffle = True
-        if tokens[-1] == "noshuffle":
-            shuffle = False
-            tokens = tokens[:-1]
-        train = True
-        if tokens[-1] == "test":
-            train = False
-            tokens = tokens[:-1]
-        curriculum = False
-        if tokens[-1] == "curriculum":
-            curriculum = True
-            shuffle = False
-            tokens = tokens[:-1]
-        return DatasetSampler(propositions, tokens[1], '_'.join(tokens[2:]), train=train, shuffle=shuffle, formula=formula, curriculum=curriculum)
+        dataset_name = tokens[1]
+        use_automata = False if "no-automata" in tokens[2:] else True
+        shuffle = False if "no-shuffle" in tokens[2:] else True
+        ids = None
+        return DatasetSampler(propositions, dataset_name, shuffle, use_automata)
+
     elif (tokens[0] == "OrSampler"):
         return OrSampler(propositions)
+
     elif ("_OR_" in sampler_id): # e.g., Sequence_2_4_OR_UntilTask_3_3_1_1
         sampler_ids = sampler_id.split("_OR_")
         return OrSampler(propositions, sampler_ids)
+
     elif (tokens[0] == "Sequence"):
         return SequenceSampler(propositions, tokens[1], tokens[2])
+
     elif (tokens[0] == "Until"):
         return UntilTaskSampler(propositions, tokens[1], tokens[2], tokens[3], tokens[4])
+
     elif (tokens[0] == "SuperSampler"):
         return SuperSampler(propositions)
+
     elif (tokens[0] == "Adversarial"):
         return AdversarialEnvSampler(propositions)
+
     elif (tokens[0] == "Eventually"):
         return EventuallySampler(propositions, tokens[1], tokens[2], tokens[3], tokens[4])
+
     else: # "Default"
         return DefaultSampler(propositions)
 
 
+
+REPO_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASETS_DIR = os.path.join(REPO_DIR, "datasets")
+
+# sampler that reads the samplers from a precomputed dataset
+# (computing the automata is too slow to be done online)
 class DatasetSampler(LTLSampler):
 
-    def __init__(self, propositions, dataset, kernel, train=True, shuffle=True, formula=None, curriculum=False):
-        if curriculum and shuffle:
-            raise ValueError("Curriculum mode and shuffle mode are mutually exclusive")
-        dirpath = os.path.join("datasets", dataset)
-        with open(os.path.join(dirpath, 'config.yaml'), 'r') as f:
-            params = yaml.full_load(f)
-        if params['propositions'] != propositions:
-            raise ValueError(f"The given propositions ({propositions}) do not match the propositions in the dataset ({params['propositions']})")
-        with open(os.path.join(dirpath, 'formulas.pkl'), 'rb') as f:
-            formulas = pickle.load(f)
-        with open(os.path.join(dirpath, 'automata.pkl'), 'rb') as f:
-            automata = pickle.load(f)
-        print(f'[DatasetSampler] loading kernel {kernel} from {dirpath}')
-        with open(os.path.join(dirpath, f'kernel_{kernel}.pkl'), 'rb') as f:
-            kernel_reprs = pickle.load(f)
-        assert len(formulas) == len(automata) == len(kernel_reprs) == params['n_formulas']
-        self.items = list(zip(formulas, automata, kernel_reprs))
-        if train:
-            self.items = self.items[:params['n_train_formulas']]
-        else:
-            self.items = self.items[params['n_train_formulas']:]
-        self.shuffle = shuffle
-        self.formula = formula
-        self.curriculum = curriculum
-        self.cycle = 0
-        if self.formula is not None:
-            assert self.shuffle == False
-            assert self.formula < len(self.items)
-        self.reset()
-        print(f'[DatasetSampler] Loaded {len(self.items)} {"train" if train else "test"} formulas')
-        print(f'[DatasetSampler] specific formula mode: {formula}')
+    def __init__(self, propositions, dataset_name, shuffle=True, use_automata=True, ids=None):
 
-    def reset(self):
-        self.i = len(self.items)
+        dataset_folder = os.path.join(DATASETS_DIR, dataset_name)
+
+        self.shuffle = shuffle
+        self.use_automata = use_automata
+        self.ids = ids
+        self.sampled_tasks = 0
+        self.propositions = propositions
+
+        self.current_id = None
+        self.current_formula = None
+        self.current_automaton = None
+
+        # load config
+        with open(os.path.join(dataset_folder, 'config.pkl'), 'rb') as f:
+            self.config = pickle.load(f)
+        assert self.config["propositions"] == self.propositions[:-1]
+        self.n_prop = len(self.propositions) - 1
+
+        # load formulas
+        with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
+            formulas = pickle.load(f)
+        assert len(formulas) == self.config["n_formulas"]
+
+        automata = [None] * self.config["n_formulas"]
+
+        if self.use_automata:
+
+            # load automata
+            with open(os.path.join(dataset_folder, 'automata.pkl'), 'rb') as f:
+                automata = pickle.load(f)
+            assert len(automata) == self.config["n_formulas"]
+
+            for i, automaton in enumerate(automata):
+
+                # add self-loops when no proposition occurs
+                new_transitions = automata[i].transitions
+                for state in new_transitions:
+                    new_transitions[state][self.n_prop] = state
+
+                # rebuild the automaton with new transitions
+                automata[i] = MooreMachine(
+                    new_transitions,
+                    automaton.acceptance,
+                    None,
+                    reward = "ternary",
+                    dictionary_symbols = self.propositions
+                )
+
+        self.items = [{"formula": f, "automaton": a} for f, a in zip(formulas, automata)]
+
+        # filter for ids
+        if self.ids is not None:
+            self.items = [self.items[i] for i in self.ids]
+
+        self.n_tasks = len(self.items)
+        self.order = list(range(self.n_tasks))
+
 
     def sample(self):
-        if self.formula is not None:
-            return self.items[self.formula][0]
-        if self.i == len(self.items):
-            if self.shuffle:
-                print(f'[DatasetSampler] Dataset exhausted, shuffling formulas and restarting...')
-                np.random.shuffle(self.items)
-            elif self.curriculum:
-                print(f'[DatasetSampler] Dataset exhausted, sorting formulas by difficulty and restarting...')
-                self.items.sort(key=lambda x: x[1].num_of_states)
-                assert self.items[0][1].num_of_states <= self.items[-1][1].num_of_states
-                self.advance_curriculum = True
-            else:
-                print(f'[DatasetSampler] Dataset exhausted, rewinding to first formula...')
-            self.i = 0
-        formula, self.automaton, self.kernel_representation = self.items[self.i]
-        if not self.curriculum or self.advance_curriculum:
-            self.i += 1
-            if self.i == len(self.items):
-                self.cycle += 1
-                print(f'[DatasetSampler] Finished cycle {self.cycle}')
-            if self.curriculum:
-                self.advance_curriculum = False
-                self.recent_returns = []
-        return formula
 
-    def get_last_automaton(self):
-        if self.formula is not None:
-            return self.items[self.formula][1]
-        return self.automaton
-    
-    def get_last_kernel_representation(self):
-        if self.formula is not None:
-            return self.items[self.formula][2]
-        return self.kernel_representation
+        # shuffle at each cycle
+        if self.shuffle and self.sampled_tasks % self.n_tasks == 0:
+            np.random.shuffle(self.order)
 
-    # NOTE: this only works properly if this happens when the env is
-    # ABOUT to be reset; it does NOT work if the env has already been
-    # reset since the sampler will sample the same formula and report
-    # a spurious advancement (if the same formula gets > threshold
-    # return)
-    def update_curriculum(self, ret):
-        # print(f'[DatasetSampler] Updating curriculum with return {ret}')
-        min_episodes = 10
-        max_episodes = 5_000_000/len(self.items)
-        if not hasattr(self, 'recent_returns'):
-            self.recent_returns = []
-        self.recent_returns.append(ret)
-        if len(self.recent_returns) >= max_episodes:
-            print(f'Formula {self.i-1} was unsuccessful (reached {max_episodes} episodes), advancing curriculum...')
-            self.advance_curriculum = True
-        elif len(self.recent_returns) >= min_episodes and np.mean(self.recent_returns[-min_episodes:]) > 80.0:
-            print(f'Formula {self.i-1} was successful, advancing curriculum...')
-            self.advance_curriculum = True
+        self.current_id = self.order[self.sampled_tasks % self.n_tasks]
+        item = self.items[self.current_id]
+        self.current_formula = item["formula"]
+        self.current_automaton = item["automaton"]
+        self.sampled_tasks += 1
 
+        return self.current_formula
+
+
+    def get_current_id(self):
+        return self.current_id
+
+
+    def get_current_formula(self):
+        return self.current_formula
+
+
+    def get_current_automaton(self):
+        return self.current_automaton
+
+
+    def get_formula(self, index):
+        return self.items[index]['formula']
+
+
+    def get_automaton(self, index):
+        return self.items[index]['automaton']

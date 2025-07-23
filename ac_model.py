@@ -12,10 +12,7 @@ Each of those tokens get a one-hot embedding representation by the utils.format.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Categorical, Normal
 import torch_ac
-
-from gym.spaces import Box, Discrete
 
 from gnns.graphs.GCN import *
 from gnns.graphs.GNN import GNNMaker
@@ -34,7 +31,7 @@ def init_params(m):
 
 
 class ACModel(nn.Module, torch_ac.ACModel):
-    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, device):
+    def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_ltl, device, verbose=True):
         super().__init__()
 
         # Decide which components are enabled
@@ -47,7 +44,7 @@ class ACModel(nn.Module, torch_ac.ACModel):
         self.dumb_ac = dumb_ac
 
         self.freeze_pretrained_params = freeze_ltl
-        if self.freeze_pretrained_params:
+        if self.freeze_pretrained_params and verbose:
             print("Freezing the LTL module.")
 
         self.env_model = getEnvModel(env, obs_space)
@@ -61,7 +58,8 @@ class ACModel(nn.Module, torch_ac.ACModel):
                 nn.Linear(64, self.text_embedding_size),
                 nn.Tanh()
             ).to(self.device)
-            print("Linear encoder Number of parameters:", sum(p.numel() for p in self.simple_encoder.parameters() if p.requires_grad))
+            if verbose:
+                print("Linear encoder Number of parameters:", sum(p.numel() for p in self.simple_encoder.parameters() if p.requires_grad))
 
         elif self.use_text:
             self.word_embedding_size = 32
@@ -71,17 +69,20 @@ class ACModel(nn.Module, torch_ac.ACModel):
             else:
                 assert(self.gnn_type == "LSTM")
                 self.text_rnn = LSTMModel(obs_space["text"], self.word_embedding_size, 16, self.text_embedding_size).to(self.device)
-            print("RNN Number of parameters:", sum(p.numel() for p in self.text_rnn.parameters() if p.requires_grad))
+            if verbose:
+                print("RNN Number of parameters:", sum(p.numel() for p in self.text_rnn.parameters() if p.requires_grad))
         
         elif self.use_ast:
             hidden_dim = 32
             self.text_embedding_size = 32
             self.gnn = GNNMaker(self.gnn_type, obs_space["text"], self.text_embedding_size).to(self.device)
-            print("GNN Number of parameters:", sum(p.numel() for p in self.gnn.parameters() if p.requires_grad))
+            if verbose:
+                print("GNN Number of parameters:", sum(p.numel() for p in self.gnn.parameters() if p.requires_grad))
 
        # Resize image embedding
         self.embedding_size = self.env_model.size()
-        print("embedding size:", self.embedding_size)
+        if verbose:
+            print("embedding size:", self.embedding_size)
         if self.use_text or self.use_ast or self.use_progression_info:
             self.embedding_size += self.text_embedding_size
 
@@ -175,6 +176,3 @@ class GRUModel(nn.Module):
     def forward(self, text):
         hidden, _ = self.gru(self.word_embedding(text))
         return self.output_layer(hidden[:, -1, :])
-
-
-
