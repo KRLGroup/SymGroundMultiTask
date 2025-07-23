@@ -7,8 +7,6 @@ import numpy as np
 from numpy.random import RandomState
 from pythomata import SymbolicAutomaton, SimpleDFA
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 def set_seed(seed: int) -> RandomState:
     """ Method to set seed across runs to ensure reproducibility.
@@ -106,11 +104,16 @@ def transacc2pythomata(trans, acc, action_alphabet):
     return automaton
 
 
-def eval_acceptance(classifier, automa, alphabet, dataset, automa_implementation='dfa', temperature = 1.0, discretize_labels= False, mutually_exc_sym=True):
-    #automa implementation =
+def eval_acceptance(classifier, automa, alphabet, dataset, automa_implementation='dfa', temperature = 1.0, discretize_labels= False, mutually_exc_sym=True, device=None):
+
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
+
+    # automa implementation =
     #   - 'dfa' use the perfect dfa given
     #   - 'lstm' use the lstm model
     #   - 'logic_circuit' use the fuzzy automaton
+
     total = 0
     correct = 0
     test_loss = 0
@@ -164,9 +167,12 @@ def eval_acceptance(classifier, automa, alphabet, dataset, automa_implementation
     return test_accuracy
 
 
-def eval_learnt_DFA_acceptance(automa, dataset, automa_implementation='logic_circuit', temp=1.0, alphabet=None):
+def eval_learnt_DFA_acceptance(automa, dataset, automa_implementation='logic_circuit', temp=1.0, alphabet=None, device=None):
 
-    #automa implementation =
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
+
+    # automa implementation =
     #   - 'dfa' use the discretized probabilistic automaton #TODO
     #   - 'logic_circuit'
     #   - 'lstm' use the lstm model in automa
@@ -205,7 +211,11 @@ def eval_learnt_DFA_acceptance(automa, dataset, automa_implementation='logic_cir
     return accuracy
 
 
-def eval_image_classification_from_traces(traces_images, traces_labels, classifier, mutually_exclusive, return_errors=False):
+def eval_image_classification_from_traces(traces_images, traces_labels, classifier, mutually_exclusive, return_errors=False, device=None):
+
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(device)
+
     total = 0
     correct = 0
     classifier.eval()
