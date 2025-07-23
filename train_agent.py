@@ -44,6 +44,7 @@ class Args:
     grounder_model: Optional[str] = "ObjectCNN"
     use_pretrained_grounder: bool = False
     grounder_pretrain: Optional[str] = None
+    freeze_grounder: bool = False
 
     # Agent parameters
     dumb_ac: bool = False
@@ -162,7 +163,13 @@ def train_agent(args: Args, device: str = None):
     sampler = envs[0].sampler
 
     # create grounder
-    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size)
+    sym_grounder = utils.make_grounder(
+        model_name = args.grounder_model,
+        num_symbols = num_symbols,
+        obs_size = args.obs_size,
+        freeze_grounder = args.freeze_grounder
+    )
+
     for env in envs:
         env.env.sym_grounder = sym_grounder
 
@@ -245,7 +252,7 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, sampler, envs[0], batch_size=32, device=device)
+    grounder_algo = GrounderAlgo(sym_grounder, args.freeze_grounder, sampler, envs[0], batch_size=32, device=device)
 
     # load grounder optimizer of existing model
     if "grounder_optimizer_state" in status:
@@ -294,7 +301,7 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size:
+    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size and not args.freeze_grounder:
         grounder_algo.collect_experiences()
 
     while num_frames < args.frames:

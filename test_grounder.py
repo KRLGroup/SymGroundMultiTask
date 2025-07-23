@@ -44,7 +44,12 @@ num_symbols = len(env.env.dictionary_symbols)
 status = utils.get_status(grounder_dir, device)
 
 # load grounder
-sym_grounder = utils.make_grounder("ObjectCNN", num_symbols, config.obs_size)
+sym_grounder = utils.make_grounder(
+    model_name = "ObjectCNN",
+    num_symbols = num_symbols,
+    obs_size = config.obs_size,
+    freeze_grounder = True
+)
 sym_grounder.load_state_dict(status["grounder_state"])
 sym_grounder.to(device)
 

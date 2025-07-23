@@ -51,7 +51,12 @@ action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 env.sampler.sampled_tasks = args.formula_id
 
 # create and load grounder
-sym_grounder = utils.make_grounder(config.grounder_model, len(env.propositions), config.obs_size)
+sym_grounder = utils.make_grounder(
+    model_name = config.grounder_model,
+    num_symbols = len(env.propositions),
+    obs_size = config.obs_size,
+    freeze_grounder = True
+)
 sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder

@@ -115,7 +115,12 @@ def train_grounder(args: Args, device: str = None):
         )
 
     # create model
-    sym_grounder = utils.make_grounder(args.sym_grounder_model, num_symbols, args.obs_size)
+    sym_grounder = utils.make_grounder(
+        model_name = args.sym_grounder_model,
+        num_symbols = num_symbols,
+        obs_size = args.obs_size,
+        freeze_grounder = False
+    )
     sym_grounder.to(device)
     txt_logger.info("-) Grounder loaded.")
 

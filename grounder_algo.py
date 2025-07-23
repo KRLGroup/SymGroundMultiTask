@@ -9,7 +9,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
+    def __init__(self, grounder, freeze_grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -19,6 +19,7 @@ class GrounderAlgo():
         self.batch_size = batch_size
         self.num_symbols = grounder.num_symbols
         self.max_steps = max_steps
+        self.freeze_grounder = freeze_grounder
 
         self.grounder = grounder
         self.sampler = sampler
@@ -34,6 +35,10 @@ class GrounderAlgo():
 
 
     def process_experiences(self, exps):
+
+        if self.freeze_grounder:
+            logs = {'buffer': 0}
+            return logs
 
         ids = torch.stack([exps.obs.episode_id, exps.obs.env_id], dim=1)
         unique_ids = torch.unique(ids, dim=0)
@@ -85,6 +90,10 @@ class GrounderAlgo():
 
     def collect_experiences(self, agent=None):
 
+        if self.freeze_grounder:
+            logs = {'buffer': 0}
+            return logs
+
         # disable grounder temporarily (for efficiency)
         if self.env.env.sym_grounder is not None and agent is None:
             env_grounder = self.env.env.sym_grounder
@@ -126,8 +135,16 @@ class GrounderAlgo():
         if self.env.env.sym_grounder is not None and agent is None:
             self.env.env.sym_grounder = env_grounder
 
+        logs = {'buffer': len(self.buffer)}
+
+        return logs
+
 
     def update_parameters(self):
+
+        if self.freeze_grounder:
+            logs = {'grounder_loss': 0.0}
+            return logs
 
         # don't update if buffer not full enough
         if len(self.buffer) < self.batch_size:
@@ -174,6 +191,10 @@ class GrounderAlgo():
 
 
     def evaluate(self):
+
+        if self.freeze_grounder:
+            logs = {'grounder_acc': 0.0}
+            return logs
 
         coords = self.env.env.loc_to_label.keys()
 
