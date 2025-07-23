@@ -12,7 +12,7 @@ import pickle
 import yaml
 import numpy as np
 
-from FiniteStateMachine import MooreMachine
+from finite_state_machine import MooreMachine
 
 
 class LTLSampler():

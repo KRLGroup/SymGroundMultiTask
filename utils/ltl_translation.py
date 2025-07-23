@@ -1,4 +1,4 @@
-from FiniteStateMachine import MooreMachine
+from finite_state_machine import MooreMachine
 from pyparsing import Word, alphas, infixNotation, opAssoc, ParserElement
 import re
 
