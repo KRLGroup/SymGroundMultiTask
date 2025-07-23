@@ -13,10 +13,8 @@ from ltl_wrappers import NoLTLWrapper, LTLEnv
 
 def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, grounder=None, obs_size=None):
 
-    # arguments of the environment are the default ones except for grounder
     kwargs = {} if not "GridWorld" in env_key else {"grounder": grounder, "obs_size": obs_size}
 
-    # create environment
     env = gym.make(env_key, **kwargs)
     env.seed(seed)
 
