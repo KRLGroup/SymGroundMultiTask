@@ -10,6 +10,7 @@ import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from envs.gym_letters.letter_env import LetterEnv
+from grounder_algo import GrounderAlgo
 
 
 @dataclass
@@ -157,9 +158,11 @@ def train_agent(args: Args, device: str = None):
             obs_size = args.obs_size
         ))
 
+    num_symbols = len(envs[0].propositions)
+    sampler = envs[0].sampler
+
     # create grounder
-    n_propositions = len(envs[0].propositions)
-    sym_grounder = utils.make_grounder(args.grounder_model, n_propositions, args.obs_size)
+    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size)
     for env in envs:
         env.env.sym_grounder = sym_grounder
 
@@ -241,6 +244,9 @@ def train_agent(args: Args, device: str = None):
 
     txt_logger.info("-) Optimizer loaded.")
 
+    # load grounder algo
+    grounder_algo = GrounderAlgo(sym_grounder, sampler, envs[0], batch_size=32, device=device)
+
     # initialize the evaluators
     if args.eval:
 
@@ -280,15 +286,26 @@ def train_agent(args: Args, device: str = None):
     update = status["update"]
     start_time = time.time()
 
+    # populate buffer
+    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size:
+        grounder_algo.collect_experiences()
+
     while num_frames < args.frames:
 
-        # collect experiences from environments and updated agent
         update_start_time = time.time()
+
+        # collect experiences from environments
         exps, logs1 = algo.collect_experiences()
-        logs2 = algo.update_parameters(exps)
-        logs = {**logs1, **logs2}
+        logs2 = grounder_algo.process_experiences(exps)
+
+        # updated agent and grounder
+        logs3 = algo.update_parameters(exps)
+        logs4 = grounder_algo.update_parameters()
+        logs5 = grounder_algo.evaluate()
+
         update_end_time = time.time()
 
+        logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
         num_frames += logs["num_frames"]
         update += 1
 
@@ -315,12 +332,14 @@ def train_agent(args: Args, device: str = None):
             data += num_frames_per_episode.values()
             header += ["entropy", "value", "policy_loss", "value_loss", "grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
+            header += ["grounder_loss", "grounder_acc", "buffer"]
+            data += [logs["grounder_loss"], logs["grounder_acc"], logs["buffer"]]
 
             # μ: mean | σ: std | m: min | M: max
             # U: update | F: frames | FPS | D: duration | rR: reshaped return | ARPS: average reward per step | ADR: average discounted return
-            # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm
+            # F: num frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm | gL: grounder loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                "U {:05} | F {:07} | FPS {:04.0f} | D {:05} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:04.1f} {:04.1f} {:02} {:02} | H {:.3f} | V {: .3f} | pL {: .3f} | vL {:.3f} | ∇ {:.3f}"
+                "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.4f} | gA {:.3f} | b {:5}"
             .format(*data))
 
             header += ["return_" + key for key in return_per_episode.keys()]
@@ -379,7 +398,7 @@ def train_agent(args: Args, device: str = None):
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
-                txt_logger.info("F {:07} | D {:05} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:04.1f} {:04.1f} {:02} {:02}".format(*data))
+                txt_logger.info("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}".format(*data))
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
