@@ -8,14 +8,16 @@ import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--device", default=None, type=str)
 parser.add_argument("--agent_dir", default="RGCN_8x32_ROOT_SHARED-pretrained_Dataset_e54_GridWorld-v1_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
 parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
+
+device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device(device)
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 

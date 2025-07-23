@@ -4,15 +4,17 @@ import cv2
 
 import utils
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--device", default=None, type=str)
 parser.add_argument("--env", default="GridWorld-fixed-v1")
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
 parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle", type=str)
 args = parser.parse_args()
+
+device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device(device)
 
 
 # build environment
