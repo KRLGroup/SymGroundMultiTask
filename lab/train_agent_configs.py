@@ -39,7 +39,7 @@ test_gridworld = Args(
     # Grounder parameters
     grounder_model = "ObjectCNN",
     use_pretrained_grounder = True,
-    grounder_pretrain = "sym_grounder_64_fixed",
+    grounder_pretrain = "sym_grounder_56_fixed",
 
     # Agent parameters
 

@@ -17,7 +17,7 @@ class Args:
 
     # Grounder parameters
     sym_grounder_model: str = "ObjectCNN"
-    obs_size: Tuple[int,int] = (64,64)
+    obs_size: Tuple[int,int] = (56,56)
     model_name: str = "sym_grounder"
 
     # Environment parameters

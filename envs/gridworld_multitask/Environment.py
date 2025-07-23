@@ -23,7 +23,7 @@ class GridWorldEnv_multitask(gym.Env):
         "render_fps": 4
     }
 
-    def __init__(self, render_mode="human", state_type="image", obs_size=(64,64), win_size=(896,896), map_size=7,
+    def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
         max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False, 
         wrap_around_map=True, agent_centric_view=True):
 

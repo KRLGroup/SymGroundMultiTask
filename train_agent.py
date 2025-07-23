@@ -29,7 +29,7 @@ class Args:
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
     ltl_sampler: str = "Default"
-    obs_size: Tuple[int,int] = (64,64)
+    obs_size: Tuple[int,int] = (56,56)
     noLTL: bool = False
     progression_mode: str = "full" # full, partial, or none
     int_reward: float = 0.0
