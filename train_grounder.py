@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import Optional, Tuple
 import pickle
-import random
 
 import utils
 from replay_buffer import ReplayBuffer
@@ -174,7 +173,7 @@ def train_grounder(args: Args, device: str = None):
         test_env.reset()
 
         # choose whether to use agent or random
-        agent_ep = (args.use_agent and random.random() <= args.agent_prob)
+        agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
@@ -270,10 +269,12 @@ def train_grounder(args: Args, device: str = None):
             test_true_syms = [test_env.env.loc_to_label[(r, c)] for (r, c) in coords]
             test_true_syms = torch.tensor(test_true_syms, device=device, dtype=torch.int32)
 
+            # compute predictions on train environment
             train_pred_syms = torch.argmax(sym_grounder(train_images), dim=-1)
             train_correct_preds = torch.sum((train_pred_syms == train_true_syms).int())
             train_acc = torch.mean((train_pred_syms == train_true_syms).float())
 
+            # compute predictions on test environment
             test_pred_syms = torch.argmax(sym_grounder(test_images), dim=-1)
             test_correct_preds = torch.sum((test_pred_syms == test_true_syms).int())
             test_acc = torch.mean((test_pred_syms == test_true_syms).float())
