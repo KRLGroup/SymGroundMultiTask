@@ -242,10 +242,17 @@ def train_agent(args: Args, device: str = None):
         algo.optimizer.load_state_dict(status["optimizer_state"])
         txt_logger.info("-) Loading optimizer from existing run.")
 
-    txt_logger.info("-) Optimizer loaded.")
+    txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, sampler, envs[0], batch_size=32, device=device)
+
+    # load grounder optimizer of existing model
+    if "grounder_optimizer_state" in status:
+        grounder_algo.optimizer.load_state_dict(status["grounder_optimizer_state"])
+        txt_logger.info("-) Loading grounder optimizer from existing run.")
+
+    txt_logger.info("-) Grounder training algorithm loaded.")
 
     # initialize the evaluators
     if args.eval:
@@ -362,7 +369,8 @@ def train_agent(args: Args, device: str = None):
                 "update": update,
                 "model_state": algo.acmodel.state_dict(),
                 "optimizer_state": algo.optimizer.state_dict(),
-                "grounder_state": sym_grounder.state_dict()
+                "grounder_state": sym_grounder.state_dict(),
+                "grounder_optimizer_state": grounder_algo.optimizer.state_dict(),
             }
 
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
