@@ -2,7 +2,6 @@ import torch
 import os
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from typing import Optional, Tuple
 import pickle
