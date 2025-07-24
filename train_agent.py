@@ -304,6 +304,7 @@ def train_agent(args: Args, device: str = None):
     while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size and not args.freeze_grounder:
         grounder_algo.collect_experiences()
 
+    # training loop
     while num_frames < args.frames:
 
         update_start_time = time.time()
@@ -315,18 +316,19 @@ def train_agent(args: Args, device: str = None):
         # updated agent and grounder
         logs3 = algo.update_parameters(exps)
         logs4 = grounder_algo.update_parameters()
-        logs5 = grounder_algo.evaluate()
 
         update_end_time = time.time()
 
-        logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
-        num_frames += logs["num_frames"]
+        num_frames += logs1["num_frames"]
         update += 1
 
         # Print logs (they refer only to the last update)
 
         if update % args.log_interval == 0:
     
+            logs5 = grounder_algo.evaluate()
+            logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
+
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
