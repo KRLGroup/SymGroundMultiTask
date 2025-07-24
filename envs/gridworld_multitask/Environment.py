@@ -3,12 +3,10 @@ from gym import spaces
 import random
 import numpy as np
 import torch
-from itertools import product
-import pickle
 import cv2
 import os
+
 from ltl_wrappers import LTLEnv
-from ltl_samplers import getLTLSampler
 
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -239,7 +237,7 @@ class GridWorldEnv_multitask(gym.Env):
         # compute initial observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        return observation, self.loc_to_obs, self.loc_to_label
+        return observation
 
 
     def step(self, action):
@@ -253,16 +251,10 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.curr_step += 1
 
-        # compute reward
-        reward = 0.0
-
-        # compute observation
+        # compute values to return
         observation = self.loc_to_obs[tuple(self._agent_location)]
-
-        # compute completion state
+        reward = 0.0
         done = self.curr_step >= self.max_num_steps
-
-        # compute info
         info = None
 
         return observation, reward, done, info
@@ -432,8 +424,8 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 
-# interface needed by ltl2action to build the ltl_wrapper
-# incorporates the symbol grounder
+# interface needed to build the ltl_wrapper
+# incorporates the symbol grounder and uses it for predictions
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, grounder, *args, **kwargs):
@@ -443,7 +435,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
     def reset(self):
-        obs, _, _ = super().reset()
+        obs = super().reset()
         self.current_obs = obs
         return obs
 
@@ -535,7 +527,7 @@ class LTLWrapper(LTLEnv):
         # progressing pred ltl formula
         pred_label = self.env.get_events()
         self.pred_ltl_goal = self.progression(self.pred_ltl_goal, pred_label)
-        
+
         self.obs = next_obs
 
         # computing real reward and done
@@ -598,7 +590,7 @@ class LTLWrapper(LTLEnv):
             raise NotImplementedError
 
         # the reward considers the real evolution of the formula
-        reward = env_reward + real_ltl_reward # + pred_ltl_reward
+        reward = env_reward + real_ltl_reward
 
         # the termination checks both real termination or expected one
         done = env_done or real_ltl_done or pred_ltl_done
