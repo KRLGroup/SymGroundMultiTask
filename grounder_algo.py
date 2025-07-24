@@ -91,7 +91,7 @@ class GrounderAlgo():
     def collect_experiences(self, agent=None):
 
         if self.freeze_grounder:
-            logs = {'buffer': 0}
+            logs = {'buffer': 0, 'num_frames': 0}
             return logs
 
         # disable grounder temporarily (for efficiency)
@@ -135,20 +135,16 @@ class GrounderAlgo():
         if self.env.env.sym_grounder is not None and agent is None:
             self.env.env.sym_grounder = env_grounder
 
-        logs = {'buffer': len(self.buffer)}
+        logs = {'buffer': len(self.buffer), 'num_frames': len(rews)}
 
         return logs
 
 
     def update_parameters(self):
 
-        if self.freeze_grounder:
+        if self.freeze_grounder or len(self.buffer) < self.batch_size:
             logs = {'grounder_loss': 0.0}
             return logs
-
-        # don't update if buffer not full enough
-        if len(self.buffer) < self.batch_size:
-            return {'grounder_loss': 0.0}
 
         # sample from the buffer
         obss, rews, dfa_trans, dfa_rew = self.buffer.sample(self.batch_size)
@@ -193,7 +189,10 @@ class GrounderAlgo():
     def evaluate(self):
 
         if self.freeze_grounder:
-            logs = {'grounder_acc': 0.0}
+            logs = {
+                'grounder_acc': 0.0,
+                'grounder_recall': [0.0 for _ in self.num_symbols]
+            }
             return logs
 
         coords = self.env.env.loc_to_label.keys()
@@ -209,7 +208,18 @@ class GrounderAlgo():
         correct_preds = torch.sum((pred_syms == real_syms).int())
         acc = torch.mean((pred_syms == real_syms).float())
 
+        # compute recall
+        true_pos = torch.zeros(self.num_symbols, device=self.device)
+        false_neg = torch.zeros(self.num_symbols, device=self.device)
+        for sym in range(self.num_symbols):
+            true_pos[sym] = torch.sum((pred_syms == sym) & (real_syms == sym))
+            false_neg[sym] = torch.sum((pred_syms != sym) & (real_syms == sym))
+        recall = true_pos / (true_pos + false_neg + 1e-8)
+
         # log some values
-        logs = {'grounder_acc': acc.item()}
+        logs = {
+            'grounder_acc': acc.item(),
+            'grounder_recall': recall.tolist()
+        }
 
         return logs
