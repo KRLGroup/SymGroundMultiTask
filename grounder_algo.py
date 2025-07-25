@@ -9,7 +9,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
+    def __init__(self, grounder, freeze_grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -19,6 +19,7 @@ class GrounderAlgo():
         self.batch_size = batch_size
         self.num_symbols = grounder.num_symbols
         self.max_steps = max_steps
+        self.freeze_grounder = freeze_grounder
 
         self.grounder = grounder
         self.sampler = sampler
@@ -34,6 +35,10 @@ class GrounderAlgo():
 
 
     def process_experiences(self, exps):
+
+        if self.freeze_grounder:
+            logs = {'buffer': 0}
+            return logs
 
         ids = torch.stack([exps.obs.episode_id, exps.obs.env_id], dim=1)
         unique_ids = torch.unique(ids, dim=0)
@@ -83,11 +88,19 @@ class GrounderAlgo():
         return logs
 
 
-    def collect_experiences(self):
+    def collect_experiences(self, agent=None):
+
+        if self.freeze_grounder:
+            logs = {'buffer': 0, 'num_frames': 0}
+            return logs
+
+        # disable grounder temporarily (for efficiency)
+        if self.env.env.sym_grounder is not None and agent is None:
+            env_grounder = self.env.env.sym_grounder
+            self.env.env.sym_grounder = None
 
         # reset the environment
         obs = self.env.reset()
-        task = self.env.sampler.get_current_automaton()
 
         # agent starts in an empty cell (never terminates in 0 actions)
         done = False
@@ -96,13 +109,13 @@ class GrounderAlgo():
 
         # play the episode until termination
         while not done:
-            action = self.env.action_space.sample()
+            action = agent.get_action(obs).item() if agent else self.env.action_space.sample()
             obs, rew, done, _ = self.env.step(action)
             obss.append(obs['features'])
             rews.append(rew)
 
-        # if the rewards are all 0 there is no supervision
-        if rew != 0:
+        # reward obtained only at last step (if it's 0 there is no supervision)
+        if rew != 0 and len(rews) <= self.max_steps+1:
 
             # extend shorter vectors to max length
             if len(rews) < self.max_steps+1:
@@ -112,27 +125,26 @@ class GrounderAlgo():
                 rews.extend([last_rew] * extension)
                 obss.extend([last_obs] * extension)
 
-            # cut longer vectors
-            if len(rews) > self.max_steps+1:
-                rews = rews[:self.max_steps+1]
-                obss = obss[:self.max_steps+1]
-
-                if rews[-1] == 0:
-                    return
-
             # add to the buffer
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
-            dfa_trans = task.transitions
-            dfa_rew = task.rewards
-            self.add_episode(obss, rews, dfa_trans, dfa_rew)
+            task = self.env.sampler.get_current_automaton()
+            self.add_episode(obss, rews, task.transitions, task.rewards)
+
+        # enable grounder back
+        if self.env.env.sym_grounder is not None and agent is None:
+            self.env.env.sym_grounder = env_grounder
+
+        logs = {'buffer': len(self.buffer), 'num_frames': len(rews)}
+
+        return logs
 
 
     def update_parameters(self):
 
-        # don't update if buffer not full enough
-        if len(self.buffer) < self.batch_size:
-            return {'grounder_loss': 0.0}
+        if self.freeze_grounder or len(self.buffer) < self.batch_size:
+            logs = {'grounder_loss': 0.0}
+            return logs
 
         # sample from the buffer
         obss, rews, dfa_trans, dfa_rew = self.buffer.sample(self.batch_size)
@@ -176,11 +188,18 @@ class GrounderAlgo():
 
     def evaluate(self):
 
+        if self.freeze_grounder:
+            logs = {
+                'grounder_acc': 0.0,
+                'grounder_recall': [0.0 for _ in range(self.num_symbols)]
+            }
+            return logs
+
         coords = self.env.env.loc_to_label.keys()
 
         # obtain and preprocess data
         images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
-        images = torch.tensor(images, device=device, dtype=torch.float32)
+        images = torch.tensor(images, device=self.device, dtype=torch.float32)
         real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
         real_syms = torch.tensor(real_syms, device=self.device, dtype=torch.int32)
 
@@ -189,7 +208,18 @@ class GrounderAlgo():
         correct_preds = torch.sum((pred_syms == real_syms).int())
         acc = torch.mean((pred_syms == real_syms).float())
 
+        # compute recall
+        true_pos = torch.zeros(self.num_symbols, device=self.device)
+        false_neg = torch.zeros(self.num_symbols, device=self.device)
+        for sym in range(self.num_symbols):
+            true_pos[sym] = torch.sum((pred_syms == sym) & (real_syms == sym))
+            false_neg[sym] = torch.sum((pred_syms != sym) & (real_syms == sym))
+        recall = true_pos / (true_pos + false_neg + 1e-8)
+
         # log some values
-        logs = {'grounder_acc': acc.item()}
+        logs = {
+            'grounder_acc': acc.item(),
+            'grounder_recall': recall.tolist()
+        }
 
         return logs

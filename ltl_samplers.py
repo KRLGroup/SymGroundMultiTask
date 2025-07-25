@@ -290,8 +290,8 @@ class DatasetSampler(LTLSampler):
                     new_transitions,
                     automaton.acceptance,
                     None,
-                    reward = "ternary",
-                    dictionary_symbols = self.propositions
+                    dictionary_symbols = self.propositions,
+                    reward = "ternary"
                 )
 
         self.items = [{"formula": f, "automaton": a} for f, a in zip(formulas, automata)]

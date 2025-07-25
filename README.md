@@ -1,45 +1,27 @@
 # SymGroundMultiTask
 
-## Installing requirements (conda)
+## Summary
 
-1. Create a new conda environment with Python 3.7:
+## Creating the Environment (with conda)
+
+1. Create a new conda environment with Python 3.7 and activate it:
 
     ```bash
-    conda create -n symgroundmultitask python=3.7
+    conda create -n symgroundmultitask python=3.7 -y
+    conda activate symgroundmultitask
     ```
 
-2. Install all packages from `requirements_ltl2action.txt`:
+2. Install dependencies:
 
     ```bash
-    pip install -r requirements_ltl2action.txt
+    pip install -r requirements.txt
+    conda install -c conda-forge spot=2.9 -y
+    conda install -c dglteam dgl-cuda10.2=0.4.3post2 -y
+    conda install -c pytorch cudatoolkit=10.2 -y
     ```
 
-3. Install Spot 2.9:
+3. (optional) Install MONA if you need to create new automata:
 
     ```bash
-    conda install -c conda-forge spot=2.9
-    ```
-
-4. Install some libraries missing from ltl2action:
-
-    ```bash
-    pip install ring pygame pythomata ltlf2dfa graphviz torchvision
-    ```
-
-5. (optional) Install MONA if you need to create new automata:
-
-    ```bash
-    sudo apt install mona
-    ```
-
-6. Install the CUDA version of DGL (GNN library):
-
-    ```bash
-    conda install -c dglteam dgl-cuda10.2=0.4.3post2
-    ```
-
-7. Install the CUDA 10.2 toolkit (needed by the CUDA version of DGL):
-
-    ```bash
-    conda install cudatoolkit=10.2 -c pytorch
+    sudo apt install -y mona
     ```

@@ -38,15 +38,16 @@ class Args:
     gnn_model: str = "RGCN_8x32_ROOT_SHARED"
     use_pretrained_gnn: bool = False
     gnn_pretrain: Optional[str] = None
+    freeze_gnn: bool = False
 
     # Grounder parameters
     grounder_model: Optional[str] = "ObjectCNN"
     use_pretrained_grounder: bool = False
     grounder_pretrain: Optional[str] = None
+    freeze_grounder: bool = False
 
     # Agent parameters
     dumb_ac: bool = False
-    freeze_ltl: bool = False
     ignoreLTL: bool = False
     recurrence: int = 1
 
@@ -54,7 +55,7 @@ class Args:
     eval: bool = False
     eval_env: Optional[str] = None
     eval_interval: int = 100
-    ltl_samplers_eval: Optional[List[str]] = None
+    eval_samplers: Optional[List[str]] = None
     eval_episodes: List[int] = None
     eval_procs: int = 1
 
@@ -80,6 +81,18 @@ def train_agent(args: Args, device: str = None):
 
     # SETUP
 
+    # check if arguments are consistent
+    if args.freeze_gnn:
+        assert args.use_pretrained_gnn
+    if args.freeze_grounder:
+        assert args.use_pretrained_gnn
+    if args.use_pretrained_gnn:
+        assert args.progression_mode == "full" and args.gnn_pretrain != None
+    if args.use_pretrained_grounder:
+        assert args.grounder_pretrain != None
+    if args.eval:
+        assert len(args.eval_episodes) == len(args.eval_samplers) if args.eval_samplers else 1
+
     use_mem = args.recurrence > 1
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -96,8 +109,8 @@ def train_agent(args: Args, device: str = None):
         gnn_name = gnn_name + "-dumb_ac"
     if args.use_pretrained_gnn:
         gnn_name = gnn_name + "-pretrained"
-    if args.freeze_ltl:
-        gnn_name = gnn_name + "-freeze_ltl"
+    if args.freeze_gnn:
+        gnn_name = gnn_name + "-freeze_gnn"
     if use_mem:
         gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
 
@@ -112,13 +125,11 @@ def train_agent(args: Args, device: str = None):
     # pretrained gnn dir
     pretrained_gnn_dir = None
     if args.use_pretrained_gnn:
-        assert(args.progression_mode == "full" and args.gnn_pretrain != None)
         pretrained_gnn_dir = utils.get_model_dir(args.gnn_pretrain, pretrain_dir)
 
     # pretrained grounder dir
     pretrained_grounder_dir = None
     if args.use_pretrained_grounder:
-        assert(args.grounder_pretrain != None)
         pretrained_grounder_dir = utils.get_model_dir(args.grounder_pretrain, pretrain_dir)
 
     # load loggers and Tensorboard writer
@@ -162,7 +173,13 @@ def train_agent(args: Args, device: str = None):
     sampler = envs[0].sampler
 
     # create grounder
-    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size)
+    sym_grounder = utils.make_grounder(
+        model_name = args.grounder_model,
+        num_symbols = num_symbols,
+        obs_size = args.obs_size,
+        freeze_grounder = args.freeze_grounder
+    )
+
     for env in envs:
         env.env.sym_grounder = sym_grounder
 
@@ -193,9 +210,9 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_ltl, device, False)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
 
     # load existing model
     if "model_state" in status:
@@ -242,19 +259,24 @@ def train_agent(args: Args, device: str = None):
         algo.optimizer.load_state_dict(status["optimizer_state"])
         txt_logger.info("-) Loading optimizer from existing run.")
 
-    txt_logger.info("-) Optimizer loaded.")
+    txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, sampler, envs[0], batch_size=32, device=device)
+    grounder_algo = GrounderAlgo(sym_grounder, args.freeze_grounder, sampler, envs[0], batch_size=32, device=device)
+
+    # load grounder optimizer of existing model
+    if "grounder_optimizer_state" in status:
+        grounder_algo.optimizer.load_state_dict(status["grounder_optimizer_state"])
+        txt_logger.info("-) Loading grounder optimizer from existing run.")
+
+    txt_logger.info("-) Grounder training algorithm loaded.")
 
     # initialize the evaluators
     if args.eval:
 
-        eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
+        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
-
-        assert len(eval_samplers) == len(args.eval_episodes)
 
         evals = []
         for sampler in eval_samplers:
@@ -287,9 +309,13 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size:
-        grounder_algo.collect_experiences()
+    buffer_lenght = 0
+    while buffer_lenght < 10 * grounder_algo.batch_size and not args.freeze_grounder:
+        logs = grounder_algo.collect_experiences()
+        buffer_lenght = [logs["buffer"]]
+        num_frames += logs["num_frames"]
 
+    # training loop
     while num_frames < args.frames:
 
         update_start_time = time.time()
@@ -301,18 +327,19 @@ def train_agent(args: Args, device: str = None):
         # updated agent and grounder
         logs3 = algo.update_parameters(exps)
         logs4 = grounder_algo.update_parameters()
-        logs5 = grounder_algo.evaluate()
 
         update_end_time = time.time()
 
-        logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
-        num_frames += logs["num_frames"]
+        num_frames += logs1["num_frames"]
         update += 1
 
         # Print logs (they refer only to the last update)
 
         if update % args.log_interval == 0:
     
+            logs5 = grounder_algo.evaluate()
+            logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
+
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
@@ -362,7 +389,8 @@ def train_agent(args: Args, device: str = None):
                 "update": update,
                 "model_state": algo.acmodel.state_dict(),
                 "optimizer_state": algo.optimizer.state_dict(),
-                "grounder_state": sym_grounder.state_dict()
+                "grounder_state": sym_grounder.state_dict(),
+                "grounder_optimizer_state": grounder_algo.optimizer.state_dict(),
             }
 
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:

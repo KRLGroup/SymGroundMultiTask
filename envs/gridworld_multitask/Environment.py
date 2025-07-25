@@ -3,12 +3,10 @@ from gym import spaces
 import random
 import numpy as np
 import torch
-from itertools import product
-import pickle
 import cv2
 import os
+
 from ltl_wrappers import LTLEnv
-from ltl_samplers import getLTLSampler
 
 
 ENV_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -239,7 +237,7 @@ class GridWorldEnv_multitask(gym.Env):
         # compute initial observation
         observation = self.loc_to_obs[tuple(self._agent_location)]
 
-        return observation, self.loc_to_obs, self.loc_to_label
+        return observation
 
 
     def step(self, action):
@@ -253,16 +251,10 @@ class GridWorldEnv_multitask(gym.Env):
 
         self.curr_step += 1
 
-        # compute reward
-        reward = 0.0
-
-        # compute observation
+        # compute values to return
         observation = self.loc_to_obs[tuple(self._agent_location)]
-
-        # compute completion state
+        reward = 0.0
         done = self.curr_step >= self.max_num_steps
-
-        # compute info
         info = None
 
         return observation, reward, done, info
@@ -432,8 +424,8 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 
-# interface needed by ltl2action to build the ltl_wrapper
-# incorporates the symbol grounder
+# interface needed to build the ltl_wrapper
+# incorporates the symbol grounder and uses it for predictions
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, grounder, *args, **kwargs):
@@ -443,7 +435,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
     def reset(self):
-        obs, _, _ = super().reset()
+        obs = super().reset()
         self.current_obs = obs
         return obs
 
@@ -474,141 +466,6 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
             img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
             pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
             return self.dictionary_symbols[pred_sym]
-
-
-
-# A subclass of LTLEnv to distinguish between "real" progrssion and "predicted" progression
-class LTLWrapper(LTLEnv):
-
-    num_envs = 0
-
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.id = LTLWrapper.num_envs
-        LTLWrapper.num_envs += 1
-
-
-    def reset(self):
-    
-        self.real_known_progressions = {}
-        self.pred_known_progressions = {}
-        self.obs = self.env.reset()
-
-        # defining an LTL goal
-        self.ltl_original, self.task_id = self.sample_ltl_goal()
-        self.real_ltl_goal = self.ltl_original
-        self.pred_ltl_goal = self.ltl_original
-
-        # adding the ltl goal to the observation
-        if self.progression_mode == "partial":
-            ltl_obs = {
-                'features': self.obs,
-                'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-        else:
-            ltl_obs = {
-                'features': self.obs,
-                'text': self.pred_ltl_goal,
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-
-        return ltl_obs
-
-
-    def step(self, action):
-
-        int_reward = 0
-
-        # executing the action in the environment
-        next_obs, env_reward, env_done, info = self.env.step(action)
-
-        # progressing real ltl formula
-        real_label = self.env.get_real_events()
-        self.real_ltl_goal = self.progression(self.real_ltl_goal, real_label)
-
-        # progressing pred ltl formula
-        pred_label = self.env.get_events()
-        self.pred_ltl_goal = self.progression(self.pred_ltl_goal, pred_label)
-        
-        self.obs = next_obs
-
-        # computing real reward and done
-        if self.real_ltl_goal == 'True':
-            real_ltl_reward = 1.0
-            real_ltl_done = True
-        elif self.real_ltl_goal == 'False':
-            real_ltl_reward = -1.0
-            real_ltl_done = True
-        else:
-            real_ltl_reward = 0.0
-            real_ltl_done = False
-
-        # computing pred reward and done
-        if self.pred_ltl_goal == 'True':
-            pred_ltl_reward = 1.0
-            pred_ltl_done = True
-        elif self.pred_ltl_goal == 'False':
-            pred_ltl_reward = -1.0
-            pred_ltl_done = True
-        else:
-            pred_ltl_reward = int_reward
-            pred_ltl_done = False
-
-        # computing the new observation and returning the outcome of this action
-        # the observation considers the expected formula (unless using 'real')
-        if self.progression_mode == "full":
-            ltl_obs = {
-                'features': self.obs,
-                'text': self.pred_ltl_goal,
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-        elif self.progression_mode == "none":
-            ltl_obs = {
-                'features': self.obs,
-                'text': self.ltl_original,
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-        elif self.progression_mode == "partial":
-            ltl_obs = {
-                'features': self.obs,
-                'progress_info': self.progress_info(self.pred_ltl_goal),
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-        elif self.progression_mode == "real":
-            ltl_obs = {
-                'features': self.obs,
-                'progress_info': self.real_ltl_goal,
-                'task_id': self.task_id,
-                'episode_id': self.env.num_episodes,
-                'env_id': self.id
-            }
-        else:
-            raise NotImplementedError
-
-        # the reward considers the real evolution of the formula
-        reward = env_reward + real_ltl_reward # + pred_ltl_reward
-
-        # the termination checks both real termination or expected one
-        done = env_done or real_ltl_done or pred_ltl_done
-
-        return ltl_obs, reward, done, info
-
-
-    # returns formula and id
-    def sample_ltl_goal(self):
-        return self.sampler.sample(), self.sampler.get_current_id()
 
 
 

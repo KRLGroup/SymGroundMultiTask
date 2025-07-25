@@ -13,12 +13,9 @@ class DFA:
     # init_from_ltl: arg1 -> ltl_formula | arg2 -> num_symbols | arg3 -> formula_name
     # random_init: arg1 -> num_states | arg2 -> num_symbols
     # init_from_transacc: arg1 -> transitions | arg2 -> acceptances
-    def __init__(self, arg1, arg2, arg3, dictionary_symbols = None):
+    def __init__(self, arg1, arg2, arg3, dictionary_symbols):
 
-        if dictionary_symbols == None:
-            self.dictionary_symbols = list(range(self.num_of_symbols))
-        else:
-            self.dictionary_symbols = dictionary_symbols
+        self.dictionary_symbols = dictionary_symbols
 
         if isinstance(arg1, str):
             self.init_from_ltl(arg1, arg2, arg3, dictionary_symbols)
@@ -35,12 +32,10 @@ class DFA:
 
     def calculate_absorbing_states(self):
         self.absorbing_states = []
-        for q in range(self.num_of_states):
-            absorbing = True
-            for s in self.transitions[q].keys():
-                absorbing = absorbing & (self.transitions[q][s] == q)
-            if absorbing:
+        for q, transitions in self.transitions.items():
+            if all(dest == q for dest in transitions.values()):
                 self.absorbing_states.append(q)
+
 
 
     def calculate_live_states(self):
@@ -83,18 +78,12 @@ class DFA:
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
         self.num_of_states = len(self.transitions)
-        self.acceptance = []
-        for s in range(self.num_of_states):
-            if s in dfa._final_states:
-                self.acceptance.append(True)
-            else:
-                self.acceptance.append(False)
+        final_states = set(dfa._final_states)
+        self.acceptance = [s in final_states for s in range(self.num_of_states)]
 
         # complete the transitions with the symbols that ARE NOT in the formula
         self.num_of_symbols = len(dictionary_symbols)
-        self.alphabet = []
-        for a in range(self.num_of_symbols):
-            self.alphabet.append( a )
+        self.alphabet = list(range(self.num_of_symbols))
         if len(self.transitions[0]) < self.num_of_symbols:
             for s in range(self.num_of_states):
                 for sym in self.alphabet:
@@ -108,28 +97,24 @@ class DFA:
             s.render(f"symbolicDFAs/{formula_name}", format='pdf', cleanup=True, view=True)
 
 
-    def reduce_dfa(self, pythomata_dfa):
-        dfa = pythomata_dfa
+    def reduce_dfa(self, dfa):
 
-        admissible_transitions = []
-        for true_sym in self.alphabet:
-            trans = {}
-            for i, sym in enumerate(self.alphabet):
-                trans[sym] = False
-            trans[true_sym] = True
-            admissible_transitions.append(trans)
+        admissible_transitions = [
+            {sym: (sym == a) for sym in self.alphabet}
+            for a in self.alphabet
+        ]
 
-        red_trans_funct = {}
-        for s0 in dfa._states:
-            red_trans_funct[s0] = {}
-            transitions_from_s0 = dfa._transition_function[s0]
-            for key in transitions_from_s0:
-                label = transitions_from_s0[key]
-                for sym, at in enumerate(admissible_transitions):
-                    if label.subs(at):
-                        red_trans_funct[s0][sym] = key
+        reduced = {}
 
-        return red_trans_funct
+        for state in dfa._states:
+            reduced[state] = {}
+            transitions = dfa._transition_function[state]
+            for target_state, symbolic_condition in transitions.items():
+                for sym_idx, substitution in enumerate(admissible_transitions):
+                    if symbolic_condition.subs(substitution):
+                        reduced[state][sym_idx] = target_state
+
+        return reduced
 
 
     def init_from_transacc(self, trans, acc):
@@ -137,16 +122,13 @@ class DFA:
         self.num_of_symbols = len(trans[0])
         self.transitions = trans
         self.acceptance = acc
-
-        self.alphabet = []
-        for a in range(self.num_of_symbols):
-            self.alphabet.append( a )
+        self.alphabet = list(range(self.num_of_symbols))
 
 
     def random_init(self, numb_of_states, numb_of_symbols):
         self.num_of_states = numb_of_states
         self.num_of_symbols = numb_of_symbols
-        transitions= {}
+        transitions = {}
         acceptance = []
         for s in range(numb_of_states):
             trans_from_s = {}
@@ -161,40 +143,28 @@ class DFA:
             else:
                 a_start = None
             for a in range(numb_of_symbols):
-                #a = str(a)
                 if a != a_start:
                     trans_from_s[a] = random.randrange(numb_of_states)
             transitions[s] = trans_from_s.copy()
 
         self.transitions = transitions
         self.acceptance = acceptance
-        self.alphabet = ""
-        for a in range(numb_of_symbols):
-            self.alphabet += str(a)
+        self.alphabet = list(range(numb_of_symbols))
 
 
     def accepts(self, string):
-        if string == '':
-            return self.acceptance[0]
         return self.accepts_from_state(0, string)
 
 
     def accepts_from_state(self, state, string):
-        assert string != ''
-
-        a = string[0]
-        next_state = self.transitions[state][a]
-
-        if len(string) == 1:
-            return self.acceptance[next_state]
-
-        return self.accepts_from_state(next_state, string[1:])
+        for a in string:
+            state = self.transitions[state][a]
+        return self.acceptance[state]
 
 
     def to_pythomata(self):
         trans = self.transitions
         acc = self.acceptance
-        #print("acceptance:", acc)
         accepting_states = set()
         for i in range(len(acc)):
             if acc[i]:
@@ -247,20 +217,20 @@ class DFA:
 
 class MooreMachine(DFA):
 
-    def __init__(self, arg1, arg2, arg3, reward = "distance", dictionary_symbols = None):
+    def __init__(self, arg1, arg2, arg3, dictionary_symbols, reward = "distance"):
         super().__init__(arg1, arg2, arg3, dictionary_symbols)
 
-        # (delta_o) rewards associated to each state in the MooreMachine
-        self.rewards = [100 for _ in range(self.num_of_states)]
+        self.rewards = [0 for _ in range(self.num_of_states)]
 
         # associate reward based on the distance from a "final state"
         if reward == "distance":
 
-            # starts with 100 on final states, 0 otherwise
+            # starts with 0 on final states, 100 otherwise
             for s in range(self.num_of_states):
                 if self.acceptance[s]:
                     self.rewards[s] = 0
-            #print(self.rewards)
+                else:
+                    self.rewards[s] = 100
 
             # propagate with fixpoint algorithm
             old_rew = self.rewards.copy()
@@ -286,13 +256,9 @@ class MooreMachine(DFA):
 
             # rescale to have maximum to 100
             maximum = max(self.rewards)
-            #max : 100 = rew : x
-            #x = 100 * rew / max
             for i,r in enumerate(self.rewards):
                 if r != -100:
                     self.rewards[i] = 100 * r / maximum
-            print("REWARDS:", self.rewards)
-            #assert False
 
         # binary reward: 1 for "final state", 0 otherwise
         elif reward == "acceptance":
