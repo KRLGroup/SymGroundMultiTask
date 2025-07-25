@@ -49,7 +49,7 @@ test_gridworld = Args(
     eval = True,
     eval_env = "GridWorld-fixed-v1",
     eval_interval = 500,
-    ltl_samplers_eval = ['Dataset_e54test', 'Dataset_e65test'],
+    eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
     eval_procs = 1,
 

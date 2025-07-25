@@ -55,7 +55,7 @@ class Args:
     eval: bool = False
     eval_env: Optional[str] = None
     eval_interval: int = 100
-    ltl_samplers_eval: Optional[List[str]] = None
+    eval_samplers: Optional[List[str]] = None
     eval_episodes: List[int] = None
     eval_procs: int = 1
 
@@ -264,7 +264,7 @@ def train_agent(args: Args, device: str = None):
     # initialize the evaluators
     if args.eval:
 
-        eval_samplers = args.ltl_samplers_eval if args.ltl_samplers_eval else [args.ltl_sampler]
+        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
 
