@@ -81,6 +81,18 @@ def train_agent(args: Args, device: str = None):
 
     # SETUP
 
+    # check if arguments are consistent
+    if args.freeze_gnn:
+        assert args.use_pretrained_gnn
+    if args.freeze_grounder:
+        assert args.use_pretrained_gnn
+    if args.use_pretrained_gnn:
+        assert args.progression_mode == "full" and args.gnn_pretrain != None
+    if args.use_pretrained_grounder:
+        assert args.grounder_pretrain != None
+    if args.eval:
+        assert len(args.eval_episodes) == len(args.eval_samplers) if args.eval_samplers else 1
+
     use_mem = args.recurrence > 1
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -113,13 +125,11 @@ def train_agent(args: Args, device: str = None):
     # pretrained gnn dir
     pretrained_gnn_dir = None
     if args.use_pretrained_gnn:
-        assert(args.progression_mode == "full" and args.gnn_pretrain != None)
         pretrained_gnn_dir = utils.get_model_dir(args.gnn_pretrain, pretrain_dir)
 
     # pretrained grounder dir
     pretrained_grounder_dir = None
     if args.use_pretrained_grounder:
-        assert(args.grounder_pretrain != None)
         pretrained_grounder_dir = utils.get_model_dir(args.grounder_pretrain, pretrain_dir)
 
     # load loggers and Tensorboard writer
@@ -267,8 +277,6 @@ def train_agent(args: Args, device: str = None):
         eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
         eval_procs = args.eval_procs if args.eval_procs else args.procs
-
-        assert len(eval_samplers) == len(args.eval_episodes)
 
         evals = []
         for sampler in eval_samplers:
