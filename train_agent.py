@@ -301,8 +301,11 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    while len(grounder_algo.buffer) < 10 * grounder_algo.batch_size and not args.freeze_grounder:
-        grounder_algo.collect_experiences()
+    buffer_lenght = 0
+    while buffer_lenght < 10 * grounder_algo.batch_size and not args.freeze_grounder:
+        logs = grounder_algo.collect_experiences()
+        buffer_lenght = [logs["buffer"]]
+        num_frames += logs["num_frames"]
 
     # training loop
     while num_frames < args.frames:
