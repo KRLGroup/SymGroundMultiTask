@@ -14,7 +14,7 @@
 2. Install dependencies:
 
     ```bash
-    pip install -r requirements.txt -y
+    pip install -r requirements.txt
     conda install -c conda-forge spot=2.9 -y
     conda install -c dglteam dgl-cuda10.2=0.4.3post2 -y
     conda install -c pytorch cudatoolkit=10.2 -y
