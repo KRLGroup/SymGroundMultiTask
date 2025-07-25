@@ -191,7 +191,7 @@ class GrounderAlgo():
         if self.freeze_grounder:
             logs = {
                 'grounder_acc': 0.0,
-                'grounder_recall': [0.0 for _ in self.num_symbols]
+                'grounder_recall': [0.0 for _ in range(self.num_symbols)]
             }
             return logs
 
