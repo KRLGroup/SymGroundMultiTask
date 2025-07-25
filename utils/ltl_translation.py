@@ -32,8 +32,8 @@ def ltl_ast2dfa(ltl_ast, symbols, name='placeholder'):
         ltl,
         len(symbols),
         name,
-        reward='acceptance',
-        dictionary_symbols=symbols
+        dictionary_symbols=symbols,
+        reward='acceptance'
     )
 
 
