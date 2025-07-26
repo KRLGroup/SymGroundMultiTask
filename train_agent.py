@@ -236,6 +236,7 @@ def train_agent(args: Args, device: str = None):
     elif use_grounder and args.use_pretrained_grounder:
         grounder_status = utils.get_status(pretrained_grounder_dir, device)
         sym_grounder.load_state_dict(grounder_status["grounder_state"])
+        status["num_frames"] += grounder_status["num_frames"]
         txt_logger.info("-) Loading grounder from pretrain.")
 
     sym_grounder.to(device) if sym_grounder is not None else None
