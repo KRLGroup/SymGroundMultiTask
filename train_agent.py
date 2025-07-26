@@ -353,13 +353,13 @@ def train_agent(args: Args, device: str = None):
             average_discounted_return = utils.average_discounted_return(logs["return_per_episode"], logs["num_frames_per_episode"], args.discount)
             num_frames_per_episode = utils.synthesize(logs["num_frames_per_episode"])
 
-            header = ["update", "frames", "FPS", "duration"]
+            header = ["update", "frames", "fps", "duration"]
             data = [update, num_frames, fps, duration]
-            header += ["rreturn_" + key for key in rreturn_per_episode.keys()]
+            header += ["rreturn/" + key for key in rreturn_per_episode.keys()]
             data += rreturn_per_episode.values()
             header += ["average_reward_per_step", "average_discounted_return"]
             data += [average_reward_per_step, average_discounted_return]
-            header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
+            header += ["num_frames/" + key for key in num_frames_per_episode.keys()]
             data += num_frames_per_episode.values()
             header += ["entropy", "value", "policy_loss", "value_loss", "grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
@@ -373,7 +373,7 @@ def train_agent(args: Args, device: str = None):
                 "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.4f} | gA {:.3f} | b {:5}"
             .format(*data))
 
-            header += ["return_" + key for key in return_per_episode.keys()]
+            header += ["return/" + key for key in return_per_episode.keys()]
             data += return_per_episode.values()
 
             if status["num_frames"] == 0:
@@ -426,11 +426,11 @@ def train_agent(args: Args, device: str = None):
 
                 header = ["frames", "duration"]
                 data = [num_frame_pe, duration]
-                header += ["return_" + key for key in return_per_episode.keys()]
+                header += ["return/" + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
                 header += ["average_discounted_return"]
                 data += [average_discounted_return]
-                header += ["num_frames_" + key for key in num_frames_per_episode.keys()]
+                header += ["num_frames/" + key for key in num_frames_per_episode.keys()]
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
