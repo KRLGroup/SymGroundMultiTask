@@ -9,7 +9,7 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument('--env', default="GridWorld-fixed-v1", type=str)
+parser.add_argument('--env', default="GridWorld-v1", type=str)
 parser.add_argument("--grounder", default=None, type=str)
 parser.add_argument("--iters", default=2000, type=int)
 args = parser.parse_args()
@@ -56,7 +56,8 @@ sym_grounder.to(device)
 
 # TEST
 
-accs = []
+all_correct = 0
+all_checked = 0
 
 for i in range(args.iters):
 
@@ -73,15 +74,18 @@ for i in range(args.iters):
     real_syms = [env.env.loc_to_label[(r, c)] for (r, c) in coords]
     real_syms = torch.tensor(real_syms, device=device, dtype=torch.int32)
 
-    # predict symbols
+    # iteration accuracy
     pred_syms = torch.argmax(sym_grounder(images), dim=-1)
-    correct_preds = torch.sum((pred_syms == real_syms).int())
-    acc = torch.mean((pred_syms == real_syms).float())
+    correct_preds = torch.sum((pred_syms == real_syms)).item()
+    acc = correct_preds / pred_syms.shape[0]
 
-    print(f"grounder accuracy = {correct_preds.item()} / {pred_syms.shape[0]} ({acc.item():.4f})")
+    print(f"accuracy = {correct_preds} / {pred_syms.shape[0]} ({acc:.4f})")
 
-    accs.append(acc.item())
-    mean_acc = torch.mean(torch.tensor(accs, device=device, dtype=torch.float32))
-    print(f"cumulative accuracy = {mean_acc:.10f}")
+    # comulative accuracy
+    all_correct += correct_preds
+    all_checked += pred_syms.shape[0]
+    mean_acc = all_correct / all_checked
+
+    print(f"cumulative accuracy = {all_correct} / {all_checked} ({mean_acc:.10f})")
 
     print("---")
