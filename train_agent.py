@@ -84,16 +84,20 @@ def train_agent(args: Args, device: str = None):
     # check if arguments are consistent
     if args.freeze_gnn:
         assert args.use_pretrained_gnn
-    if args.freeze_grounder:
-        assert args.use_pretrained_gnn
     if args.use_pretrained_gnn:
         assert args.progression_mode == "full" and args.gnn_pretrain != None
+    if args.freeze_grounder:
+        assert args.use_pretrained_grounder
     if args.use_pretrained_grounder:
         assert args.grounder_pretrain != None
     if args.eval:
         assert len(args.eval_episodes) == len(args.eval_samplers) if args.eval_samplers else 1
 
+    use_grounder = args.grounder_model is not None
+    train_grounder = use_grounder and not args.freeze_grounder
     use_mem = args.recurrence > 1
+    use_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
+
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # checkpoint dirs
@@ -129,7 +133,7 @@ def train_agent(args: Args, device: str = None):
 
     # pretrained grounder dir
     pretrained_grounder_dir = None
-    if args.use_pretrained_grounder:
+    if use_grounder and args.use_pretrained_grounder:
         pretrained_grounder_dir = utils.get_model_dir(args.grounder_pretrain, pretrain_dir)
 
     # load loggers and Tensorboard writer
@@ -156,11 +160,10 @@ def train_agent(args: Args, device: str = None):
 
     # load environments
     envs = []
-    progression_mode = args.progression_mode
     for i in range(args.procs):
         envs.append(utils.make_env(
             env_key = args.env,
-            progression_mode = progression_mode,
+            progression_mode = args.progression_mode,
             ltl_sampler = args.ltl_sampler,
             seed = args.seed,
             intrinsic = args.int_reward,
@@ -173,12 +176,14 @@ def train_agent(args: Args, device: str = None):
     sampler = envs[0].sampler
 
     # create grounder
-    sym_grounder = utils.make_grounder(
-        model_name = args.grounder_model,
-        num_symbols = num_symbols,
-        obs_size = args.obs_size,
-        freeze_grounder = args.freeze_grounder
-    )
+    sym_grounder = None
+    if use_grounder:
+        sym_grounder = utils.make_grounder(
+            model_name = args.grounder_model,
+            num_symbols = num_symbols,
+            obs_size = args.obs_size,
+            freeze_grounder = args.freeze_grounder
+        )
 
     for env in envs:
         env.env.sym_grounder = sym_grounder
@@ -202,8 +207,7 @@ def train_agent(args: Args, device: str = None):
         txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
-    using_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
-    obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], using_gnn, progression_mode)
+    obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], use_gnn, args.progression_mode)
     if "vocab" in status and preprocess_obss.vocab is not None:
         preprocess_obss.vocab.load_vocab(status["vocab"])
     txt_logger.info("-) Observations preprocessor loaded.")
@@ -226,12 +230,12 @@ def train_agent(args: Args, device: str = None):
         txt_logger.info("-) Loading GNN from pretrain.")
 
     # load existing grounder
-    if "grounder_state" in status:
+    if use_grounder and "grounder_state" in status:
         sym_grounder.load_state_dict(status["grounder_state"])
         txt_logger.info("-) Loading grounder from existing run.")
 
     # otherwise load existing pretrained grounder
-    elif args.use_pretrained_grounder:
+    elif use_grounder and args.use_pretrained_grounder:
         grounder_status = utils.get_status(pretrained_grounder_dir, device)
         sym_grounder.load_state_dict(grounder_status["grounder_state"])
         txt_logger.info("-) Loading grounder from pretrain.")
@@ -262,10 +266,10 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, args.freeze_grounder, sampler, envs[0], batch_size=32, device=device)
+    grounder_algo = GrounderAlgo(sym_grounder, train_grounder, sampler, envs[0], batch_size=32, device=device)
 
     # load grounder optimizer of existing model
-    if "grounder_optimizer_state" in status:
+    if train_grounder and "grounder_optimizer_state" in status:
         grounder_algo.optimizer.load_state_dict(status["grounder_optimizer_state"])
         txt_logger.info("-) Loading grounder optimizer from existing run.")
 
@@ -290,7 +294,7 @@ def train_agent(args: Args, device: str = None):
                 obs_size = args.obs_size,
                 num_procs = eval_procs,
                 ignoreLTL = args.ignoreLTL,
-                progression_mode = progression_mode,
+                progression_mode = args.progression_mode,
                 gnn = args.gnn_model,
                 dumb_ac = args.dumb_ac
             ))
@@ -310,7 +314,7 @@ def train_agent(args: Args, device: str = None):
 
     # populate buffer
     buffer_lenght = 0
-    while buffer_lenght < 10 * grounder_algo.batch_size and not args.freeze_grounder:
+    while train_grounder and buffer_lenght < 10 * grounder_algo.batch_size:
         logs = grounder_algo.collect_experiences()
         buffer_lenght = [logs["buffer"]]
         num_frames += logs["num_frames"]
@@ -388,10 +392,14 @@ def train_agent(args: Args, device: str = None):
                 "num_frames": num_frames,
                 "update": update,
                 "model_state": algo.acmodel.state_dict(),
-                "optimizer_state": algo.optimizer.state_dict(),
-                "grounder_state": sym_grounder.state_dict(),
-                "grounder_optimizer_state": grounder_algo.optimizer.state_dict(),
+                "optimizer_state": algo.optimizer.state_dict()
             }
+
+            if use_grounder:
+                status["grounder_state"] = sym_grounder.state_dict()
+
+            if train_grounder:
+                status["grounder_optimizer_state"] = grounder_algo.optimizer.state_dict()
 
             if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
                 status["vocab"] = preprocess_obss.vocab.vocab

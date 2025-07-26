@@ -9,7 +9,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, freeze_grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
+    def __init__(self, grounder, train_grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -17,17 +17,23 @@ class GrounderAlgo():
         self.env = env
         self.capacity = capacity
         self.batch_size = batch_size
-        self.num_symbols = grounder.num_symbols
+        self.num_symbols = len(env.propositions)
         self.max_steps = max_steps
-        self.freeze_grounder = freeze_grounder
+        self.train_grounder = train_grounder
 
         self.grounder = grounder
         self.sampler = sampler
-        self.buffer = ReplayBuffer(capacity=capacity, device=device)
 
-        self.loss_func = torch.nn.CrossEntropyLoss()
-        self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
-        self.optimizer.zero_grad()
+        if train_grounder:
+            self.buffer = ReplayBuffer(capacity=capacity, device=device)
+            self.loss_func = torch.nn.CrossEntropyLoss()
+            self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
+            self.optimizer.zero_grad()
+
+        else:
+            self.buffer = None
+            self.loss_func = None
+            self.optimizer = None
 
 
     def add_episode(self, obss, rews, dfa_trans, dfa_rew):
@@ -36,7 +42,7 @@ class GrounderAlgo():
 
     def process_experiences(self, exps):
 
-        if self.freeze_grounder:
+        if not self.train_grounder:
             logs = {'buffer': 0}
             return logs
 
@@ -90,7 +96,7 @@ class GrounderAlgo():
 
     def collect_experiences(self, agent=None):
 
-        if self.freeze_grounder:
+        if not self.train_grounder:
             logs = {'buffer': 0, 'num_frames': 0}
             return logs
 
@@ -142,7 +148,7 @@ class GrounderAlgo():
 
     def update_parameters(self):
 
-        if self.freeze_grounder or len(self.buffer) < self.batch_size:
+        if self.train_grounder or len(self.buffer) < self.batch_size:
             logs = {'grounder_loss': 0.0}
             return logs
 
@@ -188,7 +194,7 @@ class GrounderAlgo():
 
     def evaluate(self):
 
-        if self.freeze_grounder:
+        if not self.train_grounder:
             logs = {
                 'grounder_acc': 0.0,
                 'grounder_recall': [0.0 for _ in range(self.num_symbols)]
