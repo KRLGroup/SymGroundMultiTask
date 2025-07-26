@@ -82,19 +82,25 @@ class ObjectCNN(nn.Module):
         super(ObjectCNN, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x64x64 -> 16x64x64
-            #nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2),  # -> 16x32x32
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x32x32
-            #nn.BatchNorm2d(32),
+            # Layer 1
+            nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x56x56 -> 16x56x56
+            # nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(2),  # -> 32x16x16
+            nn.MaxPool2d(2),  # -> 16x28x28
 
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 64x16x16
+            # Layer 2
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x28x28
+            # nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.MaxPool2d(2)  # -> 64x8x8
+            nn.MaxPool2d(2),  # -> 32x14x14
+
+            # # Layer 3
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 64x14x14
+            # nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2)  # -> 64x7x7
+
         )
 
         with torch.no_grad():
