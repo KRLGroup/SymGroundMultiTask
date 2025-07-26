@@ -226,7 +226,7 @@ class GridWorldImgEnvModel(EnvModel):
 
         with torch.no_grad():
             dummy_input = torch.zeros((1, k, n, m))
-            dummy_output = self.features(dummy_input)
+            dummy_output = self.image_conv(dummy_input)
             self.embedding_size = dummy_output.view(1, -1).size(1)
 
 
