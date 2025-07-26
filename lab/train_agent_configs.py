@@ -41,8 +41,14 @@ test_gridworld = Args(
 
     # Train parameters
     epochs = 4,
+    batch_size = 256
     discount = 0.94,
-    lr = 0.0003,
+    lr = 1e-4,
+    gae_lambda = 0.95,
+    entropy_coef = 0.01,
+    value_loss_coef = 0.5,
+    max_grad_norm = 0.5,
+    clip_eps = 0.2,
 
 )
 
@@ -85,8 +91,14 @@ test_simple_ltl_5l = Args(
     eval_procs = 1,
 
     # Train parameters
-    epochs = 4,
-    discount = 0.94,
-    lr = 0.0003,
+    epochs = 2,
+    batch_size = 1024
+    discount = 0.9,
+    lr = 1e-3,
+    gae_lambda = 0.5,
+    entropy_coef = 0.01,
+    value_loss_coef = 0.5,
+    max_grad_norm = 0.5,
+    clip_eps = 0.1
 
 )
