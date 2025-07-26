@@ -1,24 +1,10 @@
 from train_agent import Args
 
 
-test_ltl2action = Args(
-    algo = "ppo",
-    env = "Letter-7x7-v3",
-    log_interval = 5,
-    save_interval = 20,
-    frames = 20000000,
-    discount = 0.94,
-    ltl_sampler = "Eventually_1_5_1_4",
-    epochs = 4,
-    lr = 0.0003,
-    procs = 1
-)
-
-
 test_gridworld = Args(
 
     # General parameters
-    model_name = None,
+    model_name = "full_agent",
     algo = "ppo",
     seed = 1,
     log_interval = 10,
@@ -34,13 +20,13 @@ test_gridworld = Args(
     # GNN parameters
     gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
-    gnn_pretrain = "pretrain",
+    gnn_pretrain = "gnn_pretrain",
     freeze_gnn = False,
 
     # Grounder parameters
     grounder_model = "ObjectCNN",
     use_pretrained_grounder = True,
-    grounder_pretrain = "sym_grounder_56_fixed",
+    grounder_pretrain = "full_grounder_56",
     freeze_grounder = True,
 
     # Agent parameters
