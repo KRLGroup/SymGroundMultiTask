@@ -28,13 +28,14 @@ class Args:
 
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
-    ltl_sampler: str = "Default"
+    ltl_sampler: str = "Dataset_e54"
     obs_size: Tuple[int,int] = (56,56)
     noLTL: bool = False
     progression_mode: str = "full" # full, partial, or none
     int_reward: float = 0.0
 
     # GNN parameters
+    ignoreLTL: bool = False
     gnn_model: str = "RGCN_8x32_ROOT_SHARED"
     use_pretrained_gnn: bool = False
     gnn_pretrain: Optional[str] = None
@@ -48,7 +49,6 @@ class Args:
 
     # Agent parameters
     dumb_ac: bool = False
-    ignoreLTL: bool = False
     recurrence: int = 1
 
     # Evaluation parameters
