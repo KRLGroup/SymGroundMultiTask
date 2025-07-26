@@ -176,14 +176,12 @@ def train_agent(args: Args, device: str = None):
     sampler = envs[0].sampler
 
     # create grounder
-    sym_grounder = None
-    if use_grounder:
-        sym_grounder = utils.make_grounder(
-            model_name = args.grounder_model,
-            num_symbols = num_symbols,
-            obs_size = args.obs_size,
-            freeze_grounder = args.freeze_grounder
-        )
+    sym_grounder = utils.make_grounder(
+        model_name = args.grounder_model,
+        num_symbols = num_symbols,
+        obs_size = args.obs_size,
+        freeze_grounder = args.freeze_grounder
+    )
 
     for env in envs:
         env.env.sym_grounder = sym_grounder
