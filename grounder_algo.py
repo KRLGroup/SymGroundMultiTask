@@ -148,7 +148,7 @@ class GrounderAlgo():
 
     def update_parameters(self):
 
-        if self.train_grounder or len(self.buffer) < self.batch_size:
+        if not self.train_grounder or len(self.buffer) < self.batch_size:
             logs = {'grounder_loss': 0.0}
             return logs
 
