@@ -68,10 +68,10 @@ class Args:
     gae_lambda: float = 0.95
     entropy_coef: float = 0.01
     value_loss_coef: float = 0.5
-    max_grad_norm: float = 0.5
+    max_grad_norm: float = 0.5  # gradient clipping
     optim_eps: float = 1e-8
-    optim_alpha: float = 0.99
-    clip_eps: float = 0.2
+    optim_alpha: float = 0.99 
+    clip_eps: float = 0.2  # ppo clipping epsilon
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
