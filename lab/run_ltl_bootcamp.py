@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from lab import test
+from lab.train_agent_configs import *
 from train_agent import train_agent
 
 
@@ -13,4 +13,4 @@ if __name__ == "__main__":
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_agent(test.test_simple_ltl_5l, device=device)
+    train_agent(test_simple_ltl_5l, device=device)

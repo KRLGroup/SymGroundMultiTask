@@ -65,19 +65,42 @@ test_gridworld = Args(
 test_simple_ltl_5l = Args(
 
     # General parameters
+    model_name = "gnn_pretrain",
     algo = "ppo",
-    env = "Simple-LTL-Env-5L-v0",
-    ltl_sampler = "Eventually_1_5_1_4",
-    log_interval = 5,
-    save_interval = 20,
+    seed = 1,
+    log_interval = 10,
+    save_interval = 100,
     procs = 1,
     frames = 20000000,
-    gnn_model = "RGCN_8x32_ROOT_SHARED",
 
-    # Parameters for main algorithm
+    # Environment parameters
+    env = "Simple-LTL-Env-5L-v0",
+    obs_size = (56,56),
+    ltl_sampler = "Eventually_1_5_1_4",
+
+    # GNN parameters
+    gnn_model = "RGCN_8x32_ROOT_SHARED",
+    use_pretrained_gnn = False,
+    gnn_pretrain = None,
+    freeze_gnn = False,
+
+    # Grounder parameters
+    grounder_model = None,
+
+    # Agent parameters
+    dumb_ac = True,
+
+    # Evaluation parameters
+    eval = True,
+    eval_env = "Simple-LTL-Env-5L-v0",
+    eval_interval = 100,
+    eval_samplers = ['Eventually_1_5_1_4'],
+    eval_episodes = [500],
+    eval_procs = 1,
+
+    # Train parameters
     epochs = 4,
     discount = 0.94,
     lr = 0.0003,
-    dumb_ac = True
 
 )
