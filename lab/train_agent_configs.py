@@ -4,7 +4,7 @@ from train_agent import Args
 test_gridworld = Args(
 
     # General parameters
-    model_name = "full_agent",
+    model_name = "agent",
     algo = "ppo",
     seed = 1,
     log_interval = 10,
@@ -34,7 +34,7 @@ test_gridworld = Args(
     # Evaluation parameters
     eval = True,
     eval_env = "GridWorld-fixed-v1",
-    eval_interval = 500,
+    eval_interval = 1000,
     eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
     eval_procs = 1,
@@ -43,7 +43,7 @@ test_gridworld = Args(
     epochs = 4,
     batch_size = 256,
     discount = 0.94,
-    lr = 1e-4,
+    lr = 3e-4,
     gae_lambda = 0.95,
     entropy_coef = 0.01,
     value_loss_coef = 0.5,
