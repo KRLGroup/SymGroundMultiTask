@@ -291,6 +291,7 @@ def train_agent(args: Args, device: str = None):
                 ltl_sampler = sampler,
                 seed = args.seed,
                 device = device,
+                state_type = args.state_type,
                 grounder = sym_grounder,
                 obs_size = args.obs_size,
                 num_procs = eval_procs,
