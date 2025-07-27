@@ -86,7 +86,7 @@ def train_agent(args: Args, device: str = None):
         assert args.use_pretrained_gnn
     if args.use_pretrained_gnn:
         assert args.progression_mode == "full" and args.gnn_pretrain != None
-    if args.freeze_grounder:
+    if args.grounder_model and args.freeze_grounder:
         assert args.use_pretrained_grounder
     if args.use_pretrained_grounder:
         assert args.grounder_pretrain != None
@@ -307,6 +307,7 @@ def train_agent(args: Args, device: str = None):
 
     txt_logger.info("Training\n")
 
+    logs_exp = utils.empty_episode_logs()
     num_frames = status["num_frames"]
     update = status["update"]
     start_time = time.time()
@@ -315,7 +316,7 @@ def train_agent(args: Args, device: str = None):
     buffer_lenght = 0
     while train_grounder and buffer_lenght < 10 * grounder_algo.batch_size:
         logs = grounder_algo.collect_experiences()
-        buffer_lenght = [logs["buffer"]]
+        buffer_lenght = logs["buffer"]
         num_frames += logs["num_frames"]
 
     # training loop
@@ -334,35 +335,32 @@ def train_agent(args: Args, device: str = None):
         update_end_time = time.time()
 
         num_frames += logs1["num_frames"]
+        logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
         update += 1
 
         # Print logs (they refer only to the last update)
 
         if update % args.log_interval == 0:
-    
+
+            logs1 = utils.elaborate_episode_logs(logs_exp, args.discount)
             logs5 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
+            logs_exp = utils.empty_episode_logs()
 
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
-            return_per_episode = utils.synthesize(logs["return_per_episode"])
-            rreturn_per_episode = utils.synthesize(logs["reshaped_return_per_episode"])
-            average_reward_per_step = utils.average_reward_per_step(logs["return_per_episode"], logs["num_frames_per_episode"])
-            average_discounted_return = utils.average_discounted_return(logs["return_per_episode"], logs["num_frames_per_episode"], args.discount)
-            num_frames_per_episode = utils.synthesize(logs["num_frames_per_episode"])
-
-            header = ["update", "frames", "fps", "duration"]
+            header = ["time/update", "time/frames", "time/fps", "time/duration"]
             data = [update, num_frames, fps, duration]
-            header += ["rreturn/" + key for key in rreturn_per_episode.keys()]
-            data += rreturn_per_episode.values()
+            header += ["rreturn/" + key for key in logs["rreturn_per_episode"].keys()]
+            data += logs["rreturn_per_episode"].values()
             header += ["average_reward_per_step", "average_discounted_return"]
-            data += [average_reward_per_step, average_discounted_return]
-            header += ["num_frames/" + key for key in num_frames_per_episode.keys()]
-            data += num_frames_per_episode.values()
-            header += ["entropy", "value", "policy_loss", "value_loss", "grad_norm"]
+            data += [logs["average_reward_per_step"], logs["average_discounted_return"]]
+            header += ["num_frames/" + key for key in logs["num_frames_per_episode"].keys()]
+            data += logs["num_frames_per_episode"].values()
+            header += ["algo/entropy", "algo/value", "algo/policy_loss", "algo/value_loss", "algo/grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
-            header += ["grounder_loss", "grounder_acc", "buffer"]
+            header += ["grounder/loss", "grounder/acc", "grounder/buffer"]
             data += [logs["grounder_loss"], logs["grounder_acc"], logs["buffer"]]
 
             # μ: mean | σ: std | m: min | M: max
@@ -372,8 +370,8 @@ def train_agent(args: Args, device: str = None):
                 "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | rR:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.4f} | gA {:.3f} | b {:5}"
             .format(*data))
 
-            header += ["return/" + key for key in return_per_episode.keys()]
-            data += return_per_episode.values()
+            header += ["return/" + key for key in logs["return_per_episode"].keys()]
+            data += logs["return_per_episode"].values()
 
             if status["num_frames"] == 0:
                 csv_logger.writerow(header)
