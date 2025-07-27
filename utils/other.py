@@ -59,15 +59,15 @@ def elaborate_episode_logs(logs, discount):
 
     return_per_episode = synthesize(logs["return_per_episode"])
     rreturn_per_episode = synthesize(logs["reshaped_return_per_episode"])
-    average_reward_per_step = average_reward_per_step(logs["return_per_episode"], logs["num_frames_per_episode"])
-    average_discounted_return = average_discounted_return(logs["return_per_episode"], logs["num_frames_per_episode"], discount)
+    avg_reward_per_step = average_reward_per_step(logs["return_per_episode"], logs["num_frames_per_episode"])
+    avg_discounted_return = average_discounted_return(logs["return_per_episode"], logs["num_frames_per_episode"], discount)
     num_frames_per_episode = synthesize(logs["num_frames_per_episode"])
 
     episode_logs = {
         "return_per_episode": return_per_episode,
         "rreturn_per_episode": rreturn_per_episode,
-        "average_reward_per_step": average_reward_per_step,
-        "average_discounted_return": average_discounted_return,
+        "average_reward_per_step": avg_reward_per_step,
+        "average_discounted_return": avg_discounted_return,
         "num_frames_per_episode": num_frames_per_episode,
         "num_frames": logs["num_frames"]
     }
