@@ -14,6 +14,7 @@ test_gridworld = Args(
 
     # Environment parameters
     env = "GridWorld-fixed-v1",
+    state_type = 'image',
     obs_size = (56,56),
     ltl_sampler = "Dataset_e54",
 

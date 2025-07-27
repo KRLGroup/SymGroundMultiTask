@@ -432,6 +432,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
         super().__init__(*args, **kwargs)
         self.sym_grounder = grounder
         self.current_obs = None
+        assert self.state_type == 'image' or self.sym_grounder == None
 
 
     def reset(self):
@@ -472,8 +473,9 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 # Preconstructed Environments
 
 class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = True,
@@ -483,8 +485,9 @@ class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = False,
@@ -494,8 +497,9 @@ class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = True,
@@ -505,8 +509,9 @@ class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = False,
@@ -516,8 +521,9 @@ class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = True,
@@ -527,8 +533,9 @@ class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size):
         super().__init__(
+            state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
             randomize_loc = False,

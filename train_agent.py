@@ -28,6 +28,7 @@ class Args:
 
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
+    state_type: str = "image"
     ltl_sampler: str = "Dataset_e54"
     obs_size: Tuple[int,int] = (56,56)
     noLTL: bool = False
@@ -168,6 +169,7 @@ def train_agent(args: Args, device: str = None):
             seed = args.seed,
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
+            state_type = args.state_type,
             grounder = None,
             obs_size = args.obs_size
         ))

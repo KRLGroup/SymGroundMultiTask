@@ -17,8 +17,9 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", grounder=None, obs_size=None, argmax=False,
-        num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
+    def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
+        obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, 
+        dumb_ac = False, discount=0.99):
 
         self.env = env
         self.device = device
@@ -46,6 +47,7 @@ class Eval:
                 seed = seed,
                 intrinsic = 0,
                 noLTL = False,
+                state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size
             ))

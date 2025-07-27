@@ -42,6 +42,7 @@ env = utils.make_env(
     seed = 1,
     intrinsic = config.int_reward,
     noLTL = config.noLTL,
+    state_type = config.state_type,
     grounder = None,
     obs_size = config.obs_size
 )
