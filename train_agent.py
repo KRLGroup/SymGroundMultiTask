@@ -103,7 +103,7 @@ def train_agent(args: Args, device: str = None):
     # checkpoint dirs
     storage_dir = "storage" if args.checkpoint_dir is None else args.checkpoint_dir
     storage_dir = os.path.join(REPO_DIR, storage_dir)
-    pretrain_dir = os.path.join(REPO_DIR, "symbol-storage")
+    pretrain_dir = os.path.join(REPO_DIR, "storage-pretrain")
 
     # build GNN name
     gnn_name = args.gnn_model

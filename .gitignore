@@ -1,9 +1,9 @@
 symbolicDFAs/
 untracked/
-lab/storage
-storage/
 saves/
-symbol-storage/
+storage/
+storage-pretrain/
+storage-old/
 tmp.ipynb
 
 # Byte-compiled / optimized / DLL files
