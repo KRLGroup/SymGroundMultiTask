@@ -167,9 +167,9 @@ class GridWorldSymEnvModel(EnvModel):
         super().__init__(obs_space)
 
         if "image" in obs_space.keys():
-            n = obs_space["image"][1]
-            m = obs_space["image"][2]
-            k = obs_space["image"][0]
+            n = obs_space["image"][0]
+            m = obs_space["image"][1]
+            k = obs_space["image"][2]
             self.image_conv = nn.Sequential(
                 nn.Conv2d(k, 16, (2, 2)),
                 nn.ReLU(),
@@ -182,7 +182,7 @@ class GridWorldSymEnvModel(EnvModel):
 
     def forward(self, obs):
         if "image" in obs.keys():
-            x = obs.image
+            x = obs.image.transpose(1, 3).transpose(2, 3)
             x = self.image_conv(x)
             x = x.reshape(x.shape[0], -1)
             return x

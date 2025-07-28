@@ -253,13 +253,21 @@ class GridWorldEnv_multitask(gym.Env):
 
 
     def _get_symbol_obs(self):
-        obs = np.zeros(shape=(self.map_size,self.map_size,len(self.dictionary_symbols)+1),dtype=np.uint8)
-        for loc in self.loc_to_label:
+
+        obs = np.zeros(shape=(self.map_size,self.map_size,self.num_symbols),dtype=np.uint8)
+
+        for loc in self.all_locations:
+            label = self.loc_to_label[loc]
             if self.agent_centric_view:
                 loc = self._absolute_to_agent_centric(loc)
-            label = self.loc_to_label[loc]
-            obs[loc[0],loc[1],label] = 1
-        obs[self._agent_location[0],self._agent_location[1],len(self.dictionary_symbols)] = 1
+            if label != self.num_symbols-1:
+                obs[loc[0],loc[1],label] = 1
+
+        loc = self._agent_location
+        if self.agent_centric_view:
+            loc = self._absolute_to_agent_centric(loc)
+        obs[loc[0],loc[1],self.num_symbols-1] = 1
+
         return obs
 
 
