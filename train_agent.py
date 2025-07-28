@@ -424,7 +424,7 @@ def train_agent(args: Args, device: str = None):
                 average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
                 num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
 
-                header = ["frames", "duration"]
+                header = ["time/frames", "time/duration"]
                 data = [num_frame_pe, duration]
                 header += ["return/" + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
