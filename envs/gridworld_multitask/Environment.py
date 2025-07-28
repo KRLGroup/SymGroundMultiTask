@@ -26,6 +26,7 @@ class GridWorldEnv_multitask(gym.Env):
         wrap_around_map=True, agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
+        self.num_symbols = len(self.dictionary_symbols)
 
         self.randomize_locations = randomize_loc
         self.randomize_start = randomize_start
@@ -66,7 +67,7 @@ class GridWorldEnv_multitask(gym.Env):
         }
 
         # default locations
-        all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
+        self.all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
         default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
 
         # assign items locations
@@ -77,11 +78,11 @@ class GridWorldEnv_multitask(gym.Env):
         self._egg_locations = [default_locations[8], default_locations[9]]
 
         # assign agent initial location
-        self.free_locations = all_locations - set(default_locations)
+        self.free_locations = self.all_locations - set(default_locations)
         self._initial_agent_location = (0,0)
 
         # precompute symbols per location
-        self.loc_to_label = {(r, c): 5 for r in range(self.map_size) for c in range(self.map_size)}
+        self.loc_to_label = {(r, c): 5 for (r, c) in self.all_locations}
         for loc in self._pickaxe_locations:
             self.loc_to_label[loc] = 0
         for loc in self._lava_locations:
@@ -116,30 +117,27 @@ class GridWorldEnv_multitask(gym.Env):
 
             # precompute image observations per location
             self.loc_to_obs = {}
-            for r in range(self.map_size):
-                for c in range(self.map_size):
-                    self._agent_location = np.array([r, c])
-                    self.loc_to_obs[r,c] = self._get_image_obs()
+            for (r, c) in self.all_locations:
+                self._agent_location = np.array([r, c])
+                self.loc_to_obs[r,c] = self._get_image_obs()
 
             # save images as seen by the agent
             if save_obs:
                 obs_folder = os.path.join(REPO_DIR, 'saves/env_obs')
                 if not os.path.exists(obs_folder):
                     os.makedirs(obs_folder)
-                for r in range(self.map_size):
-                    for c in range(self.map_size):
-                        image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
-                        image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
-                        cv2.imwrite(obs_path, image_bgr)
+                for (r, c) in self.all_locations:
+                    image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
+                    image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                    obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
+                    cv2.imwrite(obs_path, image_bgr)
 
             # normalize observations
             mean = np.mean(self.loc_to_obs[self._initial_agent_location])
             stdev = np.std(self.loc_to_obs[self._initial_agent_location])
-            for r in range(self.map_size):
-                for c in range(self.map_size):
-                    norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                    self.loc_to_obs[r,c] = norm_img
+            for (r, c) in self.all_locations:
+                norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
+                self.loc_to_obs[r,c] = norm_img
 
             self.observation_space = spaces.Box(
                 low = np.float32(-np.inf),
@@ -152,10 +150,9 @@ class GridWorldEnv_multitask(gym.Env):
 
             # precompute symbol observations per location
             self.loc_to_obs = {}
-            for r in range(self.map_size):
-                for c in range(self.map_size):
-                    self._agent_location = np.array([r, c])
-                    self.loc_to_obs[r,c] = self._get_symbol_obs()
+            for (r, c) in self.all_locations:
+                self._agent_location = np.array([r, c])
+                self.loc_to_obs[r,c] = self._get_symbol_obs()
 
             self.observation_space = spaces.Box(low=0, high=1, shape=self.loc_to_obs[0,0].shape, dtype=np.uint8)
 
@@ -171,11 +168,9 @@ class GridWorldEnv_multitask(gym.Env):
         # randomize item locations and recompute observations
         if self.randomize_locations and self.num_episodes % 10 == 0:
 
-            all_locations = {(x, y) for x in range(self.map_size) for y in range(self.map_size)}
-
             # select 10 random locations
             num_items = 10
-            sampled_locations = random.sample(all_locations, num_items)
+            sampled_locations = random.sample(self.all_locations, num_items)
 
             # assign item locations
             self._gem_locations = [sampled_locations[0], sampled_locations[1]]
@@ -185,11 +180,11 @@ class GridWorldEnv_multitask(gym.Env):
             self._egg_locations = [sampled_locations[8], sampled_locations[9]]
 
             # assign agent initial location
-            self.free_locations = all_locations - set(sampled_locations)
+            self.free_locations = self.all_locations - set(sampled_locations)
             self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
             # precompute symbols per location
-            self.loc_to_label = {(r, c): 5 for r in range(self.map_size) for c in range(self.map_size)}
+            self.loc_to_label = {(r, c): 5 for (r, c) in self.all_locations}
             for loc in self._pickaxe_locations:
                 self.loc_to_label[loc] = 0
             for loc in self._lava_locations:
@@ -205,27 +200,24 @@ class GridWorldEnv_multitask(gym.Env):
 
                 # precompute image observations per location
                 self.loc_to_obs = {}
-                for r in range(self.map_size):
-                    for c in range(self.map_size):
-                        self._agent_location = np.array([r, c])
-                        self.loc_to_obs[r,c] = self._get_image_obs()
+                for (r, c) in self.all_locations:
+                    self._agent_location = np.array([r, c])
+                    self.loc_to_obs[r,c] = self._get_image_obs()
 
                 # normalize observations
                 mean = np.mean(self.loc_to_obs[self._initial_agent_location])
                 stdev = np.std(self.loc_to_obs[self._initial_agent_location])
-                for r in range(self.map_size):
-                    for c in range(self.map_size):
-                        norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
-                        self.loc_to_obs[r,c] = norm_img
+                for (r, c) in self.all_locations:
+                    norm_img = (self.loc_to_obs[r,c] - mean) / (stdev + 1e-10)
+                    self.loc_to_obs[r,c] = norm_img
 
             elif self.state_type == "symbol":
 
                 # precompute symbol observations per location
                 self.loc_to_obs = {}
-                for r in range(self.map_size):
-                    for c in range(self.map_size):
-                        self._agent_location = np.array([r, c])
-                        self.loc_to_obs[r,c] = self._get_symbol_obs()
+                for (r, c) in self.all_locations:
+                    self._agent_location = np.array([r, c])
+                    self.loc_to_obs[r,c] = self._get_symbol_obs()
 
         # extract new initial location
         elif self.randomize_start:
