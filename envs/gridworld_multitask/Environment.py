@@ -71,11 +71,11 @@ class GridWorldEnv_multitask(gym.Env):
         default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
 
         # assign items locations
-        self._pickaxe_locations = [default_locations[0], default_locations[1]]
-        self._lava_locations = [default_locations[2], default_locations[3]]
-        self._door_locations = [default_locations[4], default_locations[5]]
-        self._gem_locations = [default_locations[6], default_locations[7]]
-        self._egg_locations = [default_locations[8], default_locations[9]]
+        self._pickaxe_locations = default_locations[0:2]
+        self._lava_locations = default_locations[2:4]
+        self._door_locations = default_locations[4:6]
+        self._gem_locations = default_locations[6:8]
+        self._egg_locations = default_locations[8:10]
 
         # assign agent initial location
         self.free_locations = self.all_locations - set(default_locations)
@@ -95,19 +95,19 @@ class GridWorldEnv_multitask(gym.Env):
             self.loc_to_label[loc] = 4
 
         # variables to hide icons
-        self._gem_display = True
         self._pickaxe_display = True
+        self._gem_display = True
         self._agent_display = True
 
         # load icons using OpenCV (if they are used)
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
-            self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
-            self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
-            self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
+            self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
+            self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
             self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
+            self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
 
             # dimensions of true canvas
             self.cell_size = self.pickaxe_img.shape[0]
@@ -166,18 +166,18 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step = 0
 
         # randomize item locations and recompute observations
-        if self.randomize_locations and self.num_episodes % 10 == 0:
+        if self.randomize_locations:
 
             # select 10 random locations
             num_items = 10
             sampled_locations = random.sample(self.all_locations, num_items)
 
             # assign item locations
-            self._gem_locations = [sampled_locations[0], sampled_locations[1]]
-            self._pickaxe_locations = [sampled_locations[2], sampled_locations[3]]
-            self._door_locations = [sampled_locations[4], sampled_locations[5]]
-            self._lava_locations = [sampled_locations[6], sampled_locations[7]]
-            self._egg_locations = [sampled_locations[8], sampled_locations[9]]
+            self._pickaxe_locations = sampled_locations[0:2]
+            self._lava_locations = sampled_locations[2:4]
+            self._door_locations = sampled_locations[4:6]
+            self._gem_locations = sampled_locations[6:8]
+            self._egg_locations = sampled_locations[8:10]
 
             # assign agent initial location
             self.free_locations = self.all_locations - set(sampled_locations)
@@ -244,7 +244,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.curr_step += 1
 
         # compute values to return
-        observation = self.loc_to_obs[tuple(self._agent_location)]
+        observation = self.loc_to_obs[tuple(self._agent_location)].copy()
         reward = 0.0
         done = self.curr_step >= self.max_num_steps
         info = None
@@ -326,9 +326,9 @@ class GridWorldEnv_multitask(gym.Env):
 
         # blit each type of item
         blit_item(self.pickaxe_img, self._pickaxe_locations, self._pickaxe_display)
-        blit_item(self.gem_img, self._gem_locations, self._gem_display)
-        blit_item(self.door_img, self._door_locations)
         blit_item(self.lava_img, self._lava_locations)
+        blit_item(self.door_img, self._door_locations)
+        blit_item(self.gem_img, self._gem_locations, self._gem_display)
         blit_item(self.egg_img, self._egg_locations)
         blit_item(self.agent_img, [self._agent_location], self._agent_display)
 
