@@ -5,6 +5,7 @@ import tensorboardX
 import os
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
+from tqdm import tqdm
 
 import utils
 from ac_model import ACModel
@@ -316,11 +317,16 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    buffer_lenght = 0
-    while train_grounder and buffer_lenght < 10 * grounder_algo.batch_size:
-        logs = grounder_algo.collect_experiences()
-        buffer_lenght = logs["buffer"]
-        num_frames += logs["num_frames"]
+    if train_grounder:
+        txt_logger.info("Initializing Buffer...\n")
+        buffer_start = 10 * grounder_algo.batch_size
+        progress = tqdm(total=buffer_start)
+        while progress.n < buffer_start:
+            logs = grounder_algo.collect_experiences()
+            progress.n = logs['buffer']
+            num_frames += logs['num_frames']
+            progress.refresh()
+        progress.close()
 
     # training loop
     while num_frames < args.frames:
