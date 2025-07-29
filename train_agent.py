@@ -77,6 +77,7 @@ class Args:
 
     # Grounder training parameters
     grounder_buffer_size: int = 1000
+    grounder_buffer_start: int = 32
     grounder_max_env_steps: int = 75
     grounder_batch_size: int = 32
     grounder_lr: float = 0.001
@@ -328,9 +329,8 @@ def train_agent(args: Args, device: str = None):
     # populate buffer
     if train_grounder:
         txt_logger.info("Initializing Buffer...\n")
-        buffer_start = 10 * grounder_algo.batch_size
-        progress = tqdm(total=buffer_start)
-        while progress.n < buffer_start:
+        progress = tqdm(total=args.grounder_buffer_start)
+        while progress.n < args.grounder_buffer_start:
             logs = grounder_algo.collect_experiences()
             progress.n = logs['buffer']
             num_frames += logs['num_frames']
