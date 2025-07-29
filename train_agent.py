@@ -23,6 +23,7 @@ class Args:
     log_interval: int = 10
     save_interval: int = 100
     procs: int = 16
+    frames_per_proc: Optional[int] = None
     frames: int = 2 * 10**8
     checkpoint_dir: Optional[str] = None
 
@@ -63,7 +64,6 @@ class Args:
     # Train parameters
     epochs: int = 4
     batch_size: int = 256
-    frames_per_proc: Optional[int] = None
     discount: float = 0.99
     lr: float = 0.0003
     gae_lambda: float = 0.95

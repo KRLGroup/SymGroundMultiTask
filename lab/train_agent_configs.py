@@ -10,6 +10,7 @@ test_gridworld = Args(
     log_interval = 10,
     save_interval = 100,
     procs = 1,
+    frames_per_proc = 512,
     frames = 20000000,
 
     # Environment parameters
