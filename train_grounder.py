@@ -28,7 +28,6 @@ class Args:
     # Environment parameters
     max_num_steps: int = 50
     env: str = "GridWorld-fixed-v1"
-    eval_env: str = "GridWorld-fixed-v1"
     ltl_sampler: str = "Dataset_e54"
 
     # Training parameters
@@ -90,16 +89,6 @@ def train_grounder(args: Args, device: str = None):
     train_env.env.max_num_steps = args.max_num_steps
     num_symbols = len(train_env.propositions)
     txt_logger.info("-) Environment loaded.")
-
-    # environent used for evaluating and logging about the symbol grounder
-    eval_env = utils.make_env(
-        args.eval_env,
-        progression_mode = "full",
-        ltl_sampler = args.ltl_sampler,
-        grounder = None,
-        obs_size = args.obs_size
-    )
-    txt_logger.info("-) Eval environment loaded.")
 
     # load agent
     agent = None
@@ -198,28 +187,21 @@ def train_grounder(args: Args, device: str = None):
         if update % args.log_interval == 0:
 
             logs3 = grounder_algo.evaluate()
-            logs3 = {f"train_{k}": v for k, v in logs3.items()}
-            logs4 = grounder_algo.evaluate()
-            logs4 = {f"eval_{k}": v for k, v in logs4.items()}
-            logs = {**logs1, **logs2, **logs3, **logs4}
+            logs = {**logs1, **logs2, **logs3}
 
             duration = int(time.time() - start_time)
 
-            header = ["epoch", "frames", "duration"]
-            data = [epoch, num_frames, duration]
-            header += ["buffer", "loss", "accuracy/train", "accuracy/eval"]
-            data += [logs["buffer"], logs["grounder_loss"], logs["train_grounder_acc"], logs["eval_grounder_acc"]]
-            header += [f"train_recall/{i}" for i in range(num_symbols)]
-            data += logs["train_grounder_recall"]
-            header += [f"eval_recall/{i}" for i in range(num_symbols)]
-            data += logs["eval_grounder_recall"]
+            header = ["time/update", "time/frames", "time/duration"]
+            data = [update, num_frames, duration]
+            header += ["grounder/buffer", "grounder/loss", "grounder/acc"]
+            data += [logs["buffer"], logs["grounder_loss"], logs["grounder_acc"]]
+            header += [f"grounder_recall/{i}" for i in range(num_symbols)]
+            data += logs["grounder_recall"]
 
-            # E: epoch | F: frames | D: duration | B: buffer | L: loss | tA: train accuracy | eA: eval accuracy
-            # tR: train recall | eR: eval recall
+            # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             format_str = (
-                "E {:5} | F {:7} | D {:5} | B {:5} | L {:.4f} | tA {:.3f} | eA {:.3f}" +
-                " | tR" + "".join([" {:.2f}" for i in range(num_symbols)]) +
-                " | eR" + "".join([" {:.2f}" for i in range(num_symbols)])
+                "U {:5} | F {:7} | D {:5} | B {:5} | L {:.4f} | A {:.3f}" +
+                " | R" + "".join([" {:.2f}" for i in range(num_symbols)])
             )
             txt_logger.info(format_str.format(*data))
 
