@@ -7,6 +7,7 @@ train_grounder_base = Args(
     model_name = "grounder_with_algo",
     log_interval = 1,
     save_interval = 10,
+    seed = 1,
 
     # Grounder parameters
     sym_grounder_model = "ObjectCNN",
@@ -19,9 +20,13 @@ train_grounder_base = Args(
     ltl_sampler = "Dataset_e54",
 
     # Training parameters
-    epochs = 10000,
+    updates = 10000,
+    buffer_size = 1000,
+    buffer_start = 32,
+    max_env_steps = 75,
     batch_size = 32,
-    seed = 1,
+    lr = 0.001,
+    update_steps = 4,
 
     # Agent parameters
     use_agent = False,

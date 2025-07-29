@@ -19,6 +19,7 @@ class Args:
     model_name: str = "sym_grounder"
     log_interval: int = 1
     save_interval: int = 10
+    seed: int = 1
 
     # Grounder parameters
     sym_grounder_model: str = "ObjectCNN"
@@ -31,9 +32,13 @@ class Args:
     ltl_sampler: str = "Dataset_e54"
 
     # Training parameters
-    epochs: int = 10000
+    updates: int = 10000
+    buffer_size: int = 1000
+    buffer_start: int = 32
+    max_env_steps: int = 75
     batch_size: int = 32
-    seed: int = 1
+    lr: float = 0.001
+    update_steps: int = 1
 
     # Agent parameters
     use_agent: bool = False
@@ -134,7 +139,7 @@ def train_grounder(args: Args, device: str = None):
     status = utils.get_status(model_dir, device)
     txt_logger.info("-) Looking for status of previous training.")
     if status == None:
-        status = {"epoch": 0, "num_frames": 0}
+        status = {"update": 0, "num_frames": 0}
         txt_logger.info("-) Previous status not found.")
     else:
         txt_logger.info("-) Previous status found.")
@@ -145,7 +150,8 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, False, train_env.sampler, train_env, batch_size=args.batch_size, device=device)
+    grounder_algo = GrounderAlgo(sym_grounder, True, train_env.sampler, train_env, args.max_env_steps,
+                                 args.buffer_size, args.batch_size, args.lr, args.update_steps, device)
 
     # load grounder optimizer of existing model
     if "grounder_optimizer_state" in status:
@@ -160,15 +166,14 @@ def train_grounder(args: Args, device: str = None):
 
     txt_logger.info("Training\n")
 
-    epoch = status["epoch"]
+    update = status["update"]
     num_frames = status["num_frames"]
     start_time = time.time()
 
     # populate buffer
     txt_logger.info("Initializing Buffer...\n")
-    total = 10 * args.batch_size
-    progress = tqdm(total=total)
-    while progress.n < total:
+    progress = tqdm(total=args.buffer_start)
+    while progress.n < args.buffer_start:
         logs = grounder_algo.collect_experiences()
         progress.n = logs['buffer']
         num_frames += logs['num_frames']
@@ -176,7 +181,7 @@ def train_grounder(args: Args, device: str = None):
     progress.close()
 
     # training loop
-    while epoch < args.epochs:
+    while update < args.updates:
 
         # choose whether to use agent or random
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
@@ -185,12 +190,12 @@ def train_grounder(args: Args, device: str = None):
         logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
         logs2 = grounder_algo.update_parameters()
 
-        epoch += 1
+        update += 1
         num_frames += logs1["num_frames"]
 
         # logging
 
-        if epoch % args.log_interval == 0:
+        if update % args.log_interval == 0:
 
             logs3 = grounder_algo.evaluate()
             logs3 = {f"train_{k}": v for k, v in logs3.items()}
@@ -228,10 +233,10 @@ def train_grounder(args: Args, device: str = None):
 
         # save status
 
-        if epoch % args.save_interval == 0:
+        if update % args.save_interval == 0:
 
             status = {
-                "epoch": epoch,
+                "update": update,
                 "num_frames": num_frames,
                 "grounder_optimizer_state": grounder_algo.optimizer.state_dict(),
                 "grounder_state": sym_grounder.state_dict()
