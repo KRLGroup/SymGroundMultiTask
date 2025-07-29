@@ -75,6 +75,13 @@ class Args:
     optim_alpha: float = 0.99 
     clip_eps: float = 0.2  # ppo clipping epsilon
 
+    # Grounder training parameters
+    grounder_buffer_size: int = 1000
+    grounder_max_env_steps: int = 75
+    grounder_batch_size: int = 32
+    grounder_lr: float = 0.001
+    grounder_update_steps: int = 4
+
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -268,7 +275,9 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, train_grounder, sampler, envs[0], batch_size=32, device=device)
+    grounder_algo = GrounderAlgo(sym_grounder, train_grounder, sampler, envs[0], args.grounder_max_env_steps, 
+                                 args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr, 
+                                 args.grounder_update_steps, device)
 
     # load grounder optimizer of existing model
     if train_grounder and "grounder_optimizer_state" in status:

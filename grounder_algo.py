@@ -9,23 +9,27 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, train_grounder, sampler, env, max_steps=50, batch_size=32, capacity=1000, lr=0.001, device=None):
+    def __init__(self, grounder, train_grounder, sampler, env, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
+        update_steps=4, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
 
-        self.env = env
-        self.capacity = capacity
+        self.max_env_steps = max_env_steps
+        self.buffer_size = buffer_size
         self.batch_size = batch_size
-        self.num_symbols = len(env.propositions)
-        self.max_steps = max_steps
-        self.train_grounder = train_grounder and grounder is not None
+        self.lr = lr
+        self.update_steps = update_steps
 
         self.grounder = grounder
         self.sampler = sampler
+        self.env = env
+
+        self.train_grounder = train_grounder and grounder is not None
+        self.num_symbols = len(env.propositions)
 
         if train_grounder:
-            self.buffer = ReplayBuffer(capacity=capacity, device=device)
+            self.buffer = ReplayBuffer(capacity=buffer_size, device=device)
             self.loss_func = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
             self.optimizer.zero_grad()
@@ -58,7 +62,7 @@ class GrounderAlgo():
         for episode in episodes:
 
             obss = episode.obs.image
-            rews = episode.reward.int()
+            rews = episode.reward.long()
             task = episode.obs.task_id[0]
 
             # if the rewards are all 0 there is no supervision
@@ -66,17 +70,17 @@ class GrounderAlgo():
                 continue
 
             # extend shorter vectors to the max length
-            if len(rews) < self.max_steps+1:
+            if len(rews) < self.max_env_steps+1:
                 last_rew = rews[-1]
                 last_obs = obss[-1]
-                extension = self.max_steps+1 - len(rews)
+                extension = self.max_env_steps+1 - len(rews)
                 rews = torch.cat([rews, last_rew.repeat(extension)])
                 obss = torch.cat([obss, last_obs.repeat(extension, 1, 1, 1)])
 
             # cut longer vectors
-            if len(rews) > self.max_steps+1:
-                rews = rews[:self.max_steps+1]
-                obss = obss[:self.max_steps+1]
+            if len(rews) > self.max_env_steps+1:
+                rews = rews[:self.max_env_steps+1]
+                obss = obss[:self.max_env_steps+1]
 
                 if rews[-1] == 0:
                     continue
@@ -121,13 +125,13 @@ class GrounderAlgo():
             rews.append(rew)
 
         # reward obtained only at last step (if it's 0 there is no supervision)
-        if rew != 0 and len(rews) <= self.max_steps+1:
+        if rew != 0 and len(rews) <= self.max_env_steps+1:
 
             # extend shorter vectors to max length
-            if len(rews) < self.max_steps+1:
+            if len(rews) < self.max_env_steps+1:
                 last_rew = rews[-1]
                 last_obs = obss[-1]
-                extension = self.max_steps+1 - len(rews)
+                extension = self.max_env_steps+1 - len(rews)
                 rews.extend([last_rew] * extension)
                 obss.extend([last_obs] * extension)
 
@@ -152,39 +156,41 @@ class GrounderAlgo():
             logs = {'grounder_loss': 0.0}
             return logs
 
-        # sample from the buffer
-        obss, rews, dfa_trans, dfa_rew = self.buffer.sample(self.batch_size)
+        for _ in range(self.update_steps):
 
-        # build the differentiable reward machine for the task
-        deepDFA = MultiTaskProbabilisticAutoma(
-            batch_size = self.batch_size,
-            numb_of_actions = self.num_symbols,
-            numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
-            reward_type = "ternary",
-            device = self.device
-        )
-        deepDFA.initFromDfas(dfa_trans, dfa_rew)
+            # sample from the buffer
+            obss, rews, dfa_trans, dfa_rew = self.buffer.sample(self.batch_size)
 
-        # reset gradient
-        self.optimizer.zero_grad()
+            # build the differentiable reward machine for the task
+            deepDFA = MultiTaskProbabilisticAutoma(
+                batch_size = self.batch_size,
+                numb_of_actions = self.num_symbols,
+                numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                reward_type = "ternary",
+                device = self.device
+            )
+            deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-        # obtain probability of symbols from observations with self.grounder
-        symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
-        symbols = symbols.view(*obss.shape[:2], -1)
+            # reset gradient
+            self.optimizer.zero_grad()
 
-        # predict state and reward from predicted symbols with DeepDFA
-        pred_states, pred_rew = deepDFA(symbols)
-        pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
+            # obtain probability of symbols from observations with self.grounder
+            symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
+            symbols = symbols.view(*obss.shape[:2], -1)
 
-        # maps rewards to label
-        labels = (rews + 1).view(-1)
+            # predict state and reward from predicted symbols with DeepDFA
+            pred_states, pred_rew = deepDFA(symbols)
+            pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
 
-        # compute loss
-        loss = self.loss_func(pred, labels)
+            # maps rewards to label
+            labels = (rews + 1).view(-1)
 
-        # update self.grounder
-        loss.backward()
-        self.optimizer.step()
+            # compute loss
+            loss = self.loss_func(pred, labels)
+
+            # update self.grounder
+            loss.backward()
+            self.optimizer.step()
 
         # log some values
         logs = {'grounder_loss': loss.item()}
