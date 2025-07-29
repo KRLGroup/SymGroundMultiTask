@@ -1,3 +1,4 @@
+import random
 from graphviz import Source
 from pythomata import SimpleDFA
 import numpy as np
@@ -128,22 +129,22 @@ class DFA:
         self.num_of_states = numb_of_states
         self.num_of_symbols = numb_of_symbols
         transitions = {}
-        acceptance = np.random.choice([False, True], size=numb_of_states).tolist()
-
+        acceptance = []
         for s in range(numb_of_states):
             trans_from_s = {}
-
+            #Each state is equiprobably set to be accepting or rejecting
+            acceptance.append(bool(random.randrange(2)))
+            #evenly choose another state from [i + 1; N ] and adds a random-labeled transition
             if s < numb_of_states - 1:
-                s_prime = np.random.randint(s + 1, numb_of_states)
-                a_start = np.random.randint(numb_of_symbols)
+                s_prime = random.randrange(s + 1 , numb_of_states)
+                a_start = random.randrange(numb_of_symbols)
+
                 trans_from_s[a_start] = s_prime
             else:
                 a_start = None
-
             for a in range(numb_of_symbols):
                 if a != a_start:
-                    trans_from_s[a] = np.random.randint(numb_of_states)
-
+                    trans_from_s[a] = random.randrange(numb_of_states)
             transitions[s] = trans_from_s.copy()
 
         self.transitions = transitions

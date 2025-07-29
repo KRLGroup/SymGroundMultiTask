@@ -1,5 +1,6 @@
 import gym
 from gym import spaces
+import random
 import numpy as np
 import torch
 import cv2
@@ -169,7 +170,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             # select 10 random locations
             num_items = 10
-            sampled_locations = np.random.choice(self.all_locations, num_items, replace=False)
+            sampled_locations = random.sample(self.all_locations, num_items)
 
             # assign item locations
             self._pickaxe_locations = sampled_locations[0:2]
@@ -180,7 +181,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             # assign agent initial location
             self.free_locations = self.all_locations - set(sampled_locations)
-            self._initial_agent_location = np.random.choice(self.free_locations)
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
             # precompute symbols per location
             self.loc_to_label = {(r, c): 5 for (r, c) in self.all_locations}
@@ -220,7 +221,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         # extract new initial location
         elif self.randomize_start:
-            self._initial_agent_location = np.random.choice(self.free_locations)
+            self._initial_agent_location = random.sample(self.free_locations, 1)[0]
 
         # reset the agent location
         self._agent_location = np.array(self._initial_agent_location)
