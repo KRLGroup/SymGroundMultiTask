@@ -2,7 +2,6 @@ from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 from envs.minigrid.minigrid_extensions import *
 
-from random import randint
 
 class AdversarialEnv(MiniGridEnv):
     """
