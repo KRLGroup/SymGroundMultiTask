@@ -43,7 +43,7 @@ class LTLEnv(gym.Wrapper):
             - "none": the agent gets the full, original LTL formula as part of the observation
         """
         super().__init__(env)
-        self.progression_mode   = progression_mode
+        self.progression_mode = progression_mode
         self.propositions = self.env.get_propositions()
         self.sampler = getLTLSampler(ltl_sampler, self.propositions)
 
@@ -53,18 +53,26 @@ class LTLEnv(gym.Wrapper):
 
 
     def reset(self):
+
         self.known_progressions = {}
         self.obs = self.env.reset()
 
         # Defining an LTL goal
-        self.ltl_goal     = self.sample_ltl_goal()
+        self.ltl_goal = self.sample_ltl_goal()
         self.ltl_original = self.ltl_goal
 
         # Adding the ltl goal to the observation
         if self.progression_mode == "partial":
-            ltl_obs = {'features': self.obs,'progress_info': self.progress_info(self.ltl_goal)}
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.ltl_goal)
+            }
         else:
-            ltl_obs = {'features': self.obs,'text': self.ltl_goal}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_goal
+            }
+
         return ltl_obs
 
 
@@ -76,41 +84,48 @@ class LTLEnv(gym.Wrapper):
         # progressing the ltl formula
         truth_assignment = self.get_events(self.obs, action, next_obs)
         self.ltl_goal = self.progression(self.ltl_goal, truth_assignment)
-        self.obs      = next_obs
+        self.obs = next_obs
 
         # Computing the LTL reward and done signal
         ltl_reward = 0.0
-        ltl_done   = False
+        ltl_done = False
         if self.ltl_goal == 'True':
             ltl_reward = 1.0
-            ltl_done   = True
+            ltl_done = True
         elif self.ltl_goal == 'False':
             ltl_reward = -1.0
-            ltl_done   = True
+            ltl_done = True
         else:
             ltl_reward = int_reward
 
         # Computing the new observation and returning the outcome of this action
         if self.progression_mode == "full":
-            ltl_obs = {'features': self.obs,'text': self.ltl_goal}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_goal
+            }
         elif self.progression_mode == "none":
-            ltl_obs = {'features': self.obs,'text': self.ltl_original}
+            ltl_obs = {
+                'features': self.obs,
+                'text': self.ltl_original
+            }
         elif self.progression_mode == "partial":
-            ltl_obs = {'features': self.obs, 'progress_info': self.progress_info(self.ltl_goal)}
+            ltl_obs = {
+                'features': self.obs,
+                'progress_info': self.progress_info(self.ltl_goal)
+            }
         else:
             raise NotImplementedError
 
-        reward  = original_reward + ltl_reward
-        done    = env_done or ltl_done
+        reward = original_reward + ltl_reward
+        done = env_done or ltl_done
         return ltl_obs, reward, done, info
 
 
     def progression(self, ltl_formula, truth_assignment):
-
         if (ltl_formula, truth_assignment) not in self.known_progressions:
             result_ltl = ltl_progression.progress_and_clean(ltl_formula, truth_assignment)
             self.known_progressions[(ltl_formula, truth_assignment)] = result_ltl
-
         return self.known_progressions[(ltl_formula, truth_assignment)]
 
 
@@ -118,7 +133,6 @@ class LTLEnv(gym.Wrapper):
     def progress_info(self, ltl_formula):
         propositions = self.env.get_propositions()
         X = np.zeros(len(self.propositions))
-
         for i in range(len(propositions)):
             progress_i = self.progression(ltl_formula, propositions[i])
             if progress_i == 'False':
@@ -200,9 +214,8 @@ class LTLGrounderEnv(LTLEnv):
 
 
     def reset(self):
-    
-        self.real_known_progressions = {}
-        self.pred_known_progressions = {}
+
+        self.known_progressions = {}
         self.obs = self.env.reset()
 
         # defining an LTL goal
@@ -233,7 +246,7 @@ class LTLGrounderEnv(LTLEnv):
 
     def step(self, action):
 
-        int_reward = 0
+        int_reward = 0.0
 
         # executing the action in the environment
         next_obs, env_reward, env_done, info = self.env.step(action)
