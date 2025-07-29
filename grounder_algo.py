@@ -19,7 +19,7 @@ class GrounderAlgo():
         self.batch_size = batch_size
         self.num_symbols = len(env.propositions)
         self.max_steps = max_steps
-        self.train_grounder = train_grounder
+        self.train_grounder = train_grounder and grounder is not None
 
         self.grounder = grounder
         self.sampler = sampler
@@ -101,7 +101,7 @@ class GrounderAlgo():
             return logs
 
         # disable grounder temporarily (for efficiency)
-        if self.env.env.sym_grounder is not None and agent is None:
+        if agent is None:
             env_grounder = self.env.env.sym_grounder
             self.env.env.sym_grounder = None
 
@@ -138,7 +138,7 @@ class GrounderAlgo():
             self.add_episode(obss, rews, task.transitions, task.rewards)
 
         # enable grounder back
-        if self.env.env.sym_grounder is not None and agent is None:
+        if agent is None:
             self.env.env.sym_grounder = env_grounder
 
         logs = {'buffer': len(self.buffer), 'num_frames': len(rews)}
