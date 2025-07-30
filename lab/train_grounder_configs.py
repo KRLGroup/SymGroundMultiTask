@@ -16,7 +16,6 @@ train_grounder_base = Args(
     # Environment parameters
     max_num_steps = 50,
     env = "GridWorld-fixed-v1",
-    eval_env = "GridWorld-fixed-v1",
     ltl_sampler = "Dataset_e54",
 
     # Training parameters
