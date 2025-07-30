@@ -31,6 +31,9 @@ train_grounder_base = Args(
     # Agent parameters
     use_agent = False,
     agent_dir = None,
-    agent_prob = 0.1
+    agent_prob = 0.1,
+
+    # Evaluation parameters
+    evaluate_steps = 1,
 
 )

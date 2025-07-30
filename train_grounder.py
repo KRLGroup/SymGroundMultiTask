@@ -39,6 +39,9 @@ class Args:
     lr: float = 0.001
     update_steps: int = 1
 
+    # Evaluation parameters
+    evaluate_steps: int = 1
+
     # Agent parameters
     use_agent: bool = False
     agent_dir: Optional[str] = None
@@ -139,8 +142,8 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, True, train_env.sampler, train_env, args.max_env_steps,
-                                 args.buffer_size, args.batch_size, args.lr, args.update_steps, device)
+    grounder_algo = GrounderAlgo(sym_grounder, True, train_env.sampler, train_env, args.max_env_steps, args.buffer_size,
+                                 args.batch_size, args.lr, args.update_steps, args.evaluate_steps, device)
 
     # load grounder optimizer of existing model
     if "grounder_optimizer_state" in status:

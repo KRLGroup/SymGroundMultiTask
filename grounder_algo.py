@@ -10,7 +10,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 class GrounderAlgo():
 
     def __init__(self, grounder, train_grounder, sampler, env, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
-        update_steps=4, device=None):
+        update_steps=4, evaluate_steps=1, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -20,6 +20,7 @@ class GrounderAlgo():
         self.batch_size = batch_size
         self.lr = lr
         self.update_steps = update_steps
+        self.evaluate_steps = evaluate_steps
 
         self.grounder = grounder
         self.sampler = sampler
@@ -209,16 +210,29 @@ class GrounderAlgo():
 
         coords = self.env.env.loc_to_label.keys()
 
-        # obtain and preprocess data
-        images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
-        images = torch.tensor(images, device=self.device, dtype=torch.float32)
-        real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
-        real_syms = torch.tensor(real_syms, device=self.device, dtype=torch.int32)
+        real_syms = []
+        pred_syms = []
 
-        # predict symbols
-        pred_syms = torch.argmax(self.grounder(images), dim=-1)
-        correct_preds = torch.sum((pred_syms == real_syms).int())
-        acc = torch.mean((pred_syms == real_syms).float())
+        # accumulate real and pred symbols
+        for _ in range(self.evaluate_steps):
+
+            self.env.reset()
+
+            step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
+            step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
+            real_syms.append(step_real_syms)
+
+            images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
+            images = torch.tensor(images, device=self.device, dtype=torch.float32)
+            step_pred_syms = torch.argmax(self.grounder(images), dim=-1)
+            pred_syms.append(step_pred_syms)
+
+        real_syms = torch.cat(real_syms, dim=0)
+        pred_syms = torch.cat(pred_syms, dim=0)
+
+        # compute accuracy
+        correct = (pred_syms == real_syms)
+        acc = correct.float().mean()
 
         # compute recall
         true_pos = torch.zeros(self.num_symbols, device=self.device)

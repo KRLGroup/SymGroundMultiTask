@@ -82,6 +82,7 @@ class Args:
     grounder_batch_size: int = 32
     grounder_lr: float = 0.001
     grounder_update_steps: int = 4
+    grounder_evaluate_steps: int = 1
 
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -278,7 +279,7 @@ def train_agent(args: Args, device: str = None):
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, train_grounder, sampler, envs[0], args.grounder_max_env_steps, 
                                  args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr, 
-                                 args.grounder_update_steps, device)
+                                 args.grounder_update_steps, args.grounder_evaluate_steps, device)
 
     # load grounder optimizer of existing model
     if train_grounder and "grounder_optimizer_state" in status:
