@@ -149,6 +149,8 @@ class GrounderAlgo():
             logs = {'grounder_loss': 0.0}
             return logs
 
+        losses = []
+
         for _ in range(self.update_steps):
 
             # sample from the buffer
@@ -181,13 +183,16 @@ class GrounderAlgo():
 
             # compute loss
             loss = self.loss_func(pred, labels)
+            losses.append(loss.item())
 
             # update self.grounder
             loss.backward()
             self.optimizer.step()
 
+        avg_loss = sum(losses) / self.update_steps
+
         # log some values
-        logs = {'grounder_loss': loss.item()}
+        logs = {'grounder_loss': avg_loss}
 
         return logs
 
