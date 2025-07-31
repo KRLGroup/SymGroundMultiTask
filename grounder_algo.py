@@ -9,7 +9,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, train_grounder, sampler, env, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
+    def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
         update_steps=4, evaluate_steps=1, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,8 +23,8 @@ class GrounderAlgo():
         self.evaluate_steps = evaluate_steps
 
         self.grounder = grounder
-        self.sampler = sampler
         self.env = env
+        self.sampler = env.sampler
 
         self.train_grounder = train_grounder and grounder is not None
         self.num_symbols = len(env.propositions)
@@ -67,13 +67,13 @@ class GrounderAlgo():
             task = episode.obs.task_id[0]
 
             # reward obtained only at last step (if it's 0 there is no supervision)
-            if rews[-1] != 0 and len(rews) <= self.max_env_steps+1:
+            if rews[-1] != 0 and len(rews) <= self.max_env_steps:
 
                 # extend shorter vectors to max length
-                if len(rews) < self.max_env_steps+1:
+                if len(rews) < self.max_env_steps:
                     last_rew = rews[-1]
                     last_obs = obss[-1]
-                    extension = self.max_env_steps+1 - len(rews)
+                    extension = self.max_env_steps - len(rews)
                     rews = torch.cat([rews, last_rew.repeat(extension)])
                     obss = torch.cat([obss, last_obs.repeat(extension, 1, 1, 1)])
 
@@ -96,11 +96,10 @@ class GrounderAlgo():
             logs = {'buffer': 0, 'num_frames': 0}
             return logs
 
-        # disable grounder and set num steps
-        disabled_grounder = self.env.env.sym_grounder
-        disabled_max_steps = self.env.env.max_num_steps
-        self.env.env.sym_grounder = None
-        self.env.env.max_num_steps = self.max_env_steps
+        # disable grounder temporarily (for efficiency)
+        if agent is None:
+            env_grounder = self.env.env.sym_grounder
+            self.env.env.sym_grounder = None
 
         # reset the environment
         obs = self.env.reset()
@@ -116,15 +115,16 @@ class GrounderAlgo():
             obs, rew, done, _ = self.env.step(action)
             obss.append(obs['features'])
             rews.append(rew)
+            done = done or len(rews) >= self.max_env_steps
 
         # reward obtained only at last step (if it's 0 there is no supervision)
         if rew != 0:
 
             # extend shorter vectors to max length
-            if len(rews) < self.max_env_steps+1:
+            if len(rews) < self.max_env_steps:
                 last_rew = rews[-1]
                 last_obs = obss[-1]
-                extension = self.max_env_steps+1 - len(rews)
+                extension = self.max_env_steps - len(rews)
                 rews.extend([last_rew] * extension)
                 obss.extend([last_obs] * extension)
 
@@ -134,9 +134,9 @@ class GrounderAlgo():
             task = self.env.sampler.get_current_automaton()
             self.add_episode(obss, rews, task.transitions, task.rewards)
 
-        # enable back grounder and num steps
-        self.env.env.sym_grounder = disabled_grounder
-        self.env.env.max_num_steps = disabled_max_steps
+        # enable grounder back
+        if agent is None:
+            self.env.env.sym_grounder = env_grounder
 
         logs = {'buffer': len(self.buffer), 'num_frames': len(rews)}
 

@@ -169,6 +169,29 @@ def train_agent(args: Args, device: str = None):
 
     txt_logger.info("Initialization\n")
 
+    # load grounder algo environment
+    grounder_algo_env = utils.make_env(
+        env_key = args.env,
+        progression_mode = args.progression_mode,
+        ltl_sampler = args.ltl_sampler,
+        seed = args.seed,
+        intrinsic = args.int_reward,
+        noLTL = args.noLTL,
+        state_type = args.state_type,
+        grounder = None,
+        obs_size = args.obs_size
+    )
+
+    num_symbols = len(grounder_algo_env.propositions)
+
+    # create grounder
+    sym_grounder = utils.make_grounder(
+        model_name = args.grounder_model,
+        num_symbols = num_symbols,
+        obs_size = args.obs_size,
+        freeze_grounder = args.freeze_grounder
+    )
+
     # load environments
     envs = []
     for i in range(args.procs):
@@ -180,23 +203,9 @@ def train_agent(args: Args, device: str = None):
             intrinsic = args.int_reward,
             noLTL = args.noLTL,
             state_type = args.state_type,
-            grounder = None,
+            grounder = sym_grounder,
             obs_size = args.obs_size
         ))
-
-    num_symbols = len(envs[0].propositions)
-    sampler = envs[0].sampler
-
-    # create grounder
-    sym_grounder = utils.make_grounder(
-        model_name = args.grounder_model,
-        num_symbols = num_symbols,
-        obs_size = args.obs_size,
-        freeze_grounder = args.freeze_grounder
-    )
-
-    for env in envs:
-        env.env.sym_grounder = sym_grounder
 
     # sync environments
     envs[0].reset()
@@ -277,7 +286,7 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, train_grounder, sampler, envs[0], args.grounder_max_env_steps, 
+    grounder_algo = GrounderAlgo(sym_grounder, grounder_algo_env, train_grounder, args.grounder_max_env_steps, 
                                  args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr, 
                                  args.grounder_update_steps, args.grounder_evaluate_steps, device)
 
@@ -375,7 +384,7 @@ def train_agent(args: Args, device: str = None):
             data += logs["return_per_episode"].values()
             header += ["average_reward_per_step", "average_discounted_return"]
             data += [logs["average_reward_per_step"], logs["average_discounted_return"]]
-            header += ["num_frames/" + key for key in logs["num_frames_per_episode"].keys()]
+            header += ["episode_frames/" + key for key in logs["num_frames_per_episode"].keys()]
             data += logs["num_frames_per_episode"].values()
             header += ["algo/entropy", "algo/value", "algo/policy_loss", "algo/value_loss", "algo/grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
