@@ -74,16 +74,16 @@ class GrounderAlgo():
                     last_rew = rews[-1]
                     last_obs = obss[-1]
                     extension = self.max_env_steps+1 - len(rews)
-                    rews.extend([last_rew] * extension)
-                    obss.extend([last_obs] * extension)
+                    rews = torch.cat([rews, last_rew.repeat(extension)])
+                    obss = torch.cat([obss, last_obs.repeat(extension, 1, 1, 1)])
 
-            # load automata
-            dfa = self.sampler.get_automaton(task)
-            dfa_trans = dfa.transitions
-            dfa_rew = dfa.rewards
+                # load automata
+                dfa = self.sampler.get_automaton(task)
+                dfa_trans = dfa.transitions
+                dfa_rew = dfa.rewards
 
-            # add episode
-            self.add_episode(obss, rews, dfa_trans, dfa_rew)
+                # add episode
+                self.add_episode(obss, rews, dfa_trans, dfa_rew)
 
         logs = {'buffer': len(self.buffer)}
 
@@ -118,7 +118,7 @@ class GrounderAlgo():
             rews.append(rew)
 
         # reward obtained only at last step (if it's 0 there is no supervision)
-        if rew != 0 and len(rews) <= self.max_env_steps+1:
+        if rew != 0:
 
             # extend shorter vectors to max length
             if len(rews) < self.max_env_steps+1:
