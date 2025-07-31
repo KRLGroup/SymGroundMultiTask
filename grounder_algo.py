@@ -67,7 +67,7 @@ class GrounderAlgo():
             task = episode.obs.task_id[0]
 
             # reward obtained only at last step (if it's 0 there is no supervision)
-            if rew[-1] != 0 and len(rews) <= self.max_env_steps+1:
+            if rews[-1] != 0 and len(rews) <= self.max_env_steps+1:
 
                 # extend shorter vectors to max length
                 if len(rews) < self.max_env_steps+1:
