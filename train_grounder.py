@@ -203,7 +203,7 @@ def train_grounder(args: Args, device: str = None):
 
             # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             format_str = (
-                "U {:5} | F {:7} | D {:5} | B {:5} | L {:.4f} | A {:.3f}" +
+                "U {:5} | F {:7} | D {:5} | B {:5} | L {:.6f} | A {:.3f}" +
                 " | R" + "".join([" {:.2f}" for i in range(num_symbols)])
             )
             txt_logger.info(format_str.format(*data))
