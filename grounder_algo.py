@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import os
 
 import utils
 from replay_buffer import ReplayBuffer
@@ -10,7 +11,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 class GrounderAlgo():
 
     def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
-        update_steps=4, evaluate_steps=1, device=None):
+        update_steps=4, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0, save_dir=None, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -21,6 +22,7 @@ class GrounderAlgo():
         self.lr = lr
         self.update_steps = update_steps
         self.evaluate_steps = evaluate_steps
+        self.use_early_stopping = early_stopping
 
         self.grounder = grounder
         self.env = env
@@ -29,7 +31,7 @@ class GrounderAlgo():
         self.train_grounder = train_grounder and grounder is not None
         self.num_symbols = len(env.propositions)
 
-        if train_grounder:
+        if self.train_grounder:
             self.buffer = ReplayBuffer(capacity=buffer_size, device=device)
             self.loss_func = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
@@ -40,6 +42,13 @@ class GrounderAlgo():
             self.loss_func = None
             self.optimizer = None
 
+        self.patience = patience
+        self.min_delta = min_delta
+        self.save_path = os.path.join(save_dir, "grounder.pt") if save_dir else None
+        self.early_stopping_counter = 0
+        self.best_loss = float('inf')
+        self.early_stop = False
+
 
     def add_episode(self, obss, rews, dfa_trans, dfa_rew):
         self.buffer.push(obss, rews, dfa_trans, dfa_rew)
@@ -47,7 +56,7 @@ class GrounderAlgo():
 
     def process_experiences(self, exps):
 
-        if not self.train_grounder:
+        if not self.train_grounder or self.early_stop:
             logs = {'buffer': 0}
             return logs
 
@@ -92,7 +101,7 @@ class GrounderAlgo():
 
     def collect_experiences(self, agent=None):
 
-        if not self.train_grounder:
+        if not self.train_grounder or self.early_stop:
             logs = {'buffer': 0, 'num_frames': 0}
             return logs
 
@@ -145,7 +154,7 @@ class GrounderAlgo():
 
     def update_parameters(self):
 
-        if not self.train_grounder or len(self.buffer) == 0:
+        if not self.train_grounder or len(self.buffer) == 0 or self.early_stop:
             logs = {'grounder_loss': 0.0}
             return logs
 
@@ -190,6 +199,9 @@ class GrounderAlgo():
             self.optimizer.step()
 
         avg_loss = sum(losses) / self.update_steps
+
+        # early stopping
+        self.early_stopping_check(avg_loss)
 
         # log some values
         logs = {'grounder_loss': avg_loss}
@@ -247,3 +259,28 @@ class GrounderAlgo():
         }
 
         return logs
+
+
+    def early_stopping_check(self, loss):
+
+        if not self.use_early_stopping:
+            return
+
+        elif loss < self.best_loss - self.min_delta:
+            self.best_loss = loss
+            self.save_grounder()
+            self.early_stopping_counter = 0
+
+        else:
+            self.early_stopping_counter += 1
+            if self.early_stopping_counter >= self.patience:
+                self.early_stop = True
+                self.load_grounder()
+
+
+    def save_grounder(self):
+        torch.save(self.grounder.state_dict(), self.save_path)
+
+
+    def load_grounder(self):
+        self.grounder.load_state_dict(torch.load(self.save_path))
