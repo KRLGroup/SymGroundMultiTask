@@ -10,7 +10,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1000, batch_size=32, lr=0.001,
+    def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1024, batch_size=32, lr=0.001,
         update_steps=4, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0, save_dir=None, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,6 +18,7 @@ class GrounderAlgo():
 
         self.max_env_steps = max_env_steps
         self.buffer_size = buffer_size
+        self.val_buffer_size = buffer_size // 4
         self.batch_size = batch_size
         self.lr = lr
         self.update_steps = update_steps
@@ -32,7 +33,8 @@ class GrounderAlgo():
         self.num_symbols = len(env.propositions)
 
         if self.train_grounder:
-            self.buffer = ReplayBuffer(capacity=buffer_size, device=device)
+            self.buffer = ReplayBuffer(capacity=self.buffer_size, device=device)
+            self.val_buffer = ReplayBuffer(capacity=self.val_buffer_size, device=device)
             self.loss_func = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
             self.optimizer.zero_grad()
@@ -51,7 +53,10 @@ class GrounderAlgo():
 
 
     def add_episode(self, obss, rews, dfa_trans, dfa_rew):
-        self.buffer.push(obss, rews, dfa_trans, dfa_rew)
+        if np.random.rand() > 0.2:
+            self.buffer.push(obss, rews, dfa_trans, dfa_rew)
+        else:
+            self.val_buffer.push(obss, rews, dfa_trans, dfa_rew)
 
 
     def process_experiences(self, exps):
@@ -155,10 +160,11 @@ class GrounderAlgo():
     def update_parameters(self):
 
         if not self.train_grounder or len(self.buffer) == 0 or self.early_stop:
-            logs = {'grounder_loss': 0.0}
+            logs = {'grounder_loss': 0.0, "grounder_val_loss": 0.0}
             return logs
 
         losses = []
+        val_losses = []
 
         for _ in range(self.update_steps):
 
@@ -200,11 +206,40 @@ class GrounderAlgo():
 
         avg_loss = sum(losses) / self.update_steps
 
+        # validation
+        with torch.no_grad():
+
+            for batch in buffer.iter_batches(batch_size=self.batch_size):
+
+                obss, rews, dfa_trans, dfa_rew = batch
+
+                deepDFA = MultiTaskProbabilisticAutoma(
+                    batch_size = obss.shape[0],
+                    numb_of_actions = self.num_symbols,
+                    numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                    reward_type = "ternary",
+                    device = self.device
+                )
+                deepDFA.initFromDfas(dfa_trans, dfa_rew)
+
+                symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
+                symbols = symbols.view(*obss.shape[:2], -1)
+
+                _, pred_rew = deepDFA(symbols)
+                pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
+
+                labels = (rews + 1).view(-1)
+
+                loss = self.loss_func(pred, labels)
+                val_losses.append(loss.item())
+
+        avg_val_loss = sum(val_losses) / self.update_steps
+
         # early stopping
-        self.early_stopping_check(avg_loss)
+        self.early_stopping_check(avg_val_loss)
 
         # log some values
-        logs = {'grounder_loss': avg_loss}
+        logs = {'grounder_loss': avg_loss, "grounder_val_loss": avg_val_loss}
 
         return logs
 

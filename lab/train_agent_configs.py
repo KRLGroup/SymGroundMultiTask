@@ -53,7 +53,7 @@ test_gridworld = Args(
     clip_eps = 0.2,
 
     # Grounder training parameters
-    grounder_buffer_size = 1000,
+    grounder_buffer_size = 1024,
     grounder_buffer_start = 32,
     grounder_max_env_steps = 75,
     grounder_batch_size = 32,
