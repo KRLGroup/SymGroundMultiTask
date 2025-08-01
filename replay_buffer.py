@@ -26,3 +26,24 @@ class ReplayBuffer:
 
     def __len__(self):
         return len(self.buffer)
+
+
+    def iter_batches(self, batch_size):
+
+        buffer_list = list(self.buffer)
+        for i in range(0, len(buffer_list), batch_size):
+            batch = buffer_list[i:i + batch_size]
+            obss, rews, dfa_trans, dfa_rew = zip(*batch)
+            obss = torch.stack(obss).to(self.device)
+            rews = torch.stack(rews).to(self.device)
+            yield obss, rews, dfa_trans, dfa_rew
+
+
+    def __iter__(self):
+        for obss, rews, dfa_trans, dfa_rew in self.buffer:
+            yield (
+                obss.to(self.device),
+                rews.to(self.device),
+                dfa_trans,
+                dfa_rew
+            )
