@@ -402,6 +402,9 @@ def train_agent(args: Args, device: str = None):
                 "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gA {:.3f} | b {:5}"
             .format(*data))
 
+            header += [f"grounder_recall/{i}" for i in range(num_symbols)]
+            data += logs["grounder_recall"]
+
             if status["num_frames"] == 0:
                 csv_logger.writerow(header)
             csv_logger.writerow(data)
