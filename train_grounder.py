@@ -32,6 +32,7 @@ class Args:
 
     # Training parameters
     updates: int = 10000
+    episodes_per_update: int = 1
     buffer_size: int = 1000
     buffer_start: int = 32
     max_env_steps: int = 75
@@ -185,7 +186,10 @@ def train_grounder(args: Args, device: str = None):
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
         train_env.env.sym_grounder = sym_grounder if agent_ep else None
 
-        logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
+        for _ in range(args.episodes_per_update):
+            logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
+            num_frames += logs1["num_frames"]
+
         logs2 = grounder_algo.update_parameters()
 
         update += 1

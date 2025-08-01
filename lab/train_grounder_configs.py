@@ -20,6 +20,7 @@ train_grounder_base = Args(
 
     # Training parameters
     updates = 10000,
+    episodes_per_update = 1,
     buffer_size = 1024,
     buffer_start = 32,
     max_env_steps = 75,
