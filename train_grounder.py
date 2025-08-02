@@ -39,6 +39,7 @@ class Args:
     batch_size: int = 32
     lr: float = 0.001
     update_steps: int = 1
+    accumulation: int = 1
 
     # Early Stopping
     early_stopping: float = False
@@ -149,8 +150,8 @@ def train_grounder(args: Args, device: str = None):
 
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, train_env, True, args.max_env_steps, args.buffer_size, args.batch_size,
-                                 args.lr, args.update_steps, args.evaluate_steps, args.early_stopping, args.patience,
-                                 args.min_delta, model_dir, device)
+                                 args.lr, args.update_steps, args.accumulation, args.evaluate_steps, args.early_stopping,
+                                 args.patience, args.min_delta, model_dir, device)
 
     # load grounder optimizer of existing model
     if "grounder_optimizer_state" in status:

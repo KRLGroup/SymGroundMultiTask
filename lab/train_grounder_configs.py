@@ -27,6 +27,7 @@ train_grounder_base = Args(
     batch_size = 32,
     lr = 0.001,
     update_steps = 4,
+    accumulation = 1,
 
     # Agent parameters
     use_agent = False,
