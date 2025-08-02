@@ -62,7 +62,7 @@ class GrounderAlgo():
     def process_experiences(self, exps):
 
         if not self.train_grounder or self.early_stop:
-            logs = {'buffer': 0}
+            logs = {'buffer': 0, 'val_buffer': 0}
             return logs
 
         ids = torch.stack([exps.obs.episode_id, exps.obs.env_id], dim=1)
@@ -99,7 +99,7 @@ class GrounderAlgo():
                 # add episode
                 self.add_episode(obss, rews, dfa_trans, dfa_rew)
 
-        logs = {'buffer': len(self.buffer)}
+        logs = {'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer)}
 
         return logs
 
@@ -107,7 +107,7 @@ class GrounderAlgo():
     def collect_experiences(self, agent=None):
 
         if not self.train_grounder or self.early_stop:
-            logs = {'buffer': 0, 'num_frames': 0}
+            logs = {'buffer': 0, 'val_buffer': 0, 'num_frames': 0}
             return logs
 
         # disable grounder temporarily (for efficiency)
@@ -152,7 +152,7 @@ class GrounderAlgo():
         if agent is None:
             self.env.env.sym_grounder = env_grounder
 
-        logs = {'buffer': len(self.buffer), 'num_frames': len(rews)}
+        logs = {'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 'num_frames': len(rews)}
 
         return logs
 
