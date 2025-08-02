@@ -11,7 +11,8 @@ from deep_automa import MultiTaskProbabilisticAutoma
 class GrounderAlgo():
 
     def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1024, batch_size=32, lr=0.001,
-        update_steps=4, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0, save_dir=None, device=None):
+        update_steps=4, accumulation=1, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0, 
+        save_dir=None, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.device = torch.device(device)
@@ -22,6 +23,7 @@ class GrounderAlgo():
         self.batch_size = batch_size
         self.lr = lr
         self.update_steps = update_steps
+        self.accumulation = accumulation
         self.evaluate_steps = evaluate_steps
         self.use_early_stopping = early_stopping
 
@@ -166,7 +168,10 @@ class GrounderAlgo():
         losses = []
         val_losses = []
 
-        for _ in range(self.update_steps):
+        # reset gradient
+        self.optimizer.zero_grad()
+
+        for update_id in range(self.update_steps):
 
             # sample from the buffer
             batch_size = min(self.batch_size, len(self.buffer))
@@ -182,9 +187,6 @@ class GrounderAlgo():
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-            # reset gradient
-            self.optimizer.zero_grad()
-
             # obtain probability of symbols from observations with self.grounder
             symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
             symbols = symbols.view(*obss.shape[:2], -1)
@@ -198,11 +200,13 @@ class GrounderAlgo():
 
             # compute loss
             loss = self.loss_func(pred, labels)
+            loss.backward()
             losses.append(loss.item())
 
             # update self.grounder
-            loss.backward()
-            self.optimizer.step()
+            if (update_id + 1) % accumulation_steps == 0 or (update_id + 1) == self.update_steps:
+                self.optimizer.step()
+                self.optimizer.zero_grad()
 
         avg_loss = sum(losses) / self.update_steps
 
