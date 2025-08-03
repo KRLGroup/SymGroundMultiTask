@@ -248,18 +248,20 @@ class GrounderAlgo():
         pred_syms = []
 
         # accumulate real and pred symbols
-        for _ in range(self.evaluate_steps):
+        with torch.no_grad():
 
-            self.env.reset()
+            for _ in range(self.evaluate_steps):
 
-            step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
-            step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
-            real_syms.append(step_real_syms)
+                self.env.reset()
 
-            images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
-            images = torch.tensor(images, device=self.device, dtype=torch.float32)
-            step_pred_syms = torch.argmax(self.grounder(images), dim=-1)
-            pred_syms.append(step_pred_syms)
+                step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
+                step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
+                real_syms.append(step_real_syms)
+
+                images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
+                images = torch.tensor(images, device=self.device, dtype=torch.float32)
+                step_pred_syms = torch.argmax(self.grounder(images), dim=-1)
+                pred_syms.append(step_pred_syms)
 
         real_syms = torch.cat(real_syms, dim=0)
         pred_syms = torch.cat(pred_syms, dim=0)

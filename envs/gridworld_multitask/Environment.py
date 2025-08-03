@@ -464,8 +464,9 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
         # returns the proposition that currently holds according to the grounder
         else:
-            img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
-            pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
+            with torch.no_grad():
+                img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+                pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
             return self.dictionary_symbols[pred_sym]
 
 
