@@ -218,6 +218,9 @@ def train_grounder(args: Args, device: str = None):
                 " | R" + "".join([" {:.3f}" for i in range(num_symbols)])).format(*data)
             )
 
+            header += ["grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
+            data += [logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
+
             if status["num_frames"] == 0:
                 csv_logger.writerow(header)
             csv_logger.writerow(data)

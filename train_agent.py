@@ -407,8 +407,8 @@ def train_agent(args: Args, device: str = None):
                 " | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
 
-            header += ["grounder/val_loss"]
-            data += [logs["grounder_val_loss"]]
+            header += ["grounder/val_loss", "grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
+            data += [logs["grounder_val_loss"], logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
 
             header += [f"grounder_recall/{i}" for i in range(num_symbols)]
             data += logs["grounder_recall"]
