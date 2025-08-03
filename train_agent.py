@@ -398,11 +398,14 @@ def train_agent(args: Args, device: str = None):
             data += [logs["grounder_loss"], logs["grounder_acc"], logs["buffer"]]
 
             # μ: mean | σ: std | m: min | M: max
-            # U: update | F: frames | FPS | D: duration | R: return | ARPS: average reward per step | ADR: average discounted return
-            # F: episode frames | H: entropy | V: value | pL: policy loss | vL: value loss | nabla: grad norm | gL: grounder loss | gA: grounder accuracy | b: buffer
+            # U: update | F: frames | FPS | D: duration | R: return | ARPS: average reward per step 
+            # ADR: average discounted return | F: episode frames | H: entropy | V: value | pL: policy loss 
+            # vL: value loss | nabla: grad norm | gL: grounder loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                "U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f} | ADR: {:.3f} | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gA {:.3f} | b {:5}"
-            .format(*data))
+                ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f}" +
+                " | ADR: {:.3f} | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f}" +
+                " | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gA {:.4f} | b {:5}").format(*data)
+            )
 
             header += ["grounder/val_loss"]
             data += [logs["grounder_val_loss"]]
