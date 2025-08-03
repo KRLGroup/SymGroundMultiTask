@@ -16,11 +16,23 @@ class ReplayBuffer:
         self.buffer.append((obss, rews, dfa_trans, dfa_rew))
 
 
+    def _pad_repeat_last(self, sequences):
+        max_len = max(seq.shape[0] for seq in sequences)
+        padded = []
+        for seq in sequences:
+            pad_len = max_len - seq.shape[0]
+            if pad_len > 0:
+                repeat = seq[-1:].expand(pad_len, *seq.shape[1:])
+                seq = torch.cat([seq, repeat], dim=0)
+            padded.append(seq)
+        return torch.stack(padded)
+
+
     def sample(self, batch_size):
         batch = random.sample(self.buffer, batch_size)
         obss, rews, dfa_trans, dfa_rew = zip(*batch)
-        obss = torch.stack(obss).to(self.device)
-        rews = torch.stack(rews).to(self.device)
+        obss = self._pad_repeat_last(obss).to(self.device)
+        rews = self._pad_repeat_last(rews).to(self.device)
         return obss, rews, dfa_trans, dfa_rew
 
 
@@ -29,13 +41,12 @@ class ReplayBuffer:
 
 
     def iter_batches(self, batch_size):
-
         buffer_list = list(self.buffer)
         for i in range(0, len(buffer_list), batch_size):
             batch = buffer_list[i:i + batch_size]
             obss, rews, dfa_trans, dfa_rew = zip(*batch)
-            obss = torch.stack(obss).to(self.device)
-            rews = torch.stack(rews).to(self.device)
+            obss = self._pad_repeat_last(obss).to(self.device)
+            rews = self._pad_repeat_last(rews).to(self.device)
             yield obss, rews, dfa_trans, dfa_rew
 
 

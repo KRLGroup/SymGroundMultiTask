@@ -20,6 +20,7 @@ class GrounderAlgo():
         self.max_env_steps = max_env_steps
         self.buffer_size = buffer_size
         self.val_buffer_size = buffer_size // 4
+
         self.batch_size = batch_size
         self.lr = lr
         self.update_steps = update_steps
@@ -85,14 +86,6 @@ class GrounderAlgo():
             # reward obtained only at last step (if it's 0 there is no supervision)
             if rews[-1] != 0 and len(rews) <= self.max_env_steps:
 
-                # extend shorter vectors to max length
-                if len(rews) < self.max_env_steps:
-                    last_rew = rews[-1]
-                    last_obs = obss[-1]
-                    extension = self.max_env_steps - len(rews)
-                    rews = torch.cat([rews, last_rew.repeat(extension)])
-                    obss = torch.cat([obss, last_obs.repeat(extension, 1, 1, 1)])
-
                 # load automata
                 dfa = self.sampler.get_automaton(task)
                 dfa_trans = dfa.transitions
@@ -135,14 +128,6 @@ class GrounderAlgo():
 
         # reward obtained only at last step (if it's 0 there is no supervision)
         if rew != 0:
-
-            # extend shorter vectors to max length
-            if len(rews) < self.max_env_steps:
-                last_rew = rews[-1]
-                last_obs = obss[-1]
-                extension = self.max_env_steps - len(rews)
-                rews.extend([last_rew] * extension)
-                obss.extend([last_obs] * extension)
 
             # add to the buffer
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
@@ -204,7 +189,7 @@ class GrounderAlgo():
             losses.append(loss.item())
 
             # update self.grounder
-            if (update_id + 1) % accumulation_steps == 0 or (update_id + 1) == self.update_steps:
+            if (update_id + 1) % self.accumulation == 0 or (update_id + 1) == self.update_steps:
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
