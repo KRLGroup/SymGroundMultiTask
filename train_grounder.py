@@ -89,15 +89,15 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    train_env = utils.make_env(
+    env = utils.make_env(
         args.env,
         progression_mode = "full",
         ltl_sampler = args.ltl_sampler,
         grounder = None,
         obs_size = args.obs_size
     )
-    train_env.env.max_num_steps = args.max_num_steps
-    num_symbols = len(train_env.propositions)
+    env.env.max_num_steps = args.max_num_steps
+    num_symbols = len(env.propositions)
     txt_logger.info("-) Environment loaded.")
 
     # load agent
@@ -109,9 +109,9 @@ def train_grounder(args: Args, device: str = None):
             config = pickle.load(f)
 
         agent = utils.Agent(
-            train_env,
-            train_env.observation_space,
-            train_env.action_space,
+            env,
+            env.observation_space,
+            env.action_space,
             agent_dir,
             config.ignoreLTL,
             config.progression_mode,
@@ -132,6 +132,7 @@ def train_grounder(args: Args, device: str = None):
         freeze_grounder = False
     )
     sym_grounder.to(device)
+    env.env.sym_grounder = sym_grounder
     txt_logger.info("-) Grounder loaded.")
 
     # load previous training status
@@ -149,7 +150,7 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, train_env, True, args.max_env_steps, args.buffer_size, args.batch_size,
+    grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_env_steps, args.buffer_size, args.batch_size,
                                  args.lr, args.update_steps, args.accumulation, args.evaluate_steps, args.early_stopping,
                                  args.patience, args.min_delta, model_dir, device)
 
@@ -185,7 +186,6 @@ def train_grounder(args: Args, device: str = None):
 
         # choose whether to use agent or random
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
-        train_env.env.sym_grounder = sym_grounder if agent_ep else None
 
         for _ in range(args.episodes_per_update):
             logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
