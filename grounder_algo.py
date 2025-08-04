@@ -21,6 +21,8 @@ class GrounderAlgo():
         self.buffer_size = buffer_size
         self.val_buffer_size = buffer_size // 4
 
+        self.zero_rew_ep_prob = 0.05
+
         self.batch_size = batch_size
         self.lr = lr
         self.update_steps = update_steps
@@ -86,8 +88,17 @@ class GrounderAlgo():
             rews = episode.reward.long()
             task = episode.obs.task_id[0]
 
-            # reward obtained only at last step (if it's 0 there is no supervision)
             if rews[-1] != 0 and len(rews) <= self.max_env_steps:
+
+                # load automata
+                dfa = self.sampler.get_automaton(task)
+                dfa_trans = dfa.transitions
+                dfa_rew = dfa.rewards
+
+                # add episode
+                self.add_episode(obss, rews, dfa_trans, dfa_rew)
+
+            if rews[-1] == 0 and len(rews) <= self.max_env_steps and np.random.rand() < self.zero_rew_ep_prob:
 
                 # load automata
                 dfa = self.sampler.get_automaton(task)
@@ -137,6 +148,14 @@ class GrounderAlgo():
 
         # reward obtained only at last step (if it's 0 there is no supervision)
         if rew != 0:
+
+            # add to the buffer
+            obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
+            rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
+            task = self.env.sampler.get_current_automaton()
+            self.add_episode(obss, rews, task.transitions, task.rewards)
+
+        if rew == 0 and np.random.rand() < self.zero_rew_ep_prob:
 
             # add to the buffer
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
