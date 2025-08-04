@@ -13,11 +13,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
 parser.add_argument("--agent_dir", default="full_agent")
 parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--seed", default=1, type=int)
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device(device)
+
+utils.set_seed(args.seed)
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -73,7 +76,7 @@ agent = utils.Agent(
     recurrence = config.recurrence,
     dumb_ac = config.dumb_ac,
     device = device,
-    argmax = True,
+    argmax = False,
     num_envs = 1,
     verbose = False
 )
@@ -90,12 +93,15 @@ while not done:
     step += 1
     env.show()
 
-    time.sleep(0.5)
+    time.sleep(2.0)
 
     print(f"\n---")
     print(f"Step: {step}")
-    print(f"Task:")
-    utils.pprint_ltl_formula(env.translate_formula(obs['text']))
+    print(f"Predicted Residual Task:")
+    utils.pprint_ltl_formula(env.translate_formula(env.pred_ltl_goal))
+
+    if env.real_ltl_goal != env.pred_ltl_goal:
+        print("WRONG PREDICTED RESIDUAL FORMULA")
 
     print("\nAction: ", end="")
 
@@ -104,14 +110,18 @@ while not done:
 
     obs, reward, done, info = env.step(action)
 
+    pred_sym = env.env.translate_formula(env.env.get_events())
+    print(f"Predicted Symbol: {pred_sym}")
+    if env.env.get_events() != env.env.get_real_events():
+        print("WRONG PREDICTION")
+    print(f"Predicted Reward: {reward}")
+
     if done:
-        env.show()
-        print(f"Reward: {reward}")
-        print("Done!")
-        print("Closing...")
         break
 
-    print(f"Reward: {reward}")
+env.show()
+print("Done!")
+print("Closing...")
 
-time.sleep(2)
+time.sleep(2.0)
 env.close()
