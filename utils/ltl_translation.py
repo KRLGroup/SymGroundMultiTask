@@ -23,6 +23,8 @@ def ltl_ast2str(ast) -> str:
         return f"!({ltl_ast2str(args[0])})"
     elif op == 'eventually':
         return f"F ({ltl_ast2str(args[0])})"
+    elif op == 'always':
+        return f"G ({ltl_ast2str(args[0])})"
 
 
 # from LTL2Action formula to MooreMachine

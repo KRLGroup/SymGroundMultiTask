@@ -15,12 +15,16 @@ import numpy as np
 from finite_state_machine import MooreMachine
 
 
+
 class LTLSampler():
+
     def __init__(self, propositions):
         self.propositions = propositions
 
+
     def sample(self):
         raise NotImplementedError
+
 
     def get_current_id(self):
         return None
@@ -29,9 +33,11 @@ class LTLSampler():
 
 # Samples from one of the other samplers at random. The other samplers are sampled by their default args.
 class SuperSampler(LTLSampler):
+
     def __init__(self, propositions):
         super().__init__(propositions)
         self.reg_samplers = getRegisteredSamplers(self.propositions)
+
 
     def sample(self):
         return random.choice(self.reg_samplers).sample()
@@ -41,9 +47,11 @@ class SuperSampler(LTLSampler):
 # This class samples formulas of form (or, op_1, op_2), where op_1 and 2 can be either specified as samplers_ids
 # or by default they will be sampled at random via SuperSampler.
 class OrSampler(LTLSampler):
+
     def __init__(self, propositions, sampler_ids = ["SuperSampler"]*2):
         super().__init__(propositions)
         self.sampler_ids = sampler_ids
+
 
     def sample(self):
         return ('or', getLTLSampler(self.sampler_ids[0], self.propositions).sample(),
@@ -55,6 +63,7 @@ class OrSampler(LTLSampler):
 #   ('until',('not','a'),('and', 'b', ('until',('not','c'),'d')))
 # where p1, p2, p3, and p4 are randomly sampled propositions
 class DefaultSampler(LTLSampler):
+
     def sample(self):
         p = random.sample(self.propositions,4)
         return ('until',('not',p[0]),('and', p[1], ('until',('not',p[2]),p[3])))
@@ -71,11 +80,13 @@ class DefaultSampler(LTLSampler):
 # The number of until-tasks, their levels, and their propositions are randomly sampled.
 # This code is a generalization of the DefaultSampler---which is equivalent to UntilTaskSampler(propositions, 2, 2, 1, 1)
 class UntilTaskSampler(LTLSampler):
+
     def __init__(self, propositions, min_levels=1, max_levels=2, min_conjunctions=1 , max_conjunctions=2):
         super().__init__(propositions)
         self.levels       = (int(min_levels), int(max_levels))
         self.conjunctions = (int(min_conjunctions), int(max_conjunctions))
         assert 2*int(max_levels)*int(max_conjunctions) <= len(propositions), "The domain does not have enough propositions!"
+
 
     def sample(self):
         # Sampling a conjuntion of *n_conjs* (not p[0]) Until (p[1]) formulas of *n_levels* levels
@@ -101,10 +112,12 @@ class UntilTaskSampler(LTLSampler):
 # This class generates random LTL formulas that form a sequence of actions.
 # @ min_len, max_len: min/max length of the random sequence to generate.
 class SequenceSampler(LTLSampler):
+
     def __init__(self, propositions, min_len=2, max_len=4):
         super().__init__(propositions)
         self.min_len = int(min_len)
         self.max_len = int(max_len)
+
 
     def sample(self):
         length = random.randint(self.min_len, self.max_len)
@@ -119,6 +132,7 @@ class SequenceSampler(LTLSampler):
 
         return ret
 
+
     def _get_sequence(self, seq):
         if len(seq) == 1:
             return ('eventually',seq)
@@ -130,45 +144,107 @@ class SequenceSampler(LTLSampler):
 # e.g. in (eventually (a and eventually c)) and (eventually b)
 # the two sequence tasks are "a->c" and "b".
 class EventuallySampler(LTLSampler):
-    def __init__(self, propositions, min_levels = 1, max_levels=4, min_conjunctions=1, max_conjunctions=3):
+
+    def __init__(self, propositions, min_levels=1, max_levels=4, min_conjunctions=1, max_conjunctions=3):
         super().__init__(propositions)
         assert(len(propositions) >= 3)
         self.conjunctions = (int(min_conjunctions), int(max_conjunctions))
         self.levels = (int(min_levels), int(max_levels))
 
-    def sample(self):
-        conjs = random.randint(*self.conjunctions)
-        ltl = None
 
+    def sample(self):
+
+        conjs = random.randint(*self.conjunctions)
+
+        ltl = None
         for i in range(conjs):
             task = self.sample_sequence()
             if ltl is None:
                 ltl = task
             else:
                 ltl = ('and',task,ltl)
+
         return ltl
 
 
     def sample_sequence(self):
         length = random.randint(*self.levels)
         seq = []
-
         last = []
         while len(seq) < length:
             # Randomly replace some propositions with a disjunction to make more complex formulas
             population = [p for p in self.propositions if p not in last]
-
             if random.random() < 0.25:
                 c = random.sample(population, 2)
             else:
                 c = random.sample(population, 1)
-
             seq.append(c)
             last = c
-
         ret = self._get_sequence(seq)
-
         return ret
+
+
+    def _get_sequence(self, seq):
+        term = seq[0][0] if len(seq[0]) == 1 else ('or', seq[0][0], seq[0][1])
+        if len(seq) == 1:
+            return ('eventually',term)
+        return ('eventually',('and', term, self._get_sequence(seq[1:])))
+
+
+
+# This generates several sequence tasks which can be accomplished in parallel with a global avoidance.
+# e.g. in (until (not d) (eventually (a and eventually c)) and (eventually b))
+# the two sequence tasks are "a->c" and "b" (without passing for "d").
+class GlobalAvoidanceSampler(LTLSampler):
+
+    def __init__(self, propositions, min_levels=1, max_levels=4, min_conjunctions=1, max_conjunctions=3, min_avoid=1, max_avoid=2):
+        super().__init__(propositions)
+        assert(len(propositions) >= 3)
+        self.conjunctions = (int(min_conjunctions), int(max_conjunctions))
+        self.levels = (int(min_levels), int(max_levels))
+        self.avoids = (int(min_avoid), int(max_avoid))
+
+
+    def sample(self):
+
+        n_avoids = random.randint(*self.avoids)
+        avoids = random.sample(self.propositions, n_avoids)
+        remaining = [item for item in self.propositions if item not in avoids]
+
+        conjs = random.randint(*self.conjunctions)
+        ltl = None
+        for i in range(conjs):
+            task = self.sample_sequence(remaining)
+            if ltl is None:
+                ltl = task
+            else:
+                ltl = ('and', task, ltl)
+
+        for p in avoids:
+            avoidance = ('always', ('not', p))
+            if ltl is None:
+                ltl = avoidance
+            else:
+                ltl = ('and', avoidance, ltl)
+
+        return ltl
+
+
+    def sample_sequence(self, propositions):
+        length = random.randint(*self.levels)
+        seq = []
+        last = []
+        while len(seq) < length:
+            population = [p for p in propositions if p not in last]
+            if random.random() < 0.25 and len(population) >= 2:
+                c = random.sample(population, 2)
+            else:
+                c = random.sample(population, 1)
+            seq.append(c)
+            last = c
+        ret = self._get_sequence(seq)
+        return ret
+
 
     def _get_sequence(self, seq):
         term = seq[0][0] if len(seq[0]) == 1 else ('or', seq[0][0], seq[0][1])
@@ -179,6 +255,7 @@ class EventuallySampler(LTLSampler):
 
 
 class AdversarialEnvSampler(LTLSampler):
+
     def sample(self):
         p = random.randint(0,1)
         if p == 0:
@@ -199,6 +276,7 @@ def getRegisteredSamplers(propositions):
 # The LTLSampler factory method that instantiates the proper sampler
 # based on the @sampler_id.
 def getLTLSampler(sampler_id, propositions):
+
     tokens = ["Default"]
     if (sampler_id != None):
         tokens = sampler_id.split("_")
@@ -231,6 +309,9 @@ def getLTLSampler(sampler_id, propositions):
 
     elif (tokens[0] == "Eventually"):
         return EventuallySampler(propositions, tokens[1], tokens[2], tokens[3], tokens[4])
+
+    elif (tokens[0] == "GlobalAvoidance"):
+        return GlobalAvoidanceSampler(propositions, tokens[1], tokens[2], tokens[3], tokens[4], tokens[5], tokens[6])
 
     else: # "Default"
         return DefaultSampler(propositions)

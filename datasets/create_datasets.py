@@ -35,11 +35,44 @@ hard_test_dataset = Dataset(
     disjoint_from=None,
 )
 
+ga_train_dataset = Dataset(
+    path=Path(os.path.join(DATASETS_DIR, "ga432")),
+    seed=42,
+    n_formulas=10000,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="GlobalAvoidance_1_4_1_3_1_2",
+    disjoint_from=None,
+)
+
+ga_test_dataset = Dataset(
+    path=Path(os.path.join(DATASETS_DIR, "ga432test")),
+    seed=42,
+    n_formulas=1000,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="GlobalAvoidance_1_4_1_3_1_2",
+    disjoint_from=ga_train_dataset,
+)
+
+ga_hard_test_dataset = Dataset(
+    path=Path(os.path.join(DATASETS_DIR, "ga542test")),
+    seed=42,
+    n_formulas=50,
+    propositions=["a", "b", "c", "d", "e"],
+    sampler="GlobalAvoidance_5_5_4_4_2_2",
+    disjoint_from=None,
+)
+
 
 datasets = [
+
     train_dataset,
     test_dataset,
     hard_test_dataset,
+
+    ga_train_dataset,
+    ga_test_dataset,
+    ga_hard_test_dataset
+
 ]
 
 
