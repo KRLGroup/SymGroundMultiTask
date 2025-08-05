@@ -393,27 +393,28 @@ def train_agent(args: Args, device: str = None):
             data = [update, num_frames, fps, duration]
             header += ["return/" + key for key in logs["return_per_episode"].keys()]
             data += logs["return_per_episode"].values()
-            header += ["average_reward_per_step", "average_discounted_return"]
-            data += [logs["average_reward_per_step"], logs["average_discounted_return"]]
             header += ["episode_frames/" + key for key in logs["num_frames_per_episode"].keys()]
             data += logs["num_frames_per_episode"].values()
             header += ["algo/entropy", "algo/value", "algo/policy_loss", "algo/value_loss", "algo/grad_norm"]
             data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
-            header += ["grounder/loss", "grounder/acc", "grounder/buffer"]
-            data += [logs["grounder_loss"], logs["grounder_acc"], logs["buffer"]]
+            header += ["grounder/loss", "grounder/val_loss", "grounder/acc", "grounder/buffer"]
+            data += [logs["grounder_loss"], logs["grounder_val_loss"], logs["grounder_acc"], logs["buffer"]]
 
             # μ: mean | σ: std | m: min | M: max
-            # U: update | F: frames | FPS | D: duration | R: return | ARPS: average reward per step 
-            # ADR: average discounted return | F: episode frames | H: entropy | V: value | pL: policy loss 
-            # vL: value loss | nabla: grad norm | gL: grounder loss | gA: grounder accuracy | b: buffer
+            # U: update | F: frames | FPS | D: duration | R: return | ADR: average discounted return
+            # F: episode frames | H: entropy | V: value | pL: policy loss | vL: value loss 
+            # nabla: grad norm | gL: grounder loss | gvL: grounder validation loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
                 ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f}" +
                 " | ADR: {:.3f} | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f}" +
-                " | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gA {:.4f} | b {:5}").format(*data)
+                " | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gvL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
 
-            header += ["grounder/val_loss", "grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
-            data += [logs["grounder_val_loss"], logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
+            header += ["average_reward_per_step", "average_discounted_return"]
+            data += [logs["average_reward_per_step"], logs["average_discounted_return"]]
+
+            header += ["grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
+            data += [logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
 
             header += [f"grounder_recall/{i}" for i in range(num_symbols)]
             data += logs["grounder_recall"]
