@@ -337,7 +337,12 @@ def train_agent(args: Args, device: str = None):
 
     txt_logger.info("Training\n")
 
+    logs1 = utils.empty_episode_logs()
+    logs2 = utils.empty_buffer_logs()
+    logs3 = utils.empty_algo_logs()
+    logs4 = utils.empty_grounder_algo_logs()
     logs_exp = utils.empty_episode_logs()
+
     num_frames = status["num_frames"]
     update = status["update"]
     start_time = time.time()

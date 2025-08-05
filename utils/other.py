@@ -33,15 +33,40 @@ def average_discounted_return(returns, num_frames, disc):
 
 
 def empty_episode_logs():
-
-    logs_exp = {
+    logs = {
         "return_per_episode": [],
         "reshaped_return_per_episode": [],
         "num_frames_per_episode": [],
         "num_frames": 0
     }
+    return logs
 
-    return logs_exp
+
+def empty_buffer_logs():
+    logs = {
+        'buffer': 0, 'val_buffer': 0, 
+        'total_buffer': 0, 'total_val_buffer': 0
+    }
+    return logs
+
+
+def empty_algo_logs():
+    logs = {
+        "entropy": 0.0,
+        "value": 0.0,
+        "policy_loss": 0.0,
+        "value_loss": 0.0,
+        "grad_norm": 0.0
+    }
+    return logs
+
+
+def empty_grounder_algo_logs():
+    logs = {
+        'grounder_loss': 0.0,
+        "grounder_val_loss": 0.0
+    }
+    return logs
 
 
 def accumulate_episode_logs(logs_exp, logs):
