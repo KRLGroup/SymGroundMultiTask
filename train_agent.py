@@ -393,6 +393,8 @@ def train_agent(args: Args, device: str = None):
             data = [update, num_frames, fps, duration]
             header += ["return/" + key for key in logs["return_per_episode"].keys()]
             data += logs["return_per_episode"].values()
+            header += ["average_discounted_return"]
+            data += [logs["average_discounted_return"]]
             header += ["episode_frames/" + key for key in logs["num_frames_per_episode"].keys()]
             data += logs["num_frames_per_episode"].values()
             header += ["algo/entropy", "algo/value", "algo/policy_loss", "algo/value_loss", "algo/grad_norm"]
@@ -405,7 +407,7 @@ def train_agent(args: Args, device: str = None):
             # F: episode frames | H: entropy | V: value | pL: policy loss | vL: value loss 
             # nabla: grad norm | gL: grounder loss | gvL: grounder validation loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ARPS: {:.3f}" +
+                ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f}" +
                 " | ADR: {:.3f} | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f}" +
                 " | vL {:.3f} | ∇ {:.3f} | gL {:.6f} | gvL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
