@@ -60,3 +60,7 @@ class ReplayBuffer:
             obss = self._pad_repeat_last(obss).to(self.device)
             rews = self._pad_repeat_last(rews).to(self.device)
             yield obss, rews, dfa_trans, dfa_rew
+
+
+    def clear(self):
+        self.buffer.clear()
