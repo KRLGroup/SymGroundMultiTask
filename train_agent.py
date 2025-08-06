@@ -237,9 +237,11 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model,
+                                   args.dumb_ac, args.freeze_gnn, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac,
+                          args.freeze_gnn, device, False)
 
     # load existing model
     if "model_state" in status:
@@ -362,6 +364,7 @@ def train_agent(args: Args, device: str = None):
     while num_frames < args.frames:
 
         update_start_time = time.time()
+        update += 1
 
         # collect experiences from environments
         exps, logs1 = algo.collect_experiences()
@@ -372,10 +375,8 @@ def train_agent(args: Args, device: str = None):
         logs4 = grounder_algo.update_parameters()
 
         update_end_time = time.time()
-
         num_frames += logs1["num_frames"]
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
-        update += 1
 
         # Print logs (they refer only to the last update)
 
