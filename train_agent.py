@@ -196,6 +196,8 @@ def train_agent(args: Args, device: str = None):
         freeze_grounder = args.freeze_grounder
     )
 
+    grounder_algo_env.env.sym_grounder = sym_grounder
+
     # load environments
     envs = []
     for i in range(args.procs):

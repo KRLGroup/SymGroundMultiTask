@@ -90,23 +90,15 @@ class GrounderAlgo():
 
             if rews[-1] != 0 and len(rews) <= self.max_env_steps:
 
-                # load automata
+                # add to the buffer
                 dfa = self.sampler.get_automaton(task)
-                dfa_trans = dfa.transitions
-                dfa_rew = dfa.rewards
-
-                # add episode
-                self.add_episode(obss, rews, dfa_trans, dfa_rew)
+                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
             if rews[-1] == 0 and len(rews) <= self.max_env_steps and np.random.rand() < self.zero_rew_ep_prob:
 
-                # load automata
+                # add to the buffer
                 dfa = self.sampler.get_automaton(task)
-                dfa_trans = dfa.transitions
-                dfa_rew = dfa.rewards
-
-                # add episode
-                self.add_episode(obss, rews, dfa_trans, dfa_rew)
+                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 

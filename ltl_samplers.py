@@ -382,7 +382,7 @@ class DatasetSampler(LTLSampler):
             self.items = [self.items[i] for i in self.ids]
 
         self.n_tasks = len(self.items)
-        self.order = list(range(self.n_tasks))
+        self.order = np.arange(self.n_tasks)
 
 
     def sample(self):
@@ -392,9 +392,9 @@ class DatasetSampler(LTLSampler):
             np.random.shuffle(self.order)
 
         self.current_id = self.order[self.sampled_tasks % self.n_tasks]
-        item = self.items[self.current_id]
-        self.current_formula = item["formula"]
-        self.current_automaton = item["automaton"]
+        current_item = self.items[self.current_id]
+        self.current_formula = current_item["formula"]
+        self.current_automaton = current_item["automaton"]
         self.sampled_tasks += 1
 
         return self.current_formula

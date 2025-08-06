@@ -331,4 +331,6 @@ class LTLGrounderEnv(LTLEnv):
 
     # returns formula and id
     def sample_ltl_goal(self):
-        return self.sampler.sample(), self.sampler.get_current_id()
+        goal_formula = self.sampler.sample()
+        goal_id = self.sampler.get_current_id()
+        return goal_formula, goal_id
