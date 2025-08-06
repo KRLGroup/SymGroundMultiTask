@@ -169,7 +169,8 @@ class GrounderAlgo():
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 'num_frames': len(rews),
-            'total_buffer': self.buffer.total_episodes, 'total_val_buffer': self.val_buffer.total_episodes
+            'total_buffer': self.buffer.total_episodes, 'total_val_buffer': self.val_buffer.total_episodes,
+            'episode_return': rew, 'episode_frames': len(rews)
         }
 
         return logs
