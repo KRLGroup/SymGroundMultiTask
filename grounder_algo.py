@@ -341,3 +341,9 @@ class GrounderAlgo():
 
     def load_grounder(self):
         self.grounder.load_state_dict(torch.load(self.save_path))
+
+
+    def clear_buffers(self):
+        if self.train_grounder:
+            self.buffer.clear()
+            self.val_buffer.clear()
