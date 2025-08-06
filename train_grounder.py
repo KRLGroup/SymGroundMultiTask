@@ -174,7 +174,8 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initializing Buffer...\n")
     progress = tqdm(total=args.buffer_start)
     while progress.n < args.buffer_start:
-        logs = grounder_algo.collect_experiences()
+        agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
+        logs = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
         progress.n = logs['buffer']
         num_frames += logs['num_frames']
         progress.refresh()
@@ -186,10 +187,8 @@ def train_grounder(args: Args, device: str = None):
         update_start_time = time.time()
         update += 1
 
-        # choose whether to use agent or random
-        agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
-
         for _ in range(args.episodes_per_update):
+            agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
             logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
             num_frames += logs1["num_frames"]
 
@@ -217,7 +216,7 @@ def train_grounder(args: Args, device: str = None):
 
             # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             txt_logger.info(
-                ("U {:5} | F {:7} | D {:5} | B {:5} | L {:.6f} | vL {:.6f} | A {:.4f}" +
+                ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | B {:5} | L {:.6f} | vL {:.6f} | A {:.4f}" +
                 " | R" + "".join([" {:.3f}" for i in range(num_symbols)])).format(*data)
             )
 
