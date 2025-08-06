@@ -23,7 +23,6 @@ train_grounder_base = Args(
     episodes_per_update = 1,
     buffer_size = 1024,
     buffer_start = 32,
-    max_env_steps = 75,
     batch_size = 32,
     lr = 0.001,
     update_steps = 4,

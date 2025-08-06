@@ -35,7 +35,6 @@ class Args:
     episodes_per_update: int = 1
     buffer_size: int = 1000
     buffer_start: int = 32
-    max_env_steps: int = 75
     batch_size: int = 32
     lr: float = 0.001
     update_steps: int = 1
@@ -150,7 +149,7 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_env_steps, args.buffer_size, args.batch_size,
+    grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_num_steps, args.buffer_size, args.batch_size,
                                  args.lr, args.update_steps, args.accumulation, args.evaluate_steps, args.early_stopping,
                                  args.patience, args.min_delta, model_dir, device)
 
