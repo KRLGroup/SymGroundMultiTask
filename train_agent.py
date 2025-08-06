@@ -292,10 +292,10 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Agent training algorithm loaded.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, grounder_algo_env, train_grounder, args.grounder_max_env_steps, 
-                                 args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr, 
-                                 args.grounder_update_steps, args.grounder_accumulation, args.grounder_evaluate_steps, 
-                                 args.grounder_early_stopping, args.grounder_patience, args.grounder_min_delta, 
+    grounder_algo = GrounderAlgo(sym_grounder, grounder_algo_env, train_grounder, args.grounder_max_env_steps,
+                                 args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr,
+                                 args.grounder_update_steps, args.grounder_accumulation, args.grounder_evaluate_steps,
+                                 args.grounder_early_stopping, args.grounder_patience, args.grounder_min_delta,
                                  model_dir, device)
 
     # load grounder optimizer of existing model
@@ -480,7 +480,10 @@ def train_agent(args: Args, device: str = None):
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
-                txt_logger.info("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f} | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}".format(*data))
+                txt_logger.info(
+                    ("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+                    " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
+                )
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
