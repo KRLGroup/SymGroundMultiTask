@@ -93,7 +93,7 @@ while not done:
     step += 1
     env.show()
 
-    time.sleep(2.0)
+    time.sleep(0.5)
 
     print(f"\n---")
     print(f"Step: {step}")
@@ -110,11 +110,13 @@ while not done:
 
     obs, reward, done, info = env.step(action)
 
+    real_sym = env.env.translate_formula(env.env.get_real_events())
+    print(f"Real Symbol: {real_sym}")
     pred_sym = env.env.translate_formula(env.env.get_events())
-    print(f"Predicted Symbol: {pred_sym}")
+    print(f"Pred Symbol: {pred_sym}")
     if env.env.get_events() != env.env.get_real_events():
         print("WRONG PREDICTION")
-    print(f"Predicted Reward: {reward}")
+    print(f"Reward: {reward}")
 
     if done:
         break
