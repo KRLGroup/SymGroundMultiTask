@@ -75,7 +75,7 @@ def accumulate_episode_logs(logs_exp, logs):
         logs_exp["return_per_episode"] += logs["return_per_episode"]
         logs_exp["reshaped_return_per_episode"] += logs["reshaped_return_per_episode"]
         logs_exp["num_frames_per_episode"] += logs["num_frames_per_episode"]
-        logs_exp["num_frames"] = logs["num_frames"]
+        logs_exp["num_frames"] += logs["num_frames"]
 
     else:
         logs_exp["return_per_episode"].append(logs["episode_return"])

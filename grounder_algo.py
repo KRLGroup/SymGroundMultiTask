@@ -11,7 +11,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 class GrounderAlgo():
 
     def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1024, batch_size=32, lr=0.001,
-        update_steps=4, accumulation=1, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0, 
+        update_steps=4, accumulation=1, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0,
         save_dir=None, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,7 +68,7 @@ class GrounderAlgo():
 
         if not self.train_grounder or self.early_stop:
             logs = {
-                'buffer': 0, 'val_buffer': 0, 
+                'buffer': 0, 'val_buffer': 0,
                 'total_buffer': 0, 'total_val_buffer': 0
             }
             return logs
@@ -120,8 +120,8 @@ class GrounderAlgo():
 
         if not self.train_grounder or self.early_stop:
             logs = {
-                'buffer': 0, 'val_buffer': 0, 'num_frames': 0,
-                'total_buffer': 0, 'total_val_buffer': 0
+                'buffer': 0, 'val_buffer': 0, 'num_frames': 0, 'total_buffer': 0, 'total_val_buffer': 0,
+                'episode_return': 0.0, 'episode_frames': 0.0
                 }
             return logs
 
@@ -170,7 +170,7 @@ class GrounderAlgo():
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 'num_frames': len(rews),
             'total_buffer': self.buffer.total_episodes, 'total_val_buffer': self.val_buffer.total_episodes,
-            'episode_return': rew, 'episode_frames': len(rews)
+            'episode_return': float(rew), 'episode_frames': float(len(rews))
         }
 
         return logs
