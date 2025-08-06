@@ -184,6 +184,9 @@ def train_grounder(args: Args, device: str = None):
     # training loop
     while update < args.updates:
 
+        update_start_time = time.time()
+        update += 1
+
         # choose whether to use agent or random
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
 
@@ -193,7 +196,7 @@ def train_grounder(args: Args, device: str = None):
 
         logs2 = grounder_algo.update_parameters()
 
-        update += 1
+        update_end_time = time.time()
         num_frames += logs1["num_frames"]
 
         # logging
@@ -203,10 +206,11 @@ def train_grounder(args: Args, device: str = None):
             logs3 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3}
 
+            fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
-            header = ["time/update", "time/frames", "time/duration"]
-            data = [update, num_frames, duration]
+            header = ["time/update", "time/frames", "time/fps", "time/duration"]
+            data = [update, num_frames, fps, duration]
             header += ["grounder/buffer", "grounder/loss", "grounder/val_loss", "grounder/acc"]
             data += [logs["buffer"], logs["grounder_loss"], logs["grounder_val_loss"], logs["grounder_acc"]]
             header += [f"grounder_recall/{i}" for i in range(num_symbols)]
