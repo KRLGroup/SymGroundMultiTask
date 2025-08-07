@@ -100,7 +100,7 @@ def train_agent(args: Args, device: str = None):
     if args.freeze_gnn:
         assert args.use_pretrained_gnn
     if args.use_pretrained_gnn:
-        assert args.progression_mode == "full" and args.gnn_pretrain != None
+        assert args.progression_mode in ["full", "real"] and args.gnn_pretrain != None
     if args.grounder_model and args.freeze_grounder:
         assert args.use_pretrained_grounder
     if args.use_pretrained_grounder:

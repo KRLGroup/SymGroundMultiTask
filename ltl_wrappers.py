@@ -312,7 +312,7 @@ class LTLGrounderEnv(LTLEnv):
         elif self.progression_mode == "real":
             ltl_obs = {
                 'features': self.obs,
-                'progress_info': self.real_ltl_goal,
+                'text': self.real_ltl_goal,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
