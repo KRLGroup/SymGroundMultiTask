@@ -175,9 +175,9 @@ def train_grounder(args: Args, device: str = None):
     progress = tqdm(total=args.buffer_start)
     while progress.n < args.buffer_start:
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
-        logs = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
-        progress.n = logs['buffer']
-        num_frames += logs['num_frames']
+        logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
+        progress.n = logs1['buffer']
+        num_frames += logs1['num_frames']
         progress.refresh()
     progress.close()
 
