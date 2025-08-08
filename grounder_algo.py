@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 import utils
+from torch_ac import DictList
 from replay_buffer import ReplayBuffer
 from deep_automa import MultiTaskProbabilisticAutoma
 
@@ -10,7 +11,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, env, train_grounder, max_env_steps=50, buffer_size=1024, batch_size=32, lr=0.001,
+    def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, batch_size=32, lr=0.001,
         update_steps=4, accumulation=1, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0,
         save_dir=None, device=None):
 
@@ -21,7 +22,7 @@ class GrounderAlgo():
         self.buffer_size = buffer_size
         self.val_buffer_size = buffer_size // 4
 
-        self.zero_rew_ep_prob = 0.05
+        self.zero_rew_ep_prob = 0.00
 
         self.batch_size = batch_size
         self.lr = lr
@@ -73,28 +74,42 @@ class GrounderAlgo():
             }
             return logs
 
-        ids = torch.stack([exps.obs.episode_id, exps.obs.env_id], dim=1)
-        unique_ids = torch.unique(ids, dim=0)
-        episodes = []
+        # process last observations
+        last_obs = {
+            (obs['episode_id'], obs['env_id']): torch.tensor(obs['features'], device=self.device)
+            for obs in exps.last_obs if obs is not None
+        }
 
-        # compose episodes
-        for episode_id, env_id in unique_ids:
+        episodes = []
+        used_mask = torch.zeros(len(exps.reward), dtype=torch.bool)
+
+        # compose finished episodes
+        for episode_id, env_id in last_obs.keys():
+
             mask = (exps.obs.episode_id == episode_id) & (exps.obs.env_id == env_id)
-            episodes.append(exps[mask])
+            used_mask |= mask
+            masked_exps = exps[mask]
+
+            episode = {
+                "task": masked_exps.obs.task_id[0],
+                "obss": torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0),
+                "rews": torch.cat([torch.zeros(1, dtype=torch.long, device=self.device), masked_exps.reward], dim=0)
+            }
+            episodes.append(episode)
 
         for episode in episodes:
 
-            obss = episode.obs.image
-            rews = episode.reward.long()
-            task = episode.obs.task_id[0]
+            obss = episode["obss"]
+            rews = episode["rews"]
+            task = episode["task"]
 
-            if rews[-1] != 0 and len(rews) <= self.max_env_steps:
+            if rews[-1] != 0 and len(rews) <= self.max_env_steps+1:
 
                 # add to the buffer
                 dfa = self.sampler.get_automaton(task)
                 self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
-            if rews[-1] == 0 and len(rews) <= self.max_env_steps and np.random.rand() < self.zero_rew_ep_prob:
+            if rews[-1] == 0 and len(rews) <= self.max_env_steps+1 and np.random.rand() < self.zero_rew_ep_prob:
 
                 # add to the buffer
                 dfa = self.sampler.get_automaton(task)
@@ -136,7 +151,7 @@ class GrounderAlgo():
             obs, rew, done, _ = self.env.step(action)
             obss.append(obs['features'])
             rews.append(rew)
-            done = done or len(rews) >= self.max_env_steps
+            done = done or len(rews) >= self.max_env_steps+1
 
         # reward obtained only at last step (if it's 0 there is no supervision)
         if rew != 0:
