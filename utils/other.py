@@ -1,14 +1,17 @@
-import numpy
+import numpy as np
 import torch
 import collections
 
 
+from torch_ac import DictList
+
+
 def synthesize(array):
     d = collections.OrderedDict()
-    d["mean"] = numpy.mean(array)
-    d["std"] = numpy.std(array)
-    d["min"] = numpy.amin(array)
-    d["max"] = numpy.amax(array)
+    d["mean"] = np.mean(array)
+    d["std"] = np.std(array)
+    d["min"] = np.amin(array)
+    d["max"] = np.amax(array)
     return d
 
 
@@ -19,7 +22,7 @@ def average_reward_per_step(returns, num_frames):
     for i in range(len(returns)):
         avgs.append(returns[i] / num_frames[i])
 
-    return numpy.mean(avgs)
+    return np.mean(avgs)
 
 
 def average_discounted_return(returns, num_frames, disc):
@@ -29,7 +32,7 @@ def average_discounted_return(returns, num_frames, disc):
     for i in range(len(returns)):
         discounted_returns.append(returns[i] * (disc ** (num_frames[i]-1)))
 
-    return numpy.mean(discounted_returns)
+    return np.mean(discounted_returns)
 
 
 def empty_episode_logs():
@@ -104,3 +107,32 @@ def elaborate_episode_logs(logs, discount):
     }
 
     return episode_logs
+
+
+def concat_dictlists(dl1, dl2):
+
+    if dl1 == None:
+        return dl2
+    if dl2 == None:
+        return dl1
+
+    if not isinstance(dl1, DictList) or not isinstance(dl2, DictList):
+        raise TypeError("Both arguments must be instances of DictList")
+    if set(dl1.keys()) != set(dl2.keys()):
+        raise ValueError("Both DictList instances must have the same keys")
+
+    result = {}
+    for k in dl1:
+        v1 = dict.__getitem__(dl1, k)
+        v2 = dict.__getitem__(dl2, k)
+
+        if isinstance(v1, DictList) and isinstance(v2, DictList):
+            result[k] = concat_dictlists(v1, v2)
+        elif isinstance(v1, torch.Tensor) and isinstance(v2, torch.Tensor):
+            result[k] = torch.cat([v1, v2], dim=0)
+        elif isinstance(v1, np.ndarray) and isinstance(v2, np.ndarray):
+            result[k] = np.concatenate([v1, v2], axis=0)
+        else:
+            result[k] = v1 + v2
+
+    return DictList(result)
