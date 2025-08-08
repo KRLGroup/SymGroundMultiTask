@@ -37,6 +37,7 @@ class GrounderAlgo():
 
         self.train_grounder = train_grounder and grounder is not None
         self.num_symbols = len(env.propositions)
+        self.residual_exps = None
 
         if self.train_grounder:
             self.buffer = ReplayBuffer(capacity=self.buffer_size, device=device)
@@ -80,6 +81,10 @@ class GrounderAlgo():
             for obs in exps.last_obs if obs is not None
         }
 
+        # add residual experiences to exps
+        exps = DictList({"obs": exps.obs, "reward": exps.reward.long()})
+        exps = utils.concat_dictlists(self.residual_exps, exps)
+
         episodes = []
         used_mask = torch.zeros(len(exps.reward), dtype=torch.bool)
 
@@ -96,6 +101,11 @@ class GrounderAlgo():
                 "rews": torch.cat([torch.zeros(1, dtype=torch.long, device=self.device), masked_exps.reward], dim=0)
             }
             episodes.append(episode)
+
+        self.residual_exps = DictList({
+            "obs": exps.obs[~used_mask],
+            "reward": exps.reward[~used_mask]
+        })
 
         for episode in episodes:
 
