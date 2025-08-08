@@ -229,6 +229,7 @@ class BaseAlgo(ABC):
         # Preprocess experiences
 
         exps.obs = self.preprocess_obss(exps.obs, device=self.device)
+        exps.last_obs = np.array(exps.last_obs, dtype=object)
 
         # Log some values
 
