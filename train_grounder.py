@@ -118,7 +118,7 @@ def train_grounder(args: Args, device: str = None):
             recurrence = config.recurrence,
             dumb_ac = config.dumb_ac,
             device = device,
-            argmax = True,
+            argmax = False,
             num_envs = 1,
             verbose = False
         )
