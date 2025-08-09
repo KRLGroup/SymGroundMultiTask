@@ -4,7 +4,6 @@ import time
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Tuple
-import pickle
 from tqdm import tqdm
 import tensorboardX
 
@@ -103,26 +102,10 @@ def train_grounder(args: Args, device: str = None):
     # load agent
     agent = None
     if args.use_agent:
-
-        agent_dir = os.path.join(storage_dir, args.agent_dir)
-        with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
-            config = pickle.load(f)
-
-        agent = utils.Agent(
-            env,
-            env.observation_space,
-            env.action_space,
-            agent_dir,
-            config.ignoreLTL,
-            config.progression_mode,
-            config.gnn_model,
-            recurrence = config.recurrence,
-            dumb_ac = config.dumb_ac,
-            device = device,
-            argmax = False,
-            num_envs = 1,
-            verbose = False
-        )
+        config = utils.load_config(agent_dir)
+        agent = utils.Agent(env, env.observation_space, env.action_space, agent_dir, config.ignoreLTL,
+                            config.progression_mode, config.gnn_model, config.recurrence, config.dumb_ac,
+                            device, False, 1, False)
 
     # create model
     sym_grounder = utils.make_grounder(

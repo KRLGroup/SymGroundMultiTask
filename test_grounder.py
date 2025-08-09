@@ -2,7 +2,6 @@ import argparse
 import torch
 import numpy as np
 import os
-import pickle
 
 import utils
 
@@ -25,8 +24,7 @@ storage_dir = os.path.join(REPO_DIR, "storage")
 grounder_dir = os.path.join(storage_dir, args.grounder)
 
 # load training config
-with open(os.path.join(grounder_dir, "config.pickle"), "rb") as f:
-    config = pickle.load(f)
+config = utils.load_config(grounder_dir)
 print(f"\nConfig:\n{config}")
 
 # build environment

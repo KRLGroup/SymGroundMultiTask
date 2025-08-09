@@ -1,6 +1,5 @@
 import time
 import torch
-import torch_ac
 import tensorboardX
 import os
 from dataclasses import dataclass
@@ -8,6 +7,7 @@ from typing import List, Optional, Tuple
 from tqdm import tqdm
 
 import utils
+import torch_ac
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
 from grounder_algo import GrounderAlgo

@@ -131,6 +131,7 @@ class BaseAlgo(ABC):
         """
 
         for i in range(self.num_frames_per_proc):
+
             # Do one agent-environment interaction
 
             preprocessed_obs = self.preprocess_obss(self.obs, device=self.device)

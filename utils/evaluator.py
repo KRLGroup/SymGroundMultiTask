@@ -63,21 +63,9 @@ class Eval:
     def eval(self, num_frames, episodes=100, stdout=True):
 
         # Load agent
-        agent = Agent(
-            self.eval_env.envs[0],
-            self.eval_env.observation_space,
-            self.eval_env.action_space,
-            self.model_dir,
-            self.ignoreLTL,
-            self.progression_mode,
-            self.gnn,
-            recurrence = self.recurrence,
-            dumb_ac = self.dumb_ac,
-            device = self.device,
-            argmax = self.argmax,
-            num_envs = self.num_procs,
-            verbose = False
-        )
+        agent = Agent(self.eval_env.envs[0], self.eval_env.observation_space, self.eval_env.action_space,
+                      self.model_dir, self.ignoreLTL, self.progression_mode, self.gnn, self.recurrence, self.dumb_ac,
+                      self.device, self.argmax, self.num_procs, False)
 
         # Run agent
         start_time = time.time()

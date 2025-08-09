@@ -1,12 +1,9 @@
-import pickle
 import os
 import argparse
 import torch
 import time
 
 import utils
-from ac_model import ACModel
-from recurrent_ac_model import RecurrentACModel
 
 
 parser = argparse.ArgumentParser()
@@ -30,8 +27,7 @@ storage_dir = os.path.join(REPO_DIR, "storage")
 agent_dir = os.path.join(storage_dir, args.agent_dir)
 
 # load training config
-with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
-    config = pickle.load(f)
+config = utils.load_config(agent_dir)
 print(f"\nConfig:\n{config}")
 
 # load training status
@@ -65,21 +61,8 @@ sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not No
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder
 
-agent = utils.Agent(
-    env,
-    env.observation_space,
-    env.action_space,
-    agent_dir,
-    config.ignoreLTL,
-    config.progression_mode,
-    config.gnn_model,
-    recurrence = config.recurrence,
-    dumb_ac = config.dumb_ac,
-    device = device,
-    argmax = False,
-    num_envs = 1,
-    verbose = False
-)
+agent = utils.Agent(env, env.observation_space, env.action_space, agent_dir, config.ignoreLTL, config.progression_mode,
+                    config.gnn_model, config.recurrence, config.dumb_ac, device, False, 1, False)
 
 
 # TEST
