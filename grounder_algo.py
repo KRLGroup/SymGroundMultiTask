@@ -21,6 +21,7 @@ class GrounderAlgo():
         self.max_env_steps = max_env_steps
         self.buffer_size = buffer_size
         self.val_buffer_size = buffer_size // 4
+        self.val_split_ratio = 0.2
         self.residual_exps = None
 
         self.batch_size = batch_size
@@ -59,10 +60,11 @@ class GrounderAlgo():
 
 
     def add_episode(self, obss, rews, dfa_trans, dfa_rew):
-        if np.random.rand() > 0.2:
-            self.buffer.push(obss, rews, dfa_trans, dfa_rew)
-        else:
+        episode_count = self.buffer.total_episodes + self.val_buffer.total_episodes
+        if episode_count % int(1 / self.val_split_ratio) == 0:
             self.val_buffer.push(obss, rews, dfa_trans, dfa_rew)
+        else:
+            self.buffer.push(obss, rews, dfa_trans, dfa_rew)
 
 
     def process_experiences(self, exps):
