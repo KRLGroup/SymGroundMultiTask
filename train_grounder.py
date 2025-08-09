@@ -138,24 +138,24 @@ def train_grounder(args: Args, device: str = None):
     status = utils.get_status(model_dir, device)
     txt_logger.info("-) Looking for status of previous training.")
     if status == None:
-        status = {"update": 0, "num_frames": 0}
+        status = {'update': 0, 'num_frames': 0}
         txt_logger.info("-) Previous status not found.")
     else:
         txt_logger.info("-) Previous status found.")
 
     # load existing model
-    if "grounder_state" in status:
-        sym_grounder.load_state_dict(status["grounder_state"])
+    if 'grounder_state' in status:
+        sym_grounder.load_state_dict(status['grounder_state'])
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_num_steps, args.buffer_size, args.batch_size,
-                                 args.lr, args.update_steps, args.accumulation, args.evaluate_steps, args.early_stopping,
-                                 args.patience, args.min_delta, model_dir, device)
+                                 args.lr, args.update_steps, args.accumulation, args.evaluate_steps,
+                                 args.early_stopping, args.patience, args.min_delta, model_dir, device)
 
     # load grounder optimizer of existing model
-    if "grounder_optimizer_state" in status:
-        grounder_algo.optimizer.load_state_dict(status["grounder_optimizer_state"])
+    if 'grounder_optimizer_state' in status:
+        grounder_algo.optimizer.load_state_dict(status['grounder_optimizer_state'])
         txt_logger.info("-) Loading grounder optimizer from existing run.")
 
     txt_logger.info("-) Grounder training algorithm loaded.")
@@ -170,8 +170,8 @@ def train_grounder(args: Args, device: str = None):
     logs2 = utils.empty_grounder_algo_logs()
     logs_exp = utils.empty_episode_logs()
 
-    update = status["update"]
-    num_frames = status["num_frames"]
+    update = status['update']
+    num_frames = status['num_frames']
     start_time = time.time()
 
     # populate buffer
@@ -194,12 +194,12 @@ def train_grounder(args: Args, device: str = None):
         for _ in range(args.episodes_per_update):
             agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
             logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
-            num_frames += logs1["num_frames"]
+            num_frames += logs1['num_frames']
 
         logs2 = grounder_algo.update_parameters()
 
         update_end_time = time.time()
-        num_frames += logs1["num_frames"]
+        num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
 
         # logging
@@ -211,15 +211,15 @@ def train_grounder(args: Args, device: str = None):
             logs = {**logs1, **logs2, **logs3}
             logs_exp = utils.empty_episode_logs()
 
-            fps = logs["num_frames"]/(update_end_time - update_start_time)
+            fps = logs['num_frames']/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
-            header = ["time/update", "time/frames", "time/fps", "time/duration"]
+            header = ['time/update', 'time/frames', 'time/fps', 'time/duration']
             data = [update, num_frames, fps, duration]
-            header += ["grounder/buffer", "grounder/loss", "grounder/val_loss", "grounder/acc"]
-            data += [logs["buffer"], logs["grounder_loss"], logs["grounder_val_loss"], logs["grounder_acc"]]
-            header += [f"grounder_recall/{i}" for i in range(num_symbols)]
-            data += logs["grounder_recall"]
+            header += ['grounder/buffer', 'grounder/loss', 'grounder/val_loss', 'grounder/acc']
+            data += [logs['buffer'], logs['grounder_loss'], logs['grounder_val_loss'], logs['grounder_acc']]
+            header += [f'grounder_recall/{i}' for i in range(num_symbols)]
+            data += logs['grounder_recall']
 
             # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             txt_logger.info(
@@ -227,10 +227,10 @@ def train_grounder(args: Args, device: str = None):
                 " | R" + "".join([" {:.3f}" for i in range(num_symbols)])).format(*data)
             )
 
-            header += ["grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
-            data += [logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
+            header += ['grounder/buffer_val', 'grounder/total_buffer', 'grounder/total_buffer_val']
+            data += [logs['val_buffer'], logs['total_buffer'], logs['total_val_buffer']]
 
-            if status["num_frames"] == 0:
+            if status['num_frames'] == 0:
                 csv_logger.writerow(header)
             csv_logger.writerow(data)
             csv_file.flush()
@@ -243,10 +243,10 @@ def train_grounder(args: Args, device: str = None):
         if update % args.save_interval == 0:
 
             status = {
-                "update": update,
-                "num_frames": num_frames,
-                "grounder_optimizer_state": grounder_algo.optimizer.state_dict(),
-                "grounder_state": sym_grounder.state_dict()
+                'update': update,
+                'num_frames': num_frames,
+                'grounder_optimizer_state': grounder_algo.optimizer.state_dict(),
+                'grounder_state': sym_grounder.state_dict()
             }
 
             utils.save_status(status, model_dir)
