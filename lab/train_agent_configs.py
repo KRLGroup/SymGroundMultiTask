@@ -70,7 +70,7 @@ test_gridworld = Args(
     grounder_update_steps = 4,
     grounder_accumulation = 1,
     grounder_evaluate_steps = 1,
-    grounder_early_stopping = False,
+    grounder_use_early_stopping = False,
     grounder_patience = 20,
     grounder_min_delta = 0.0,
 

@@ -12,7 +12,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 class GrounderAlgo():
 
     def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, batch_size=32, lr=0.001,
-        update_steps=4, accumulation=1, evaluate_steps=1, early_stopping=False, patience=20, min_delta=0.0,
+        update_steps=4, accumulation=1, evaluate_steps=1, use_early_stopping=False, patience=20, min_delta=0.0,
         save_dir=None, device=None):
 
         device = device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,7 +28,7 @@ class GrounderAlgo():
         self.update_steps = update_steps
         self.accumulation = accumulation
         self.evaluate_steps = evaluate_steps
-        self.use_early_stopping = early_stopping
+        self.use_early_stopping = use_early_stopping
 
         self.grounder = grounder
         self.env = env

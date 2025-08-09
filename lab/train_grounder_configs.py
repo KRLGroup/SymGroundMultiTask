@@ -29,6 +29,11 @@ train_grounder_base = Args(
     update_steps = 4,
     accumulation = 1,
 
+    # Early Stopping
+    use_early_stopping = False,
+    patience = 20,
+    min_delta = 0.0,
+
     # Evaluation parameters
     evaluate_steps = 1,
 
