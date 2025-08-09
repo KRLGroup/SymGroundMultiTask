@@ -19,7 +19,7 @@ class Eval:
 
     def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
         obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, 
-        dumb_ac = False, discount=0.99):
+        dumb_ac = False):
 
         self.env = env
         self.device = device
@@ -30,7 +30,6 @@ class Eval:
         self.gnn = gnn
         self.recurrence = recurrence
         self.dumb_ac = dumb_ac
-        self.discount = discount
 
         self.model_dir = model_dir
         self.eval_dir = self.model_dir + "/eval-" + ltl_sampler
@@ -129,8 +128,6 @@ if __name__ == '__main__':
                     help="number of episodes to evaluate on (default: 5)")
     parser.add_argument("--env", default="Letter-7x7-v3",
                         help="name of the environment to train on (REQUIRED)")
-    parser.add_argument("--discount", type=float, default=0.99,
-                    help="discount factor (default: 0.99)")
     parser.add_argument("--ignoreLTL", action="store_true", default=False,
                     help="the network ignores the LTL input")
     parser.add_argument("--progression-mode", default="full",
