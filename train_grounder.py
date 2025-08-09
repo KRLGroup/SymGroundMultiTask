@@ -166,6 +166,10 @@ def train_grounder(args: Args, device: str = None):
 
     txt_logger.info("Training\n")
 
+    logs1 = utils.empty_buffer_logs()
+    logs2 = utils.empty_grounder_algo_logs()
+    logs_exp = utils.empty_episode_logs()
+
     update = status["update"]
     num_frames = status["num_frames"]
     start_time = time.time()
@@ -196,13 +200,16 @@ def train_grounder(args: Args, device: str = None):
 
         update_end_time = time.time()
         num_frames += logs1["num_frames"]
+        logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
 
         # logging
 
         if update % args.log_interval == 0:
 
+            logs1 = utils.elaborate_episode_logs(logs_exp, args.discount)
             logs3 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3}
+            logs_exp = utils.empty_episode_logs()
 
             fps = logs["num_frames"]/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
