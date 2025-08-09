@@ -1,4 +1,3 @@
-import random
 from collections import deque
 import torch
 import numpy as np
@@ -33,7 +32,8 @@ class ReplayBuffer:
 
 
     def sample(self, batch_size):
-        batch = random.sample(self.buffer, batch_size)
+        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+        batch = [self.buffer[idx] for idx in indices]
         obss, rews, dfa_trans, dfa_rew = zip(*batch)
         obss = self._pad_repeat_last(obss).to(self.device)
         rews = self._pad_repeat_last(rews).to(self.device)
