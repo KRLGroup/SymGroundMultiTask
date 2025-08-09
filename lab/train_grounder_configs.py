@@ -17,6 +17,7 @@ train_grounder_base = Args(
     max_num_steps = 50,
     env = "GridWorld-fixed-v1",
     ltl_sampler = "Dataset_e54",
+    progression_mode = "full",
 
     # Training parameters
     updates = 10000,
@@ -28,12 +29,12 @@ train_grounder_base = Args(
     update_steps = 4,
     accumulation = 1,
 
+    # Evaluation parameters
+    evaluate_steps = 1,
+
     # Agent parameters
     use_agent = False,
     agent_dir = None,
     agent_prob = 0.1,
-
-    # Evaluation parameters
-    evaluate_steps = 1,
 
 )

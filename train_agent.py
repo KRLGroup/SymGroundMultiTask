@@ -30,10 +30,10 @@ class Args:
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
     state_type: str = "image"
-    ltl_sampler: str = "Dataset_e54"
     obs_size: Tuple[int,int] = (56,56)
+    ltl_sampler: str = "Dataset_e54"
     noLTL: bool = False
-    progression_mode: str = "full" # full, partial, or none
+    progression_mode: str = "full"
     int_reward: float = 0.0
 
     # GNN parameters
@@ -71,7 +71,7 @@ class Args:
     value_loss_coef: float = 0.5
     max_grad_norm: float = 0.5  # gradient clipping
     optim_eps: float = 1e-8
-    optim_alpha: float = 0.99 
+    optim_alpha: float = 0.99
     clip_eps: float = 0.2  # ppo clipping epsilon
 
     # Grounder training parameters

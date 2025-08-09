@@ -29,6 +29,7 @@ class Args:
     max_num_steps: int = 50
     env: str = "GridWorld-fixed-v1"
     ltl_sampler: str = "Dataset_e54"
+    progression_mode: str = "full"
 
     # Training parameters
     updates: int = 10000
@@ -90,7 +91,7 @@ def train_grounder(args: Args, device: str = None):
     # environment used for training
     env = utils.make_env(
         args.env,
-        progression_mode = "full",
+        progression_mode = args.progression_mode,
         ltl_sampler = args.ltl_sampler,
         grounder = None,
         obs_size = args.obs_size
