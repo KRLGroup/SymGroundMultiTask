@@ -171,7 +171,10 @@ class GrounderAlgo():
     def update_parameters(self):
 
         if not self.train_grounder or len(self.buffer) == 0 or self.early_stop:
-            logs = {'grounder_loss': 0.0, 'grounder_val_loss': 0.0}
+            logs = {
+                'grounder_loss': 0.0, 'grounder_val_loss': 0.0, 
+                'grounder_early_stop': self.early_stop
+            }
             return logs
 
         losses = []
@@ -252,7 +255,10 @@ class GrounderAlgo():
         self.early_stopping_check(avg_val_loss)
 
         # log some values
-        logs = {'grounder_loss': avg_loss, 'grounder_val_loss': avg_val_loss}
+        logs = {
+            'grounder_loss': avg_loss, 'grounder_val_loss': avg_val_loss,
+            'grounder_early_stop': self.early_stop
+        }
 
         return logs
 
