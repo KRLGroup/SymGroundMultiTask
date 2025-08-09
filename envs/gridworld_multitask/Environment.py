@@ -22,7 +22,7 @@ class GridWorldEnv_multitask(gym.Env):
     }
 
     def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
-        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False, 
+        max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False,
         wrap_around_map=True, agent_centric_view=True):
 
         self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
@@ -362,7 +362,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         symbol_to_meaning = {
             'a': 'pickaxe', 'b': 'lava', 'c': 'door',
-            'd': 'gem', 'e': 'egg','': 'nothing'
+            'd': 'gem', 'e': 'egg', '': 'nothing'
         }
 
         if isinstance(formula, tuple):
