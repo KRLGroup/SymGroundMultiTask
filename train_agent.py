@@ -10,7 +10,6 @@ from tqdm import tqdm
 import utils
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
-from envs.gym_letters.letter_env import LetterEnv
 from grounder_algo import GrounderAlgo
 
 
@@ -216,13 +215,6 @@ def train_agent(args: Args, device: str = None):
             obs_size = args.obs_size
         ))
 
-    # sync environments
-    envs[0].reset()
-    if isinstance(envs[0].env, LetterEnv):
-        txt_logger.info("Using fixed maps.")
-        for env in envs:
-            env.env.map = envs[0].env.map
-
     txt_logger.info("-) Environments loaded.")
 
     # load previous training status
@@ -275,7 +267,6 @@ def train_agent(args: Args, device: str = None):
     acmodel.to(device)
 
     txt_logger.info("-) Model loaded.")
-    # txt_logger.info(f"{acmodel}")
 
     # load algo
     if args.algo == "a2c":
@@ -319,21 +310,9 @@ def train_agent(args: Args, device: str = None):
 
         evals = []
         for sampler in eval_samplers:
-            evals.append(utils.Eval(
-                env = eval_env,
-                model_dir = model_dir,
-                ltl_sampler = sampler,
-                seed = args.seed,
-                device = device,
-                state_type = args.state_type,
-                grounder = sym_grounder,
-                obs_size = args.obs_size,
-                num_procs = eval_procs,
-                ignoreLTL = args.ignoreLTL,
-                progression_mode = args.progression_mode,
-                gnn = args.gnn_model,
-                dumb_ac = args.dumb_ac
-            ))
+            evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device,args.state_type, sym_grounder,
+                                    args.obs_size, False, eval_procs, args.ignoreLTL, args.progression_mode,
+                                    args.gnn_model, args.recurrence, args.dumb_ac))
 
         txt_logger.info("-) Evaluators loaded.")
 
@@ -465,24 +444,24 @@ def train_agent(args: Args, device: str = None):
             for i, evalu in enumerate(evals):
 
                 eval_start_time = time.time()
-                logs_returns_per_episode, logs_num_frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
+                return_per_episode, frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
                 eval_end_time = time.time()
 
                 duration = int(eval_end_time - eval_start_time)
 
-                num_frame_pe = sum(logs_num_frames_per_episode)
-                return_per_episode = utils.synthesize(logs_returns_per_episode)
-                average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
-                num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
+                frames = sum(frames_per_episode)
+                return_per_episode = utils.synthesize(return_per_episode)
+                average_discounted_return = utils.average_discounted_return(return_per_episode, frames_per_episode, args.discount)
+                frames_per_episode = utils.synthesize(frames_per_episode)
 
                 header = ['time/frames', 'time/duration']
-                data = [num_frame_pe, duration]
+                data = [frames, duration]
                 header += ['return/' + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
                 header += ['average_discounted_return']
                 data += [average_discounted_return]
-                header += ['num_frames/' + key for key in num_frames_per_episode.keys()]
-                data += num_frames_per_episode.values()
+                header += ['num_frames/' + key for key in frames_per_episode.keys()]
+                data += frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
                 txt_logger.info(

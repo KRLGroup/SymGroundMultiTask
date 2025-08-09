@@ -12,8 +12,8 @@ class Agent:
     - to choose an action given an observation,
     - to analyze the feedback (i.e. reward and done state) of its action."""
 
-    def __init__(self, env, obs_space, action_space, model_dir, ignoreLTL, progression_mode,
-                gnn, recurrence = 1, dumb_ac = False, device=None, argmax=False, num_envs=1, verbose = True):
+    def __init__(self, env, obs_space, action_space, model_dir, ignoreLTL, progression_mode, gnn,
+        recurrence=1, dumb_ac=False, device=None, argmax=False, num_envs=1, verbose=True):
 
         if verbose:
             print(model_dir)
@@ -21,12 +21,12 @@ class Agent:
         status = get_status(model_dir, device)
 
         if status == None:
-            status = {"num_frames": 0, "update": 0}
+            status = {'num_frames': 0, 'update': 0}
 
         using_gnn = (gnn != "GRU" and gnn != "LSTM")
         obs_space, self.preprocess_obss = get_obss_preprocessor(env, using_gnn, progression_mode)
-        if "vocab" in status and self.preprocess_obss.vocab is not None:
-            self.preprocess_obss.vocab.load_vocab(status["vocab"])
+        if 'vocab' in status and self.preprocess_obss.vocab is not None:
+            self.preprocess_obss.vocab.load_vocab(status['vocab'])
 
         if recurrence > 1:
             self.acmodel = RecurrentACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, verbose=verbose)

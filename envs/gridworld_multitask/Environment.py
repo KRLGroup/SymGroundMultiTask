@@ -31,18 +31,11 @@ class GridWorldEnv_multitask(gym.Env):
         self.randomize_locations = randomize_loc
         self.randomize_start = randomize_start
 
-        # icons file paths
-        self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
-        self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
-        self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
-        self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
-        self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
-        self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
-
         self.max_num_steps = max_num_steps
         self.curr_step = 0
-        self.has_window = False
+        self.num_episodes = 0
 
+        self.has_window = False
         self.map_size = map_size
         self.obs_size = obs_size
         self.win_size = win_size
@@ -55,8 +48,6 @@ class GridWorldEnv_multitask(gym.Env):
         self.render_mode = render_mode
         assert state_type in self.metadata["state_types"]
         self.state_type = state_type
-
-        self.num_episodes = 0
 
         self.action_space = spaces.Discrete(4)
         self._action_to_direction = {
@@ -102,6 +93,15 @@ class GridWorldEnv_multitask(gym.Env):
         # load icons using OpenCV (if they are used)
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
+            # icons file paths
+            self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
+            self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
+            self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
+            self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
+            self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
+            self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
+
+            # icons files
             self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
@@ -281,8 +281,8 @@ class GridWorldEnv_multitask(gym.Env):
 
     def _get_info(self):
         info = {
-            "agent location": self._agent_location,
-            "inventory": "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
+            'agent location': self._agent_location,
+            'inventory': "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
         }
         return info
 
@@ -303,7 +303,6 @@ class GridWorldEnv_multitask(gym.Env):
         def overlay_image(bg, fg, top_left):
             x, y = top_left
             h, w = fg.shape[:2]
-            # if the foreground has an alpha channel, use it for blending
             if fg.shape[2] == 4:
                 alpha_fg = fg[:, :, 3] / 255.0
                 alpha_bg = 1.0 - alpha_fg
@@ -317,7 +316,6 @@ class GridWorldEnv_multitask(gym.Env):
         def blit_item(item_img, locations, display=True):
             if display:
                 for loc in locations:
-                    # loc is assumed to be a tuple
                     if self.agent_centric_view:
                         loc = self._absolute_to_agent_centric(loc)
                     x = int(loc[0] * self.cell_size)
@@ -363,12 +361,8 @@ class GridWorldEnv_multitask(gym.Env):
     def translate_formula(self, formula):
 
         symbol_to_meaning = {
-            'a': 'pickaxe',
-            'b': 'lava',
-            'c': 'door',
-            'd': 'gem',
-            'e': 'egg',
-            '': 'nothing'
+            'a': 'pickaxe', 'b': 'lava', 'c': 'door',
+            'd': 'gem', 'e': 'egg','': 'nothing'
         }
 
         if isinstance(formula, tuple):
@@ -381,14 +375,7 @@ class GridWorldEnv_multitask(gym.Env):
 
     def show_to_terminal(self):
 
-        label_to_icon = {
-            0: 'P',
-            1: 'L',
-            2: 'D',
-            3: 'G',
-            4: 'E',
-            5: '.',
-        }
+        label_to_icon = {0: 'P', 1: 'L', 2: 'D', 3: 'G', 4: 'E', 5: '.'}
 
         for c in range(self.map_size):
             row_str = ""
