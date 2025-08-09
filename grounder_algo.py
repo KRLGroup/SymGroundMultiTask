@@ -86,7 +86,7 @@ class GrounderAlgo():
         exps = DictList({'obs': exps.obs, 'reward': exps.reward.long()})
         exps = utils.concat_dictlists(self.residual_exps, exps)
 
-        used_mask = torch.zeros_like(exps.reward, dtype=torch.bool)
+        used_mask = torch.zeros(exps.reward.shape, dtype=torch.bool)
 
         # compose finished episodes
         for episode_id, env_id in last_obs.keys():
