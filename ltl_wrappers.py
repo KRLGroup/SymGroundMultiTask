@@ -77,6 +77,7 @@ class LTLEnv(gym.Wrapper):
 
 
     def step(self, action):
+
         int_reward = 0
         # executing the action in the environment
         next_obs, original_reward, env_done, info = self.env.step(action)
@@ -170,7 +171,8 @@ class LTLEnv(gym.Wrapper):
 
     def get_events(self, obs, act, next_obs):
         # This function must return the events that currently hold on the environment
-        # NOTE: The events are represented by a string containing the propositions with positive values only (e.g., "ac" means that only propositions 'a' and 'b' hold)
+        # NOTE: The events are represented by a string containing the propositions with
+        # positive values only(e.g., "ac" means that only propositions 'a' and 'b' hold)
         return self.env.get_events()
 
 
@@ -201,7 +203,9 @@ class NoLTLWrapper(gym.Wrapper):
 
 
 
-# A subclass of LTLEnv to distinguish between "real" progrssion and "predicted" progression
+# a subclass of LTLEnv to distinguish between "real" progrssion and "predicted"
+# progression (requires an environment that distinguish between real and
+# predicted symbols for an observation)
 class LTLGrounderEnv(LTLEnv):
 
     num_envs = 0
@@ -216,6 +220,7 @@ class LTLGrounderEnv(LTLEnv):
     def reset(self):
 
         self.known_progressions = {}
+        self.curr_step = 0
         self.obs = self.env.reset()
 
         # defining an LTL goal
@@ -228,6 +233,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
@@ -236,6 +242,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
@@ -247,6 +254,7 @@ class LTLGrounderEnv(LTLEnv):
     def step(self, action):
 
         int_reward = 0.0
+        self.curr_step += 1
 
         # executing the action in the environment
         next_obs, env_reward, env_done, info = self.env.step(action)
@@ -289,6 +297,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.pred_ltl_goal,
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
@@ -297,6 +306,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.ltl_original,
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
@@ -305,6 +315,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'progress_info': self.progress_info(self.pred_ltl_goal),
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id
@@ -313,6 +324,7 @@ class LTLGrounderEnv(LTLEnv):
             ltl_obs = {
                 'features': self.obs,
                 'text': self.real_ltl_goal,
+                'step': self.curr_step,
                 'task_id': self.task_id,
                 'episode_id': self.env.num_episodes,
                 'env_id': self.id

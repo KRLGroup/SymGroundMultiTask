@@ -425,7 +425,8 @@ class GridWorldEnv_multitask(gym.Env):
 
 
 # interface needed to build the ltl_wrapper
-# incorporates the symbol grounder and uses it for predictions
+# the agent doesn't receive the current symbol from the environment but computes 
+# it through its grounder model, which is attached to the environment.
 class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
     def __init__(self, grounder, *args, **kwargs):

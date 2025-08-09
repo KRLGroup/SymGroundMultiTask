@@ -31,6 +31,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "progress_info":  torch.stack([torch.tensor(obs["progress_info"], dtype=torch.float) for obs in obss], dim=0, device=device),
+                        "step": torch.tensor([obs["step"] for obs in obss], dtype=torch.int32),
                         "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32),
                         "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32),
                         "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32)
@@ -45,6 +46,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
                     return torch_ac.DictList({
                         "image": preprocess_images([obs["features"] for obs in obss], device=device),
                         "text":  preprocess_texts([obs["text"] for obs in obss], vocab, vocab_space, gnn=gnn, device=device, ast=tree_builder),
+                        "step": torch.tensor([obs["step"] for obs in obss], dtype=torch.int32),
                         "task_id": torch.tensor([obs["task_id"] for obs in obss], dtype=torch.int32),
                         "episode_id": torch.tensor([obs["episode_id"] for obs in obss], dtype=torch.int32),
                         "env_id": torch.tensor([obs["env_id"] for obs in obss], dtype=torch.int32)
