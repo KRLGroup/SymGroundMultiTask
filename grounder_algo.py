@@ -21,8 +21,7 @@ class GrounderAlgo():
         self.max_env_steps = max_env_steps
         self.buffer_size = buffer_size
         self.val_buffer_size = buffer_size // 4
-
-        self.zero_rew_ep_prob = 0.00
+        self.residual_exps = None
 
         self.batch_size = batch_size
         self.lr = lr
@@ -37,7 +36,6 @@ class GrounderAlgo():
 
         self.train_grounder = train_grounder and grounder is not None
         self.num_symbols = len(env.propositions)
-        self.residual_exps = None
 
         if self.train_grounder:
             self.buffer = ReplayBuffer(capacity=self.buffer_size, device=device)
@@ -82,7 +80,7 @@ class GrounderAlgo():
         }
 
         # add residual experiences to exps
-        exps = DictList({"obs": exps.obs, "reward": exps.reward.long()})
+        exps = DictList({'obs': exps.obs, 'reward': exps.reward.long()})
         exps = utils.concat_dictlists(self.residual_exps, exps)
 
         episodes = []
@@ -95,35 +93,23 @@ class GrounderAlgo():
             used_mask |= mask
             masked_exps = exps[mask]
 
-            episode = {
-                "task": masked_exps.obs.task_id[0],
-                "obss": torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0),
-                "rews": torch.cat([torch.zeros(1, dtype=torch.long, device=self.device), masked_exps.reward], dim=0)
-            }
-            episodes.append(episode)
+            task = masked_exps.obs.task_id[0]
+            obss = torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0)
+            rews = torch.cat([torch.zeros(1, dtype=torch.long, device=self.device), masked_exps.reward], dim=0)
+            rew = rews[-1]
+            frames = len(rews)
+
+            to_add = (rew != 0 and frames <= self.max_env_steps+1) or (frames < self.max_env_steps+1)
+
+            # add episode to the buffer
+            if to_add:
+                dfa = self.sampler.get_automaton(task)
+                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
         self.residual_exps = DictList({
-            "obs": exps.obs[~used_mask],
-            "reward": exps.reward[~used_mask]
+            'obs': exps.obs[~used_mask],
+            'reward': exps.reward[~used_mask]
         })
-
-        for episode in episodes:
-
-            obss = episode["obss"]
-            rews = episode["rews"]
-            task = episode["task"]
-
-            if rews[-1] != 0 and len(rews) <= self.max_env_steps+1:
-
-                # add to the buffer
-                dfa = self.sampler.get_automaton(task)
-                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
-
-            if rews[-1] == 0 and len(rews) <= self.max_env_steps+1 and np.random.rand() < self.zero_rew_ep_prob:
-
-                # add to the buffer
-                dfa = self.sampler.get_automaton(task)
-                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 
@@ -154,6 +140,7 @@ class GrounderAlgo():
         done = False
         obss = [obs['features']]
         rews = [0]
+        frames = 1
 
         # play the episode until termination
         while not done:
@@ -161,24 +148,17 @@ class GrounderAlgo():
             obs, rew, done, _ = self.env.step(action)
             obss.append(obs['features'])
             rews.append(rew)
-            done = done or len(rews) >= self.max_env_steps+1
+            frames += 1
+            done = done or frames >= self.max_env_steps+1
 
-        # reward obtained only at last step (if it's 0 there is no supervision)
-        if rew != 0:
+        to_add = (rew != 0 and frames <= self.max_env_steps+1) or (frames < self.max_env_steps+1)
 
-            # add to the buffer
+        # add episode to the buffer
+        if to_add:
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
-            task = self.env.sampler.get_current_automaton()
-            self.add_episode(obss, rews, task.transitions, task.rewards)
-
-        if rew == 0 and np.random.rand() < self.zero_rew_ep_prob:
-
-            # add to the buffer
-            obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
-            rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
-            task = self.env.sampler.get_current_automaton()
-            self.add_episode(obss, rews, task.transitions, task.rewards)
+            dfa = self.env.sampler.get_current_automaton()
+            self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
         # enable grounder back
         if agent is None:
@@ -196,7 +176,7 @@ class GrounderAlgo():
     def update_parameters(self):
 
         if not self.train_grounder or len(self.buffer) == 0 or self.early_stop:
-            logs = {'grounder_loss': 0.0, "grounder_val_loss": 0.0}
+            logs = {'grounder_loss': 0.0, 'grounder_val_loss': 0.0}
             return logs
 
         losses = []
@@ -277,7 +257,7 @@ class GrounderAlgo():
         self.early_stopping_check(avg_val_loss)
 
         # log some values
-        logs = {'grounder_loss': avg_loss, "grounder_val_loss": avg_val_loss}
+        logs = {'grounder_loss': avg_loss, 'grounder_val_loss': avg_val_loss}
 
         return logs
 
