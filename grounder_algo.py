@@ -46,6 +46,7 @@ class GrounderAlgo():
 
         else:
             self.buffer = None
+            self.val_buffer = None
             self.loss_func = None
             self.optimizer = None
 
@@ -83,8 +84,7 @@ class GrounderAlgo():
         exps = DictList({'obs': exps.obs, 'reward': exps.reward.long()})
         exps = utils.concat_dictlists(self.residual_exps, exps)
 
-        episodes = []
-        used_mask = torch.zeros(len(exps.reward), dtype=torch.bool)
+        used_mask = torch.zeros_like(exps.reward, dtype=torch.bool)
 
         # compose finished episodes
         for episode_id, env_id in last_obs.keys():
@@ -93,16 +93,18 @@ class GrounderAlgo():
             used_mask |= mask
             masked_exps = exps[mask]
 
-            task = masked_exps.obs.task_id[0]
-            obss = torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0)
-            rews = torch.cat([torch.zeros(1, dtype=torch.long, device=self.device), masked_exps.reward], dim=0)
-            rew = rews[-1]
-            frames = len(rews)
+            rew = masked_exps.reward[-1]
+            frames = mask.sum() + 1
 
             to_add = (rew != 0 and frames <= self.max_env_steps+1) or (frames < self.max_env_steps+1)
 
             # add episode to the buffer
             if to_add:
+
+                task = masked_exps.obs.task_id[0]
+                obss = torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0)
+                rews = torch.cat([masked_exps.reward.new_zeros(1), masked_exps.reward], dim=0)
+
                 dfa = self.sampler.get_automaton(task)
                 self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
@@ -127,11 +129,6 @@ class GrounderAlgo():
                 'episode_return': 0.0, 'episode_frames': 0.0
                 }
             return logs
-
-        # disable grounder temporarily (for efficiency)
-        if agent is None:
-            env_grounder = self.env.env.sym_grounder
-            self.env.env.sym_grounder = None
 
         # reset the environment
         obs = self.env.reset()
@@ -159,10 +156,6 @@ class GrounderAlgo():
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
             dfa = self.env.sampler.get_current_automaton()
             self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
-
-        # enable grounder back
-        if agent is None:
-            self.env.env.sym_grounder = env_grounder
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 'num_frames': len(rews),
