@@ -121,20 +121,23 @@ def train_agent(args: Args, device: str = None):
     pretrain_dir = os.path.join(REPO_DIR, "storage-pretrain")
 
     # build GNN name
-    gnn_name = args.gnn_model
-    if args.ignoreLTL:
-        gnn_name = "IgnoreLTL"
-    if args.dumb_ac:
-        gnn_name = gnn_name + "-dumb_ac"
-    if args.use_pretrained_gnn:
-        gnn_name = gnn_name + "-pretrained"
-    if args.freeze_gnn:
-        gnn_name = gnn_name + "-freeze_gnn"
-    if use_mem:
-        gnn_name = gnn_name + "-recurrence:%d"%(args.recurrence)
+    gnn_name = (
+        ("IgnoreLTL" if args.ignoreLTL else args.gnn_model)
+        + ("-dumb_ac" if args.dumb_ac else "")
+        + ("-pretrained" if args.use_pretrained_gnn else "")
+        + ("-freeze_gnn" if args.freeze_gnn else "")
+        + (f"-recurrence:{args.recurrence}" if use_mem else "")
+    )
 
     # compute default_model_name
-    default_model_name = f"{gnn_name}_{args.ltl_sampler}_{args.env}_seed:{args.seed}_epochs:{args.epochs}_bs:{args.batch_size}_fpp:{args.frames_per_proc}_dsc:{args.discount}_lr:{args.lr}_ent:{args.entropy_coef}_clip:{args.clip_eps}_prog:{args.progression_mode}"
+    default_model_name = (
+        f"{gnn_name}_{args.ltl_sampler}_{args.env}"
+        f"_seed:{args.seed}_epochs:{args.epochs}"
+        f"_bs:{args.batch_size}_fpp:{args.frames_per_proc}"
+        f"_dsc:{args.discount}_lr:{args.lr}"
+        f"_ent:{args.entropy_coef}_clip:{args.clip_eps}"
+        f"_prog:{args.progression_mode}"
+    )
 
     # model dir
     model_name = args.model_name or default_model_name
@@ -226,15 +229,15 @@ def train_agent(args: Args, device: str = None):
     status = utils.get_status(model_dir, device)
     txt_logger.info("-) Looking for status of previous training.")
     if status == None:
-        status = {"num_frames": 0, "update": 0}
+        status = {'num_frames': 0, 'update': 0}
         txt_logger.info("-) Previous status not found.")
     else:
         txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
     obs_space, preprocess_obss = utils.get_obss_preprocessor(envs[0], use_gnn, args.progression_mode)
-    if "vocab" in status and preprocess_obss.vocab is not None:
-        preprocess_obss.vocab.load_vocab(status["vocab"])
+    if 'vocab' in status and preprocess_obss.vocab is not None:
+        preprocess_obss.vocab.load_vocab(status['vocab'])
     txt_logger.info("-) Observations preprocessor loaded.")
 
     # create model
@@ -246,26 +249,26 @@ def train_agent(args: Args, device: str = None):
                           args.freeze_gnn, device, False)
 
     # load existing model
-    if "model_state" in status:
-        acmodel.load_state_dict(status["model_state"])
+    if 'model_state' in status:
+        acmodel.load_state_dict(status['model_state'])
         txt_logger.info("-) Loading model from existing run.")
 
     # otherwise load existing pretrained GNN
     elif args.use_pretrained_gnn:
         gnn_status = utils.get_status(pretrained_gnn_dir, device)
-        acmodel.load_pretrained_gnn(gnn_status["model_state"])
+        acmodel.load_pretrained_gnn(gnn_status['model_state'])
         txt_logger.info("-) Loading GNN from pretrain.")
 
     # load existing grounder
-    if use_grounder and "grounder_state" in status:
-        sym_grounder.load_state_dict(status["grounder_state"])
+    if use_grounder and 'grounder_state' in status:
+        sym_grounder.load_state_dict(status['grounder_state'])
         txt_logger.info("-) Loading grounder from existing run.")
 
     # otherwise load existing pretrained grounder
     elif use_grounder and args.use_pretrained_grounder:
         grounder_status = utils.get_status(pretrained_grounder_dir, device)
-        sym_grounder.load_state_dict(grounder_status["grounder_state"])
-        status["num_frames"] += grounder_status["num_frames"]
+        sym_grounder.load_state_dict(grounder_status['grounder_state'])
+        status['num_frames'] += grounder_status['num_frames']
         txt_logger.info("-) Loading grounder from pretrain.")
 
     sym_grounder.to(device) if sym_grounder is not None else None
@@ -287,8 +290,8 @@ def train_agent(args: Args, device: str = None):
         raise ValueError("Incorrect algorithm name: {}".format(args.algo))
 
     # load optimizer of existing model
-    if "optimizer_state" in status:
-        algo.optimizer.load_state_dict(status["optimizer_state"])
+    if 'optimizer_state' in status:
+        algo.optimizer.load_state_dict(status['optimizer_state'])
         txt_logger.info("-) Loading optimizer from existing run.")
 
     txt_logger.info("-) Agent training algorithm loaded.")
@@ -301,8 +304,8 @@ def train_agent(args: Args, device: str = None):
                                  model_dir, device)
 
     # load grounder optimizer of existing model
-    if train_grounder and "grounder_optimizer_state" in status:
-        grounder_algo.optimizer.load_state_dict(status["grounder_optimizer_state"])
+    if train_grounder and 'grounder_optimizer_state' in status:
+        grounder_algo.optimizer.load_state_dict(status['grounder_optimizer_state'])
         txt_logger.info("-) Loading grounder optimizer from existing run.")
 
     txt_logger.info("-) Grounder training algorithm loaded.")
@@ -347,8 +350,8 @@ def train_agent(args: Args, device: str = None):
     logs4 = utils.empty_grounder_algo_logs()
     logs_exp = utils.empty_episode_logs()
 
-    num_frames = status["num_frames"]
-    update = status["update"]
+    num_frames = status['num_frames']
+    update = status['update']
     start_time = time.time()
 
     # populate buffer
@@ -377,7 +380,7 @@ def train_agent(args: Args, device: str = None):
         logs4 = grounder_algo.update_parameters()
 
         update_end_time = time.time()
-        num_frames += logs1["num_frames"]
+        num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
 
         # Print logs (they refer only to the last update)
@@ -389,21 +392,21 @@ def train_agent(args: Args, device: str = None):
             logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
             logs_exp = utils.empty_episode_logs()
 
-            fps = logs["num_frames"]/(update_end_time - update_start_time)
+            fps = logs['num_frames']/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
 
-            header = ["time/update", "time/frames", "time/fps", "time/duration"]
+            header = ['time/update', 'time/frames', 'time/fps', 'time/duration']
             data = [update, num_frames, fps, duration]
-            header += ["return/" + key for key in logs["return_per_episode"].keys()]
-            data += logs["return_per_episode"].values()
-            header += ["average_discounted_return"]
-            data += [logs["average_discounted_return"]]
-            header += ["episode_frames/" + key for key in logs["num_frames_per_episode"].keys()]
-            data += logs["num_frames_per_episode"].values()
-            header += ["algo/entropy", "algo/value", "algo/policy_loss", "algo/value_loss", "algo/grad_norm"]
-            data += [logs["entropy"], logs["value"], logs["policy_loss"], logs["value_loss"], logs["grad_norm"]]
-            header += ["grounder/loss", "grounder/val_loss", "grounder/acc", "grounder/buffer"]
-            data += [logs["grounder_loss"], logs["grounder_val_loss"], logs["grounder_acc"], logs["buffer"]]
+            header += ['return/' + key for key in logs['return_per_episode'].keys()]
+            data += logs['return_per_episode'].values()
+            header += ['average_discounted_return']
+            data += [logs['average_discounted_return']]
+            header += ['episode_frames/' + key for key in logs['num_frames_per_episode'].keys()]
+            data += logs['num_frames_per_episode'].values()
+            header += ['algo/entropy', 'algo/value', 'algo/policy_loss', 'algo/value_loss', 'algo/grad_norm']
+            data += [logs['entropy'], logs['value'], logs['policy_loss'], logs['value_loss'], logs['grad_norm']]
+            header += ['grounder/loss', 'grounder/val_loss', 'grounder/acc', 'grounder/buffer']
+            data += [logs['grounder_loss'], logs['grounder_val_loss'], logs['grounder_acc'], logs['buffer']]
 
             # μ: mean | σ: std | m: min | M: max
             # U: update | tF: total frames | FPS | D: duration | R: return | ADR: average discounted return
@@ -415,16 +418,16 @@ def train_agent(args: Args, device: str = None):
                 " | ∇ {:.3f} | gL {:.6f} | gvL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
 
-            header += ["average_reward_per_step", "average_discounted_return"]
-            data += [logs["average_reward_per_step"], logs["average_discounted_return"]]
+            header += ['average_reward_per_step', 'average_discounted_return']
+            data += [logs['average_reward_per_step'], logs['average_discounted_return']]
 
-            header += ["grounder/buffer_val", "grounder/total_buffer", "grounder/total_buffer_val"]
-            data += [logs["val_buffer"], logs["total_buffer"], logs["total_val_buffer"]]
+            header += ['grounder/buffer_val', 'grounder/total_buffer', 'grounder/total_buffer_val']
+            data += [logs['val_buffer'], logs['total_buffer'], logs['total_val_buffer']]
 
-            header += [f"grounder_recall/{i}" for i in range(num_symbols)]
-            data += logs["grounder_recall"]
+            header += [f'grounder_recall/{i}' for i in range(num_symbols)]
+            data += logs['grounder_recall']
 
-            if status["num_frames"] == 0:
+            if status['num_frames'] == 0:
                 csv_logger.writerow(header)
             csv_logger.writerow(data)
             csv_file.flush()
@@ -437,20 +440,20 @@ def train_agent(args: Args, device: str = None):
         if (args.save_interval > 0 and update % args.save_interval == 0) or (args.eval and args.eval_interval > 0 and update % args.eval_interval == 0):
 
             status = {
-                "num_frames": num_frames,
-                "update": update,
-                "model_state": algo.acmodel.state_dict(),
-                "optimizer_state": algo.optimizer.state_dict()
+                'num_frames': num_frames,
+                'update': update,
+                'model_state': algo.acmodel.state_dict(),
+                'optimizer_state': algo.optimizer.state_dict()
             }
 
             if use_grounder:
-                status["grounder_state"] = sym_grounder.state_dict()
+                status['grounder_state'] = sym_grounder.state_dict()
 
             if train_grounder:
-                status["grounder_optimizer_state"] = grounder_algo.optimizer.state_dict()
+                status['grounder_optimizer_state'] = grounder_algo.optimizer.state_dict()
 
-            if hasattr(preprocess_obss, "vocab") and preprocess_obss.vocab is not None:
-                status["vocab"] = preprocess_obss.vocab.vocab
+            if hasattr(preprocess_obss, 'vocab') and preprocess_obss.vocab is not None:
+                status['vocab'] = preprocess_obss.vocab.vocab
 
             utils.save_status(status, model_dir)
             txt_logger.info("Status saved")
@@ -472,13 +475,13 @@ def train_agent(args: Args, device: str = None):
                 average_discounted_return = utils.average_discounted_return(logs_returns_per_episode, logs_num_frames_per_episode, args.discount)
                 num_frames_per_episode = utils.synthesize(logs_num_frames_per_episode)
 
-                header = ["time/frames", "time/duration"]
+                header = ['time/frames', 'time/duration']
                 data = [num_frame_pe, duration]
-                header += ["return/" + key for key in return_per_episode.keys()]
+                header += ['return/' + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
-                header += ["average_discounted_return"]
+                header += ['average_discounted_return']
                 data += [average_discounted_return]
-                header += ["num_frames/" + key for key in num_frames_per_episode.keys()]
+                header += ['num_frames/' + key for key in num_frames_per_episode.keys()]
                 data += num_frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
