@@ -140,6 +140,7 @@ def train_grounder(args: Args, device: str = None):
     # load grounder optimizer of existing model
     if 'grounder_optimizer_state' in status:
         grounder_algo.optimizer.load_state_dict(status['grounder_optimizer_state'])
+        grounder_algo.early_stop = status['grounder_early_stop']
         txt_logger.info("-) Loading grounder optimizer from existing run.")
 
     txt_logger.info("-) Grounder training algorithm loaded.")
@@ -226,12 +227,11 @@ def train_grounder(args: Args, device: str = None):
 
         if update % args.save_interval == 0:
 
-            status = {
-                'update': update,
-                'num_frames': num_frames,
-                'grounder_optimizer_state': grounder_algo.optimizer.state_dict(),
-                'grounder_state': sym_grounder.state_dict()
-            }
+            status['update'] = update
+            status['num_frames'] = num_frames
+            status['grounder_optimizer_state'] = grounder_algo.optimizer.state_dict()
+            status['grounder_early_stop'] = grounder_algo.early_stop
+            status['grounder_state'] = sym_grounder.state_dict()
 
             utils.save_status(status, model_dir)
             txt_logger.info("Status saved")
