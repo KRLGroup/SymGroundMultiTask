@@ -246,7 +246,7 @@ class GrounderAlgo():
                 loss = self.loss_func(pred, labels)
                 val_losses.append(loss.item())
 
-        avg_val_loss = sum(val_losses) / len(val_losses)
+        avg_val_loss = sum(val_losses) / max(1, len(val_losses))
 
         # early stopping
         self.early_stopping_check(avg_val_loss)
