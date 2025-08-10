@@ -59,6 +59,15 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def train_grounder(args: Args, device: str = None):
 
+    # SETUP
+
+    # check if arguments are consistent
+    assert args.buffer_size >= args.buffer_start
+    if args.use_early_stopping:
+        assert args.patience > 0
+    if args.use_agent:
+        assert args.agent_dir is not None
+
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # create model dir
