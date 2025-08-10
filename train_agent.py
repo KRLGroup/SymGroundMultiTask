@@ -428,9 +428,15 @@ def train_agent(args: Args, device: str = None):
             for field, value in zip(header, data):
                 tb_writer.add_scalar(field, value, num_frames)
 
+        eval_condition = ((args.eval and args.eval_interval > 0 and update % args.eval_interval == 0)
+                          or (args.eval and num_frames >= args.frames))
+
+        save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
+                          or (eval_condition))
+
         # Save status
 
-        if (args.save_interval > 0 and update % args.save_interval == 0) or (args.eval and args.eval_interval > 0 and update % args.eval_interval == 0):
+        if save_condition:
 
             status['num_frames'] = num_frames
             status['update'] = update
@@ -450,7 +456,7 @@ def train_agent(args: Args, device: str = None):
 
         # Compute Evaluation
 
-        if args.eval and args.eval_interval > 0 and update % args.eval_interval == 0:
+        if eval_condition:
 
             for i, evalu in enumerate(evals):
 
