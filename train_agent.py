@@ -95,22 +95,27 @@ def train_agent(args: Args, device: str = None):
 
     # SETUP
 
-    # check if arguments are consistent
-    if args.freeze_gnn:
-        assert args.use_pretrained_gnn
-    if args.use_pretrained_gnn:
-        assert args.progression_mode in ["full", "real"] and args.gnn_pretrain != None
-    if args.grounder_model and args.freeze_grounder:
-        assert args.use_pretrained_grounder
-    if args.use_pretrained_grounder:
-        assert args.grounder_pretrain != None
-    if args.eval:
-        assert len(args.eval_episodes) == len(args.eval_samplers) if args.eval_samplers else 1
-
     use_grounder = args.grounder_model is not None
     train_grounder = use_grounder and not args.freeze_grounder
     use_mem = args.recurrence > 1
     use_gnn = (args.gnn_model != "GRU" and args.gnn_model != "LSTM")
+
+    # check if arguments are consistent
+    if args.freeze_gnn:
+        assert args.use_pretrained_gnn
+    if args.use_pretrained_gnn:
+        assert args.progression_mode in ["full", "real"]
+        assert args.gnn_pretrain is not None
+    if use_grounder and args.freeze_grounder:
+        assert args.use_pretrained_grounder
+    if args.use_pretrained_grounder:
+        assert args.grounder_pretrain is not None
+    if args.eval and args.eval_samplers:
+        assert len(args.eval_episodes) == len(args.eval_samplers)
+    if train_grounder:
+        assert args.grounder_buffer_size >= args.grounder_buffer_start
+    if train_grounder and args.grounder_use_early_stopping:
+        assert args.grounder_patience > 0
 
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
