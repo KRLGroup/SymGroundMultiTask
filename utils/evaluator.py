@@ -19,7 +19,7 @@ class Eval:
 
     def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
         obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, 
-        dumb_ac = False):
+        dumb_ac=False):
 
         self.env = env
         self.device = device
@@ -60,7 +60,7 @@ class Eval:
         self.eval_env = ParallelEnv(eval_envs)
 
 
-    def eval(self, episodes=100, stdout=True):
+    def eval(self, episodes=100):
 
         # Load agent
         agent = Agent(self.eval_env.envs[0], self.eval_env.observation_space, self.eval_env.action_space,
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         eval = Eval(args.env, model_path, args.ltl_sampler,
                      seed=seed, device=torch.device("cpu"), argmax=False,
                      num_procs=args.procs, ignoreLTL=args.ignoreLTL, progression_mode=args.progression_mode, gnn=args.gnn, recurrence=args.recurrence, dumb_ac=False, discount=args.discount)
-        rpe, nfpe = eval.eval(-1, episodes=args.eval_episodes, stdout=True)
+        rpe, nfpe = eval.eval(-1, episodes=args.eval_episodes)
         logs_returns_per_episode += rpe
         logs_num_frames_per_episode += nfpe 
 
