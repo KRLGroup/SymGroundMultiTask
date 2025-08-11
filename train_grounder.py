@@ -175,7 +175,7 @@ def train_grounder(args: Args, device: str = None):
         agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
         logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
         progress.n = logs1['buffer']
-        num_frames += logs1['num_frames']
+        num_frames += logs1['episode_frames']
         progress.refresh()
     progress.close()
 
@@ -188,21 +188,20 @@ def train_grounder(args: Args, device: str = None):
         for _ in range(args.episodes_per_update):
             agent_ep = (args.use_agent and np.random.rand() <= args.agent_prob)
             logs1 = grounder_algo.collect_experiences(agent = agent if agent_ep else None)
-            num_frames += logs1['num_frames']
+            num_frames += logs1['episode_frames']
 
         logs2 = grounder_algo.update_parameters()
 
         update_end_time = time.time()
-        num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
 
         # logging
 
         if update % args.log_interval == 0:
 
-            logs1 = utils.elaborate_episode_logs(logs_exp, 1.0)
+            logs_exp = utils.elaborate_episode_logs(logs_exp, 1.0)
             logs3 = grounder_algo.evaluate()
-            logs = {**logs1, **logs2, **logs3}
+            logs = {**logs1, **logs2, **logs3, **logs_exp}
             logs_exp = utils.empty_episode_logs()
 
             fps = logs['num_frames']/(update_end_time - update_start_time)

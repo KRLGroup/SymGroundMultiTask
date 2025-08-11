@@ -127,7 +127,7 @@ class GrounderAlgo():
 
         if not self.train_grounder or self.early_stop:
             logs = {
-                'buffer': 0, 'val_buffer': 0, 'num_frames': 0, 'total_buffer': 0, 'total_val_buffer': 0,
+                'buffer': 0, 'val_buffer': 0, 'total_buffer': 0, 'total_val_buffer': 0,
                 'episode_return': 0.0, 'episode_frames': 0.0
                 }
             return logs
@@ -160,7 +160,7 @@ class GrounderAlgo():
             self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
 
         logs = {
-            'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer), 'num_frames': len(rews),
+            'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer),
             'total_buffer': self.buffer.total_episodes, 'total_val_buffer': self.val_buffer.total_episodes,
             'episode_return': float(rew), 'episode_frames': float(len(rews))
         }

@@ -354,7 +354,7 @@ def train_agent(args: Args, device: str = None):
         while progress.n < args.grounder_buffer_start:
             logs = grounder_algo.collect_experiences()
             progress.n = logs['buffer']
-            num_frames += logs['num_frames']
+            num_frames += logs['episode_frames']
             progress.refresh()
         progress.close()
 
@@ -376,7 +376,7 @@ def train_agent(args: Args, device: str = None):
         num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
 
-        # Print logs (they refer only to the last update)
+        # Print logs (accumulated during the log_interval)
 
         if update % args.log_interval == 0:
 
@@ -466,13 +466,13 @@ def train_agent(args: Args, device: str = None):
 
                 duration = int(eval_end_time - eval_start_time)
 
-                frames = sum(frames_per_episode)
+                total_eval_frames = sum(frames_per_episode)
                 average_discounted_return = utils.average_discounted_return(return_per_episode, frames_per_episode, args.discount)
                 return_per_episode = utils.synthesize(return_per_episode)
                 frames_per_episode = utils.synthesize(frames_per_episode)
 
                 header = ['time/frames', 'time/duration']
-                data = [frames, duration]
+                data = [total_eval_frames, duration]
                 header += ['return/' + key for key in return_per_episode.keys()]
                 data += return_per_episode.values()
                 header += ['average_discounted_return']
