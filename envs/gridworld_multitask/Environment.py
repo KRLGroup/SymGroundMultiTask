@@ -309,12 +309,12 @@ class GridWorldEnv_multitask(gym.Env):
             if fg.shape[2] == 4:
                 alpha_fg = fg[:, :, 3:] / 255.0
                 alpha_bg = 1.0 - alpha_fg
-                bg_slice = bg[y:y + h, x:x + w].astype(np.float32)
-                fg_rgb = fg[:, :, :3].astype(np.float32)
+                bg_slice = bg[y:y+h, x:x+w]
+                fg_rgb = fg[:, :, :3]
                 blended = alpha_fg * fg_rgb + alpha_bg * bg_slice
-                bg[y:y + h, x:x + w] = blended.astype(np.uint8)
+                bg[y:y+h, x:x+w] = blended.astype(np.uint8)
             else:
-                bg[y:y + h, x:x + w] = fg
+                bg[y:y+h, x:x+w] = fg
             return bg
 
         # calculate pixel positions for each grid item
