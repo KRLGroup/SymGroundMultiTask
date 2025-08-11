@@ -60,7 +60,7 @@ class Eval:
         self.eval_env = ParallelEnv(eval_envs)
 
 
-    def eval(self, num_frames, episodes=100, stdout=True):
+    def eval(self, episodes=100, stdout=True):
 
         # Load agent
         agent = Agent(self.eval_env.envs[0], self.eval_env.observation_space, self.eval_env.action_space,

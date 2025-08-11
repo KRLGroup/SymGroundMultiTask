@@ -461,7 +461,7 @@ def train_agent(args: Args, device: str = None):
             for i, evalu in enumerate(evals):
 
                 eval_start_time = time.time()
-                return_per_episode, frames_per_episode = evalu.eval(num_frames, episodes=args.eval_episodes[i])
+                return_per_episode, frames_per_episode = evalu.eval(episodes=args.eval_episodes[i])
                 eval_end_time = time.time()
 
                 duration = int(eval_end_time - eval_start_time)
