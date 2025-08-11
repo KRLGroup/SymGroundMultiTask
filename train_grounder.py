@@ -200,7 +200,7 @@ def train_grounder(args: Args, device: str = None):
 
         if update % args.log_interval == 0:
 
-            logs1 = utils.elaborate_episode_logs(logs_exp, args.discount)
+            logs1 = utils.elaborate_episode_logs(logs_exp, 1.0)
             logs3 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3}
             logs_exp = utils.empty_episode_logs()

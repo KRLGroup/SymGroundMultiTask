@@ -467,8 +467,8 @@ def train_agent(args: Args, device: str = None):
                 duration = int(eval_end_time - eval_start_time)
 
                 frames = sum(frames_per_episode)
-                return_per_episode = utils.synthesize(return_per_episode)
                 average_discounted_return = utils.average_discounted_return(return_per_episode, frames_per_episode, args.discount)
+                return_per_episode = utils.synthesize(return_per_episode)
                 frames_per_episode = utils.synthesize(frames_per_episode)
 
                 header = ['time/frames', 'time/duration']
