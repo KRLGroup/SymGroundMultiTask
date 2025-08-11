@@ -85,6 +85,9 @@ def get_dataset(path: Path) -> Dataset:
 
 
 
+# Warning: because of how the LTLf2DFA works, having more than one process creating automata at 
+# the same time may cause inconsistencies and errors
+
 if __name__ == "__main__":
 
     import argparse
