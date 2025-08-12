@@ -23,33 +23,33 @@ class ReplayBuffer:
 
     def __iter__(self):
         for obss, rews, dfa_trans, dfa_rew in self.buffer:
-            yield (
-                obss.to(self.device),
-                rews.to(self.device),
-                dfa_trans,
-                dfa_rew
-            )
+            yield obss.to(self.device), rews.to(self.device), dfa_trans, dfa_rew
 
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         batch = [self.buffer[idx] for idx in indices]
         obss, rews, dfa_trans, dfa_rew = zip(*batch)
-        obss = self._pad_repeat_last(obss).to(self.device)
-        rews = self._pad_repeat_last(rews).to(self.device)
+        obss = self._pad_batch(obss).to(self.device)
+        rews = self._pad_batch(rews).to(self.device)
         return obss, rews, dfa_trans, dfa_rew
 
 
-    def _pad_repeat_last(self, sequences):
+    def _pad_batch(self, sequences):
         max_len = max(seq.shape[0] for seq in sequences)
         padded = []
         for seq in sequences:
-            pad_len = max_len - seq.shape[0]
-            if pad_len > 0:
-                repeat = seq[-1:].expand(pad_len, *seq.shape[1:])
-                seq = torch.cat([seq, repeat], dim=0)
+            seq = self._pad_repeat_last(seq, max_len)
             padded.append(seq)
         return torch.stack(padded)
+
+
+    def _pad_repeat_last(self, seq, lenght):
+        pad_len = lenght - seq.shape[0]
+        if pad_len > 0:
+            repeat = seq[-1:].expand(pad_len, *seq.shape[1:])
+            seq = torch.cat([seq, repeat], dim=0)
+        return seq
 
 
     def iter_batches(self, batch_size):
@@ -57,8 +57,8 @@ class ReplayBuffer:
         for i in range(0, len(buffer_list), batch_size):
             batch = buffer_list[i:i + batch_size]
             obss, rews, dfa_trans, dfa_rew = zip(*batch)
-            obss = self._pad_repeat_last(obss).to(self.device)
-            rews = self._pad_repeat_last(rews).to(self.device)
+            obss = self._pad_batch(obss).to(self.device)
+            rews = self._pad_batch(rews).to(self.device)
             yield obss, rews, dfa_trans, dfa_rew
 
 
