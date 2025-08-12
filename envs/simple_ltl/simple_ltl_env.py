@@ -11,7 +11,7 @@ class SimpleLTLEnv(gym.Env):
             letters:
                 - (str) propositions
             timeout:
-                - (int) maximum lenght of the episode
+                - (int) maximum length of the episode
         """
         self.letters      = letters
         self.letter_types = list(set(letters))

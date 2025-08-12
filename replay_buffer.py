@@ -44,8 +44,8 @@ class ReplayBuffer:
         return torch.stack(padded)
 
 
-    def _pad_repeat_last(self, seq, lenght):
-        pad_len = lenght - seq.shape[0]
+    def _pad_repeat_last(self, seq, length):
+        pad_len = length - seq.shape[0]
         if pad_len > 0:
             repeat = seq[-1:].expand(pad_len, *seq.shape[1:])
             seq = torch.cat([seq, repeat], dim=0)
