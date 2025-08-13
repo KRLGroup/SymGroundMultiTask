@@ -373,9 +373,9 @@ def train_agent(args: Args, device: str = None):
         logs3 = algo.update_parameters(exps)
         logs4 = grounder_algo.update_parameters()
 
-        update_end_time = time.time()
         num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
+        update_end_time = time.time()
 
         # Print logs (accumulated during the log_interval)
 
@@ -483,7 +483,7 @@ def train_agent(args: Args, device: str = None):
 
                 txt_logger.info(f"Evaluator {i}")
                 txt_logger.info(
-                    ("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+                    ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
                     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
                 )
 
