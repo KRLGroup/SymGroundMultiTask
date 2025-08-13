@@ -11,7 +11,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, batch_size=32, lr=0.001,
+    def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, lr=0.001, batch_size=32,
         update_steps=4, accumulation=1, evaluate_steps=1, use_early_stopping=False, patience=20, min_delta=0.0,
         save_dir=None, device=None):
 

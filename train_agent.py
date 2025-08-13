@@ -78,8 +78,8 @@ class Args:
     grounder_buffer_size: int = 1000
     grounder_buffer_start: int = 32
     grounder_max_env_steps: int = 75
-    grounder_batch_size: int = 32
     grounder_lr: float = 0.001
+    grounder_batch_size: int = 32
     grounder_update_steps: int = 4
     grounder_accumulation: int = 1
     grounder_evaluate_steps: int = 1
@@ -295,7 +295,7 @@ def train_agent(args: Args, device: str = None):
 
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, grounder_algo_env, train_grounder, args.grounder_max_env_steps,
-                                 args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr,
+                                 args.grounder_buffer_size, args.grounder_lr, args.grounder_batch_size,
                                  args.grounder_update_steps, args.grounder_accumulation, args.grounder_evaluate_steps,
                                  args.grounder_use_early_stopping, args.grounder_patience, args.grounder_min_delta,
                                  model_dir, device)

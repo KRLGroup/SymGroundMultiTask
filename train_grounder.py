@@ -35,8 +35,8 @@ class Args:
     episodes_per_update: int = 1
     buffer_size: int = 1000
     buffer_start: int = 32
-    batch_size: int = 32
     lr: float = 0.001
+    batch_size: int = 32
     update_steps: int = 1
     accumulation: int = 1
 
@@ -142,8 +142,8 @@ def train_grounder(args: Args, device: str = None):
         txt_logger.info("-) Loading grounder from existing run.")
 
     # load grounder algo
-    grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_num_steps, args.buffer_size, args.batch_size,
-                                 args.lr, args.update_steps, args.accumulation, args.evaluate_steps,
+    grounder_algo = GrounderAlgo(sym_grounder, env, True, args.max_num_steps, args.buffer_size, args.lr,
+                                 args.batch_size, args.update_steps, args.accumulation, args.evaluate_steps,
                                  args.use_early_stopping, args.patience, args.min_delta, model_dir, device)
 
     # load grounder optimizer of existing model
@@ -216,7 +216,7 @@ def train_grounder(args: Args, device: str = None):
 
             # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             txt_logger.info(
-                ("U {:5} | F {:7} | FPS {:4.0f} | D {:5} | B {:5} | L {:.6f} | vL {:.6f} | A {:.4f}" +
+                ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | B {:5} | L {:.6f} | vL {:.6f} | A {:.4f}" +
                 " | R" + "".join([" {:.3f}" for i in range(num_symbols)])).format(*data)
             )
 
