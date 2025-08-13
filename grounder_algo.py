@@ -183,6 +183,7 @@ class GrounderAlgo():
         # reset gradient
         self.optimizer.zero_grad()
 
+        # train
         for update_id in range(self.update_steps):
 
             # sample from the buffer
@@ -199,20 +200,20 @@ class GrounderAlgo():
             )
             deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-            # obtain probability of symbols from observations with self.grounder
-            symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
-            symbols = symbols.view(*obss.shape[:2], -1)
+            # obtain probability of symbols from observations
+            symbols_probs = self.grounder(obss.view(-1, *obss.shape[2:]))
+            symbols_probs = symbols_probs.view(*obss.shape[:2], -1)
 
-            # predict state and reward from predicted symbols with DeepDFA
-            _, pred_rew = deepDFA(symbols)
-            pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
+            # predict reward probability from symbols probability with DeepDFA
+            _, preds = deepDFA(symbols_probs)
+            preds = preds.view(-1, deepDFA.numb_of_rewards)
 
             # maps rewards to label
             labels = (rews + 1).view(-1)
 
-            # compute loss
-            loss = self.loss_func(pred, labels)
-            loss.backward()
+            # compute and backpropagate loss
+            loss = self.loss_func(preds, labels)
+            (loss / self.accumulation).backward()
             losses.append(loss.item())
 
             # update self.grounder
@@ -228,9 +229,10 @@ class GrounderAlgo():
             for batch in self.val_buffer.iter_batches(batch_size=self.batch_size):
 
                 obss, rews, dfa_trans, dfa_rew = batch
+                batch_size = obss.shape[0]
 
                 deepDFA = MultiTaskProbabilisticAutoma(
-                    batch_size = obss.shape[0],
+                    batch_size = batch_size,
                     numb_of_actions = self.num_symbols,
                     numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
                     reward_type = "ternary",
@@ -238,15 +240,15 @@ class GrounderAlgo():
                 )
                 deepDFA.initFromDfas(dfa_trans, dfa_rew)
 
-                symbols = self.grounder(obss.view(-1, *obss.shape[2:]))
-                symbols = symbols.view(*obss.shape[:2], -1)
+                symbols_probs = self.grounder(obss.view(-1, *obss.shape[2:]))
+                symbols_probs = symbols_probs.view(*obss.shape[:2], -1)
 
-                _, pred_rew = deepDFA(symbols)
-                pred = pred_rew.view(-1, deepDFA.numb_of_rewards)
+                _, preds = deepDFA(symbols_probs)
+                preds = preds.view(-1, deepDFA.numb_of_rewards)
 
                 labels = (rews + 1).view(-1)
 
-                loss = self.loss_func(pred, labels)
+                loss = self.loss_func(preds, labels)
                 val_losses.append(loss.item())
 
         avg_val_loss = sum(val_losses) / max(1, len(val_losses))
