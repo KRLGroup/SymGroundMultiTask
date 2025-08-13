@@ -17,8 +17,9 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", grounder=None, obs_size=None, argmax=False,
-        num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, dumb_ac = False, discount=0.99):
+    def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
+        obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, 
+        dumb_ac=False):
 
         self.env = env
         self.device = device
@@ -29,7 +30,6 @@ class Eval:
         self.gnn = gnn
         self.recurrence = recurrence
         self.dumb_ac = dumb_ac
-        self.discount = discount
 
         self.model_dir = model_dir
         self.eval_dir = self.model_dir + "/eval-" + ltl_sampler
@@ -46,6 +46,7 @@ class Eval:
                 seed = seed,
                 intrinsic = 0,
                 noLTL = False,
+                state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size
             ))
@@ -59,24 +60,12 @@ class Eval:
         self.eval_env = ParallelEnv(eval_envs)
 
 
-    def eval(self, num_frames, episodes=100, stdout=True):
+    def eval(self, episodes=100):
 
         # Load agent
-        agent = Agent(
-            self.eval_env.envs[0],
-            self.eval_env.observation_space,
-            self.eval_env.action_space,
-            self.model_dir,
-            self.ignoreLTL,
-            self.progression_mode,
-            self.gnn,
-            recurrence = self.recurrence,
-            dumb_ac = self.dumb_ac,
-            device = self.device,
-            argmax = self.argmax,
-            num_envs = self.num_procs,
-            verbose = False
-        )
+        agent = Agent(self.eval_env.envs[0], self.eval_env.observation_space, self.eval_env.action_space,
+                      self.model_dir, self.ignoreLTL, self.progression_mode, self.gnn, self.recurrence, self.dumb_ac,
+                      self.device, self.argmax, self.num_procs, False)
 
         # Run agent
         start_time = time.time()
@@ -127,8 +116,6 @@ if __name__ == '__main__':
                     help="number of episodes to evaluate on (default: 5)")
     parser.add_argument("--env", default="Letter-7x7-v3",
                         help="name of the environment to train on (REQUIRED)")
-    parser.add_argument("--discount", type=float, default=0.99,
-                    help="discount factor (default: 0.99)")
     parser.add_argument("--ignoreLTL", action="store_true", default=False,
                     help="the network ignores the LTL input")
     parser.add_argument("--progression-mode", default="full",
@@ -149,7 +136,7 @@ if __name__ == '__main__':
         eval = Eval(args.env, model_path, args.ltl_sampler,
                      seed=seed, device=torch.device("cpu"), argmax=False,
                      num_procs=args.procs, ignoreLTL=args.ignoreLTL, progression_mode=args.progression_mode, gnn=args.gnn, recurrence=args.recurrence, dumb_ac=False, discount=args.discount)
-        rpe, nfpe = eval.eval(-1, episodes=args.eval_episodes, stdout=True)
+        rpe, nfpe = eval.eval(-1, episodes=args.eval_episodes)
         logs_returns_per_episode += rpe
         logs_num_frames_per_episode += nfpe 
 

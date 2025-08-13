@@ -2,15 +2,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 import dgl
 from dgl.nn.pytorch.conv import RelGraphConv
 
 from gnns.graphs.GNN import GNN
-
 from utils.ast_builder import edge_types
 
+
 class RGCN(GNN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim)
 
@@ -23,9 +23,10 @@ class RGCN(GNN):
 
         self.g_embed = nn.Linear(hidden_dims[-1], output_dim)
 
+
     def forward(self, g):
         g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
+        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
         h_0 = g.ndata["feat"].float()
         h = h_0
         etypes = g.edata["type"].float()
@@ -48,7 +49,7 @@ class RGCNRoot(RGCN):
 
     def forward(self, g):
         g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
+        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
         h_0 = g.ndata["feat"].float().squeeze()
         h = h_0
         etypes = g.edata["type"]
@@ -63,7 +64,9 @@ class RGCNRoot(RGCN):
         hg = dgl.sum_nodes(g, 'h', weight='is_root')
         return self.g_embed(hg).squeeze(1)
 
+
 class RGCNRootShared(GNN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim)
         hidden_dim = kwargs.get('hidden_dim', 32)
@@ -74,9 +77,10 @@ class RGCNRootShared(GNN):
         self.conv = RelGraphConv(2*hidden_dim, hidden_dim, len(edge_types), activation=torch.tanh)
         self.g_embed = nn.Linear(hidden_dim, output_dim)
 
+
     def forward(self, g):
         g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
+        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
         h_0 = self.linear_in(g.ndata["feat"].float().squeeze())
         h = h_0
         etypes = g.edata["type"]
@@ -88,4 +92,3 @@ class RGCNRootShared(GNN):
 
         hg = dgl.sum_nodes(g, 'h', weight='is_root')
         return self.g_embed(hg).squeeze(1)
-

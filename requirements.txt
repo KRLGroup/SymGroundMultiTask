@@ -14,6 +14,9 @@ PyYAML==6.0.1
 ring==0.10.1
 scikit_learn==0.23.1
 sympy==1.6.1
+tensorboard==2.2.2
 tensorboardX==2.0
+tensorflow-cpu==2.2.0
 torch==1.13.1
 tqdm==4.67.1
+werkzeug==1.0.1

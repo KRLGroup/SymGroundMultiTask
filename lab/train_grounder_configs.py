@@ -7,6 +7,7 @@ train_grounder_base = Args(
     model_name = "grounder_with_algo",
     log_interval = 1,
     save_interval = 10,
+    seed = 1,
 
     # Grounder parameters
     sym_grounder_model = "ObjectCNN",
@@ -15,17 +16,30 @@ train_grounder_base = Args(
     # Environment parameters
     max_num_steps = 50,
     env = "GridWorld-fixed-v1",
-    eval_env = "GridWorld-fixed-v1",
     ltl_sampler = "Dataset_e54",
+    progression_mode = "full",
 
     # Training parameters
-    epochs = 10000,
+    updates = 10000,
+    episodes_per_update = 1,
+    buffer_size = 1024,
+    buffer_start = 32,
     batch_size = 32,
-    seed = 1,
+    lr = 0.001,
+    update_steps = 4,
+    accumulation = 1,
+
+    # Early Stopping
+    use_early_stopping = False,
+    patience = 20,
+    min_delta = 0.0,
+
+    # Evaluation parameters
+    evaluate_steps = 1,
 
     # Agent parameters
     use_agent = False,
     agent_dir = None,
-    agent_prob = 0.1
+    agent_prob = 0.1,
 
 )

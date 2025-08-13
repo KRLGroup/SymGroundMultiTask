@@ -10,18 +10,22 @@ def getEnvModel(env, obs_space):
 
     if isinstance(env, LetterEnv):
         return LetterEnvModel(obs_space)
-    if isinstance(env, MinigridEnv):
-        return MinigridEnvModel(obs_space)
-    # if isinstance(env, ZonesEnv):
-    #     return ZonesEnvModel(obs_space)
-    if isinstance(env, PendulumEnv):
-        return PendulumEnvModel(obs_space)
-    # Add your EnvModel here...
-    if isinstance(env, GridWorldEnv_LTL2Action):
-        return GridWorldEnvModel(obs_space)
 
-    # The default case (No environment observations) - SimpleLTLEnv uses this
-    return EnvModel(obs_space)
+    elif isinstance(env, MinigridEnv):
+        return MinigridEnvModel(obs_space)
+
+    elif isinstance(env, PendulumEnv):
+        return PendulumEnvModel(obs_space)
+
+    elif isinstance(env, GridWorldEnv_LTL2Action) and env.state_type == "symbol":
+        return GridWorldSymEnvModel(obs_space)
+
+    elif isinstance(env, GridWorldEnv_LTL2Action) and env.state_type == "image":
+        return GridWorldImgEnvModel(obs_space)
+
+    else:
+        # no environment observations - SimpleLTLEnv uses this
+        return EnvModel(obs_space)
 
 
 """
@@ -158,14 +162,14 @@ class PendulumEnvModel(EnvModel):
 
 
 
-class GridWorldEnvModel(EnvModel):
+class GridWorldSymEnvModel(EnvModel):
     def __init__(self, obs_space):
         super().__init__(obs_space)
 
         if "image" in obs_space.keys():
-            n = obs_space["image"][1]
-            m = obs_space["image"][2]
-            k = obs_space["image"][0]
+            n = obs_space["image"][0]
+            m = obs_space["image"][1]
+            k = obs_space["image"][2]
             self.image_conv = nn.Sequential(
                 nn.Conv2d(k, 16, (2, 2)),
                 nn.ReLU(),
@@ -178,10 +182,59 @@ class GridWorldEnvModel(EnvModel):
 
     def forward(self, obs):
         if "image" in obs.keys():
-            # x = obs.image.transpose(1, 3).transpose(2, 3)
+            x = obs.image.transpose(1, 3).transpose(2, 3)
+            x = self.image_conv(x)
+            x = x.reshape(x.shape[0], -1)
+            return x
+        else:
+            return super().forward(obs)
+
+
+
+class GridWorldImgEnvModel(EnvModel):
+
+    def __init__(self, obs_space):
+        super().__init__(obs_space)
+
+        if "image" in obs_space.keys():
+
+            n = obs_space["image"][1]
+            m = obs_space["image"][2]
+            k = obs_space["image"][0]
+
+            self.image_conv = nn.Sequential(
+
+                # Layer 1
+                nn.Conv2d(3, 16, kernel_size=5, padding=2),  # 3x56x56 -> 16x56x56
+                # nn.BatchNorm2d(16),
+                nn.ReLU(),
+                nn.MaxPool2d(2),  # -> 16x28x28
+
+                # Layer 2
+                nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 32x28x28
+                # nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.MaxPool2d(2),  # -> 32x14x14
+
+                # # Layer 3
+                nn.Conv2d(32, 64, kernel_size=3, padding=1),  # -> 64x14x14
+                # nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.MaxPool2d(2)  # -> 64x7x7
+
+            )
+
+        with torch.no_grad():
+            dummy_input = torch.zeros((1, k, n, m))
+            dummy_output = self.image_conv(dummy_input)
+            self.embedding_size = dummy_output.view(1, -1).size(1)
+
+
+    def forward(self, obs):
+        if "image" in obs.keys():
             x = obs.image
             x = self.image_conv(x)
             x = x.reshape(x.shape[0], -1)
             return x
-
-        return super().forward(obs)
+        else:
+            return super().forward(obs)

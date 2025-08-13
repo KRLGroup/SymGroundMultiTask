@@ -1,23 +1,23 @@
-import pickle
 import os
 import argparse
 import torch
 import time
 
 import utils
-from ac_model import ACModel
-from recurrent_ac_model import RecurrentACModel
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="RGCN_8x32_ROOT_SHARED-pretrained_Dataset_e54_GridWorld-v1_seed:1_epochs:4_bs:256_fpp:None_dsc:0.94_lr:0.0003_ent:0.01_clip:0.2_prog:full")
+parser.add_argument("--agent_dir", default="full_agent")
 parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--seed", default=1, type=int)
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
 device = torch.device(device)
+
+utils.set_seed(args.seed)
 
 REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -27,8 +27,7 @@ storage_dir = os.path.join(REPO_DIR, "storage")
 agent_dir = os.path.join(storage_dir, args.agent_dir)
 
 # load training config
-with open(os.path.join(agent_dir, "config.pickle"), "rb") as f:
-    config = pickle.load(f)
+config = utils.load_config(agent_dir)
 print(f"\nConfig:\n{config}")
 
 # load training status
@@ -42,6 +41,7 @@ env = utils.make_env(
     seed = 1,
     intrinsic = config.int_reward,
     noLTL = config.noLTL,
+    state_type = config.state_type,
     grounder = None,
     obs_size = config.obs_size
 )
@@ -61,21 +61,8 @@ sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not No
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder
 
-agent = utils.Agent(
-    env,
-    env.observation_space,
-    env.action_space,
-    agent_dir,
-    config.ignoreLTL,
-    config.progression_mode,
-    config.gnn_model,
-    recurrence = config.recurrence,
-    dumb_ac = config.dumb_ac,
-    device = device,
-    argmax = True,
-    num_envs = 1,
-    verbose = False
-)
+agent = utils.Agent(env, env.observation_space, env.action_space, agent_dir, config.ignoreLTL, config.progression_mode,
+                    config.gnn_model, config.recurrence, config.dumb_ac, device, False, 1, False)
 
 
 # TEST
@@ -93,8 +80,11 @@ while not done:
 
     print(f"\n---")
     print(f"Step: {step}")
-    print(f"Task:")
-    utils.pprint_ltl_formula(env.translate_formula(obs['text']))
+    print(f"Predicted Residual Task:")
+    utils.pprint_ltl_formula(env.translate_formula(env.pred_ltl_goal))
+
+    if env.real_ltl_goal != env.pred_ltl_goal:
+        print("WRONG PREDICTED RESIDUAL FORMULA")
 
     print("\nAction: ", end="")
 
@@ -103,14 +93,20 @@ while not done:
 
     obs, reward, done, info = env.step(action)
 
-    if done:
-        env.show()
-        print(f"Reward: {reward}")
-        print("Done!")
-        print("Closing...")
-        break
-
+    real_sym = env.env.translate_formula(env.env.get_real_events())
+    print(f"Real Symbol: {real_sym}")
+    pred_sym = env.env.translate_formula(env.env.get_events())
+    print(f"Pred Symbol: {pred_sym}")
+    if env.env.get_events() != env.env.get_real_events():
+        print("WRONG PREDICTION")
     print(f"Reward: {reward}")
 
-time.sleep(2)
+    if done:
+        break
+
+env.show()
+print("Done!")
+print("Closing...")
+
+time.sleep(2.0)
 env.close()

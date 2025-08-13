@@ -23,6 +23,10 @@ def ltl_ast2str(ast) -> str:
         return f"!({ltl_ast2str(args[0])})"
     elif op == 'eventually':
         return f"F ({ltl_ast2str(args[0])})"
+    elif op == 'always':
+        return f"G ({ltl_ast2str(args[0])})"
+    elif op == 'next':
+        return f"X ({ltl_ast2str(args[0])})"
 
 
 # from LTL2Action formula to MooreMachine
@@ -58,9 +62,17 @@ def ltl_str2ast(ltl_str: str):
     def parse_eventually(tokens):
         return ('eventually', tokens[0][1])
 
+    def parse_always(tokens):
+        return ('always', tokens[0][1])
+
+    def parse_next(tokens):
+        return ('next', tokens[0][1])
+
     expr = infixNotation(var, [
         ('!', 1, opAssoc.RIGHT, parse_not),
         ('F', 1, opAssoc.RIGHT, parse_eventually),
+        ('G', 1, opAssoc.RIGHT, parse_always),
+        ('X', 1, opAssoc.RIGHT, parse_next),
         ('&', 2, opAssoc.LEFT, parse_and),
         ('|', 2, opAssoc.LEFT, parse_or),
         ('U', 2, opAssoc.LEFT, parse_until),

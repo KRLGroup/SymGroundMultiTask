@@ -6,6 +6,7 @@ from torch_ac.utils import DictList, ParallelEnv
 
 import numpy as np
 
+
 class BaseAlgo(ABC):
     """The base class for RL algorithms."""
 
@@ -84,6 +85,7 @@ class BaseAlgo(ABC):
 
         self.obs = self.env.reset()
         self.obss = [None]*(shape[0])
+        self.last_obss = [None]*(shape[0])
         if self.acmodel.recurrent:
             self.memory = torch.zeros(shape[1], self.acmodel.memory_size, device=self.device)
             self.memories = torch.zeros(*shape, self.acmodel.memory_size, device=self.device)
@@ -105,6 +107,7 @@ class BaseAlgo(ABC):
         self.log_return = [0] * self.num_procs
         self.log_reshaped_return = [0] * self.num_procs
         self.log_num_frames = [0] * self.num_procs
+
 
     def collect_experiences(self):
         """Collects rollouts and computes advantages.
@@ -128,6 +131,7 @@ class BaseAlgo(ABC):
         """
 
         for i in range(self.num_frames_per_proc):
+
             # Do one agent-environment interaction
 
             preprocessed_obs = self.preprocess_obss(self.obs, device=self.device)
@@ -138,11 +142,12 @@ class BaseAlgo(ABC):
                     dist, value = self.acmodel(preprocessed_obs)
             action = dist.sample()
 
-            obs, reward, done, _ = self.env.step(action.cpu().numpy())
+            obs, reward, done, info = self.env.step(action.cpu().numpy())
 
             # Update experiences values
 
             self.obss[i] = self.obs
+            self.last_obss[i] = [proc_info["last_obs"] for proc_info in info]
             self.obs = obs
             if self.acmodel.recurrent:
                 self.memories[i] = self.memory
@@ -166,12 +171,12 @@ class BaseAlgo(ABC):
             self.log_episode_reshaped_return += self.rewards[i]
             self.log_episode_num_frames += torch.ones(self.num_procs, device=self.device)
 
-            for i, done_ in enumerate(done):
+            for j, done_ in enumerate(done):
                 if done_:
                     self.log_done_counter += 1
-                    self.log_return.append(self.log_episode_return[i].item())
-                    self.log_reshaped_return.append(self.log_episode_reshaped_return[i].item())
-                    self.log_num_frames.append(self.log_episode_num_frames[i].item())
+                    self.log_return.append(self.log_episode_return[j].item())
+                    self.log_reshaped_return.append(self.log_episode_reshaped_return[j].item())
+                    self.log_num_frames.append(self.log_episode_num_frames[j].item())
 
             self.log_episode_return *= self.mask
             self.log_episode_reshaped_return *= self.mask
@@ -206,6 +211,9 @@ class BaseAlgo(ABC):
         exps.obs = [self.obss[i][j]
                     for j in range(self.num_procs)
                     for i in range(self.num_frames_per_proc)]
+        exps.last_obs = [self.last_obss[i][j]
+                         for j in range(self.num_procs)
+                         for i in range(self.num_frames_per_proc)]
         if self.acmodel.recurrent:
             # T x P x D -> P x T x D -> (P * T) x D
             exps.memory = self.memories.transpose(0, 1).reshape(-1, *self.memories.shape[2:])
@@ -222,6 +230,7 @@ class BaseAlgo(ABC):
         # Preprocess experiences
 
         exps.obs = self.preprocess_obss(exps.obs, device=self.device)
+        exps.last_obs = np.array(exps.last_obs, dtype=object)
 
         # Log some values
 
@@ -240,6 +249,7 @@ class BaseAlgo(ABC):
         self.log_num_frames = self.log_num_frames[-self.num_procs:]
 
         return exps, logs
+
 
     @abstractmethod
     def update_parameters(self):
