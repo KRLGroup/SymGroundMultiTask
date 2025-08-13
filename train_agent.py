@@ -60,6 +60,7 @@ class Args:
     eval_samplers: Optional[List[str]] = None
     eval_episodes: List[int] = None
     eval_procs: int = 1
+    eval_argmax: bool = True
 
     # Train parameters
     epochs: int = 4
@@ -325,7 +326,7 @@ def train_agent(args: Args, device: str = None):
         evals = []
         for sampler in eval_samplers:
             evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device,args.state_type, sym_grounder,
-                                    args.obs_size, False, eval_procs, args.ignoreLTL, args.progression_mode,
+                                    args.obs_size, args.eval_argmax, eval_procs, args.ignoreLTL, args.progression_mode,
                                     args.gnn_model, args.recurrence, args.dumb_ac))
 
         txt_logger.info("-) Evaluators loaded.")
