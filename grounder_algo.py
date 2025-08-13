@@ -102,13 +102,13 @@ class GrounderAlgo():
 
             # add episode to the buffer
             if to_add:
-
-                task = masked_exps.obs.task_id[0]
                 obss = torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0)
                 rews = torch.cat([masked_exps.reward.new_zeros(1), masked_exps.reward], dim=0)
-
+                task = masked_exps.obs.task_id[0]
                 dfa = self.sampler.get_automaton(task)
-                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
+                transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+                rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+                self.add_episode(obss, rews, transitions, rewards)
 
         self.residual_exps = DictList({
             'obs': exps.obs[~used_mask],
@@ -157,7 +157,9 @@ class GrounderAlgo():
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
             dfa = self.env.sampler.get_current_automaton()
-            self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
+            transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+            rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+            self.add_episode(obss, rews, transitions, rewards)
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer),
@@ -194,7 +196,7 @@ class GrounderAlgo():
             deepDFA = MultiTaskProbabilisticAutoma(
                 batch_size = batch_size,
                 numb_of_actions = self.num_symbols,
-                numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                numb_of_states = max([tr.shape[0] for tr in dfa_trans]),
                 reward_type = "ternary",
                 device = self.device
             )
@@ -234,7 +236,7 @@ class GrounderAlgo():
                 deepDFA = MultiTaskProbabilisticAutoma(
                     batch_size = batch_size,
                     numb_of_actions = self.num_symbols,
-                    numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                    numb_of_states = max([tr.shape[0] for tr in dfa_trans]),
                     reward_type = "ternary",
                     device = self.device
                 )

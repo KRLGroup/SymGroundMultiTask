@@ -169,7 +169,7 @@ class ProbabilisticAutoma(nn.Module):
         return pyautomaton
 
 
-    def initFromDfa(self, reduced_dfa, outputs, weigth=10):
+    def initFromDfa(self, reduced_dfa, outputs, weight=10):
         with torch.no_grad():
             self.trans_prob[:,:,:] = 0
             self.rew_matrix[:,:] = 0
@@ -183,7 +183,7 @@ class ProbabilisticAutoma(nn.Module):
         # set reward matrix
         for s in range(len(reduced_dfa.keys())):
             with torch.no_grad():
-                self.rew_matrix[s, outputs[s]] = weigth
+                self.rew_matrix[s, outputs[s]] = weight
 
 
 
@@ -263,23 +263,21 @@ class MultiTaskProbabilisticAutoma(nn.Module):
         return next_state, next_reward
 
 
-    def initFromDfas(self, reduced_dfa_list, outputs_list, weigth=10):
+    def initFromDfas(self, dfas_transitions, dfas_rewards, weight=10):
+
         with torch.no_grad():
 
             self.trans_prob.zero_()
             self.rew_matrix.zero_()
 
-            for dfa_id in range(len(reduced_dfa_list)):
+            for index, (trans, rews) in enumerate(zip(dfas_transitions, dfas_rewards)):
 
-                # set the transition probabilities as the ones in the dfa
-                reduced_dfa = reduced_dfa_list[dfa_id]
-                for s in reduced_dfa:
-                    for a in reduced_dfa[s]:
-                        self.trans_prob[dfa_id, a, s, reduced_dfa[s][a]] = 1
+                num_states = trans.shape[0]
+                trans = trans.transpose(0,1)
 
-                # set reward matrix
-                outputs = outputs_list[dfa_id]
-                for s in range(len(reduced_dfa.keys())):
-                    reward_value = outputs[s]
-                    output_id = self.reward_to_index[reward_value]
-                    self.rew_matrix[dfa_id, s, output_id] = weigth
+                reward_idx = torch.empty_like(rews, dtype=torch.int64)
+                for val, idx in self.reward_to_index.items():
+                    reward_idx[rews == val] = idx
+
+                self.trans_prob[index, :, :num_states].scatter_(2, trans.unsqueeze(1), 1.0)
+                self.rew_matrix[index, :num_states].scatter_(1, reward_idx.unsqueeze(1), weight)

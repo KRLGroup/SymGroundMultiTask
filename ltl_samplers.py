@@ -361,19 +361,20 @@ class DatasetSampler(LTLSampler):
 
             for i, automaton in enumerate(automata):
 
-                # add self-loops when no proposition occurs
-                new_transitions = automata[i].transitions
-                for state in new_transitions:
-                    new_transitions[state][self.n_prop] = state
+                transitions = automaton.transitions
+                rewards = automaton.rewards
 
-                # rebuild the automaton with new transitions
-                automata[i] = MooreMachine(
-                    new_transitions,
-                    automaton.acceptance,
-                    None,
-                    dictionary_symbols = self.propositions,
-                    reward = "ternary"
-                )
+                rewards_vector = np.array(rewards, dtype=np.int64)
+                states = sorted(transitions.keys())
+                actions = sorted(next(iter(transitions.values())).keys())
+
+                transitions_matrix = np.zeros((len(states), len(actions)+1), dtype=np.int64)
+                for s, state in enumerate(states):
+                    for a, action in enumerate(actions):
+                        transitions_matrix[s,a] = transitions[state][action]
+                    transitions_matrix[s,-1] = s  # self-loops
+
+                automata[i] = {'transitions': transitions_matrix, 'rewards': rewards_vector}
 
         self.items = [{"formula": f, "automaton": a} for f, a in zip(formulas, automata)]
 
