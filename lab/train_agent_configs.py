@@ -7,15 +7,15 @@ test_gridworld = Args(
     model_name = "agent",
     algo = "ppo",
     seed = 1,
-    log_interval = 10,
-    save_interval = 100,
+    log_interval = 1,
+    save_interval = 10,
     procs = 1,
     frames_per_proc = 512,
     frames = 20000000,
     checkpoint_dir = None,
 
     # Environment parameters
-    env = "GridWorld-fixed-v1",
+    env = "GridWorld-v1",
     state_type = 'image',
     obs_size = (56,56),
     ltl_sampler = "Dataset_e54",
@@ -42,7 +42,7 @@ test_gridworld = Args(
 
     # Evaluation parameters
     eval = True,
-    eval_env = "GridWorld-fixed-v1",
+    eval_env = "GridWorld-v1",
     eval_interval = 1000,
     eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
@@ -62,14 +62,14 @@ test_gridworld = Args(
     clip_eps = 0.2,
 
     # Grounder training parameters
-    grounder_buffer_size = 1024,
-    grounder_buffer_start = 32,
+    grounder_buffer_size = 2048,
+    grounder_buffer_start = 512,
     grounder_max_env_steps = 75,
-    grounder_batch_size = 32,
+    grounder_batch_size = 16,
     grounder_lr = 0.001,
-    grounder_update_steps = 4,
-    grounder_accumulation = 1,
-    grounder_evaluate_steps = 1,
+    grounder_update_steps = 64,
+    grounder_accumulation = 4,
+    grounder_evaluate_steps = 256,
     grounder_use_early_stopping = False,
     grounder_patience = 20,
     grounder_min_delta = 0.0,
