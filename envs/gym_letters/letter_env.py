@@ -24,7 +24,7 @@ class LetterEnv(gym.Env):
             use_fixed_map:
                 - (bool) if True, then the map will be fixed for the whole training set
             timeout:
-                - (int) maximum lenght of the episode
+                - (int) maximum length of the episode
         """
         assert not use_agent_centric_view or grid_size%2==1, "Agent-centric view is only available for odd grid-sizes"
         self.grid_size     = grid_size
