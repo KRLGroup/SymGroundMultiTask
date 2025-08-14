@@ -97,13 +97,8 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    env = utils.make_env(
-        args.env,
-        progression_mode = args.progression_mode,
-        ltl_sampler = args.ltl_sampler,
-        grounder = None,
-        obs_size = args.obs_size
-    )
+    env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler,
+                         args.seed, 0, False, 'image', None, args.obs_size)
     env.env.max_num_steps = args.max_num_steps
     num_symbols = len(env.propositions)
     txt_logger.info("-) Environment loaded.")
@@ -117,12 +112,7 @@ def train_grounder(args: Args, device: str = None):
                             device, False, 1, False)
 
     # create model
-    sym_grounder = utils.make_grounder(
-        model_name = args.sym_grounder_model,
-        num_symbols = num_symbols,
-        obs_size = args.obs_size,
-        freeze_grounder = False
-    )
+    sym_grounder = utils.make_grounder(args.sym_grounder_model, num_symbols, args.obs_size, False)
     sym_grounder.to(device)
     env.env.sym_grounder = sym_grounder
     txt_logger.info("-) Grounder loaded.")

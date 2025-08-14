@@ -182,44 +182,20 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # load grounder algo environment
-    grounder_algo_env = utils.make_env(
-        env_key = args.env,
-        progression_mode = args.progression_mode,
-        ltl_sampler = args.ltl_sampler,
-        seed = args.seed,
-        intrinsic = args.int_reward,
-        noLTL = args.noLTL,
-        state_type = args.state_type,
-        grounder = None,
-        obs_size = args.obs_size
-    )
+    grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
+                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
     num_symbols = len(grounder_algo_env.propositions)
 
     # create grounder
-    sym_grounder = utils.make_grounder(
-        model_name = args.grounder_model,
-        num_symbols = num_symbols,
-        obs_size = args.obs_size,
-        freeze_grounder = args.freeze_grounder
-    )
-
+    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size, args.freeze_grounder)
     grounder_algo_env.env.sym_grounder = sym_grounder
 
     # load environments
     envs = []
     for i in range(args.procs):
-        envs.append(utils.make_env(
-            env_key = args.env,
-            progression_mode = args.progression_mode,
-            ltl_sampler = args.ltl_sampler,
-            seed = args.seed,
-            intrinsic = args.int_reward,
-            noLTL = args.noLTL,
-            state_type = args.state_type,
-            grounder = sym_grounder,
-            obs_size = args.obs_size
-        ))
+        envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
+                                   args.noLTL, args.state_type, sym_grounder, args.obs_size))
 
     txt_logger.info("-) Environments loaded.")
 
@@ -240,11 +216,11 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model,
-                                   args.dumb_ac, args.freeze_gnn, device, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
+                                   args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac,
-                          args.freeze_gnn, device, False)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
+                          args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
 
     # load existing model
     if 'model_state' in status:
