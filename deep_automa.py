@@ -275,9 +275,9 @@ class MultiTaskProbabilisticAutoma(nn.Module):
                 num_states = trans.shape[0]
                 trans = trans.transpose(0,1)
 
-                reward_idx = torch.empty_like(rews, dtype=torch.int64)
+                rews_idx = torch.empty_like(rews, dtype=torch.int64, device=self.device)
                 for val, idx in self.reward_to_index.items():
-                    reward_idx[rews == val] = idx
+                    rews_idx[rews == val] = idx
 
-                self.trans_prob[index, :, :num_states].scatter_(2, trans.unsqueeze(1), 1.0)
-                self.rew_matrix[index, :num_states].scatter_(1, reward_idx.unsqueeze(1), weight)
+                self.trans_prob[index, :, :num_states, :num_states].scatter_(2, trans.unsqueeze(-1), 1.0)
+                self.rew_matrix[index, :num_states].scatter_(1, rews_idx.unsqueeze(-1), weight)
