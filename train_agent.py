@@ -79,6 +79,7 @@ class Args:
     grounder_buffer_size: int = 1000
     grounder_buffer_start: int = 32
     grounder_max_env_steps: int = 75
+    grounder_train_interval: int = 1
     grounder_lr: float = 0.001
     grounder_batch_size: int = 32
     grounder_update_steps: int = 4
@@ -341,16 +342,19 @@ def train_agent(args: Args, device: str = None):
         update_start_time = time.time()
         update += 1
 
-        # collect experiences from environments
+        # collect experiences by playing in the environments
         exps, logs1 = algo.collect_experiences()
         logs2 = grounder_algo.process_experiences(exps)
-
-        # updated agent and grounder
-        logs3 = algo.update_parameters(exps)
-        logs4 = grounder_algo.update_parameters()
-
         num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
+
+        # updated agent
+        logs3 = algo.update_parameters(exps)
+
+        # update grounder
+        if update % args.grounder_train_interval == 0:
+            logs4 = grounder_algo.update_parameters()
+
         update_end_time = time.time()
 
         # Print logs (accumulated during the log_interval)

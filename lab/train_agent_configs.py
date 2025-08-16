@@ -66,6 +66,7 @@ test_gridworld = Args(
     grounder_buffer_size = 2048,
     grounder_buffer_start = 512,
     grounder_max_env_steps = 75,
+    grounder_train_interval = 1,
     grounder_lr = 0.001,
     grounder_batch_size = 16,
     grounder_update_steps = 64,
