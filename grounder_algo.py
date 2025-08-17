@@ -106,9 +106,9 @@ class GrounderAlgo():
                 rews = torch.cat([masked_exps.reward.new_zeros(1), masked_exps.reward], dim=0)
                 task = masked_exps.obs.task_id[0]
                 dfa = self.sampler.get_automaton(task)
-                transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
-                rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
-                self.add_episode(obss, rews, transitions, rewards)
+                dfa_transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+                dfa_rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+                self.add_episode(obss, rews, dfa_transitions, dfa_rewards)
 
         self.residual_exps = DictList({
             'obs': exps.obs[~used_mask],
@@ -157,9 +157,9 @@ class GrounderAlgo():
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
             dfa = self.env.sampler.get_current_automaton()
-            transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
-            rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
-            self.add_episode(obss, rews, transitions, rewards)
+            dfa_transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+            dfa_rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+            self.add_episode(obss, rews, dfa_transitions, dfa_rewards)
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer),
