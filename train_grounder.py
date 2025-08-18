@@ -100,7 +100,7 @@ def train_grounder(args: Args, device: str = None):
     env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler,
                          args.seed, 0, False, 'image', None, args.obs_size)
     env.env.max_num_steps = args.max_num_steps
-    num_symbols = len(env.propositions)
+    num_symbols = len(env.propositions) + 1
     txt_logger.info("-) Environment loaded.")
 
     # load agent

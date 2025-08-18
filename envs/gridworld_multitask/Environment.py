@@ -441,7 +441,7 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 
 
     def get_propositions(self):
-        return self.dictionary_symbols.copy()
+        return self.dictionary_symbols[:-1].copy()
 
 
     def get_real_events(self):

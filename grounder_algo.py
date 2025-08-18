@@ -36,7 +36,7 @@ class GrounderAlgo():
         self.sampler = env.sampler
 
         self.train_grounder = train_grounder and grounder is not None
-        self.num_symbols = len(env.propositions)
+        self.num_symbols = len(env.propositions) + 1
 
         if self.train_grounder:
             self.buffer = ReplayBuffer(capacity=self.buffer_size, device=device)

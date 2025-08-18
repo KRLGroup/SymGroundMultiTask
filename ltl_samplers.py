@@ -27,7 +27,7 @@ class LTLSampler():
 
 
     def get_current_id(self):
-        return None
+        return -1
 
 
 
@@ -342,8 +342,8 @@ class DatasetSampler(LTLSampler):
         # load config
         with open(os.path.join(dataset_folder, 'config.pkl'), 'rb') as f:
             self.config = pickle.load(f)
-        assert self.config["propositions"] == self.propositions[:-1]
-        self.n_prop = len(self.propositions) - 1
+        assert self.config["propositions"] == self.propositions
+        self.n_prop = len(self.propositions)
 
         # load formulas
         with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
