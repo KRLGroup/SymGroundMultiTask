@@ -46,8 +46,8 @@ test_gridworld = Args(
     eval_interval = 1000,
     eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
     eval_episodes = [1000, 50],
+    eval_argmaxs = [True, True],
     eval_procs = 1,
-    eval_argmax = [True, True],
 
     # Train parameters
     epochs = 4,
