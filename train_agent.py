@@ -58,9 +58,9 @@ class Args:
     eval_env: Optional[str] = None
     eval_interval: int = 100
     eval_samplers: Optional[List[str]] = None
-    eval_episodes: List[int] = None
+    eval_episodes: Optional[List[int]] = None
+    eval_argmaxs: Optional[List[bool]] = None
     eval_procs: int = 1
-    eval_argmax: bool = True
 
     # Train parameters
     epochs: int = 4
@@ -114,6 +114,8 @@ def train_agent(args: Args, device: str = None):
         assert args.grounder_pretrain is not None
     if args.eval and args.eval_samplers:
         assert len(args.eval_episodes) == len(args.eval_samplers)
+    if args.eval and args.eval_argmaxs:
+        assert len(args.eval_episodes) == len(args.eval_argmaxs)
     if train_grounder:
         assert args.grounder_buffer_size >= args.grounder_buffer_start
     if train_grounder and args.grounder_use_early_stopping:
@@ -296,14 +298,15 @@ def train_agent(args: Args, device: str = None):
     # initialize the evaluators
     if args.eval:
 
-        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
-        eval_procs = args.eval_procs if args.eval_procs else args.procs
+        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
+        eval_argmaxs = args.eval_argmaxs if args.eval_argmaxs else [True for _ in range(len(eval_samplers))]
+        eval_procs = args.eval_procs if args.eval_procs else 1
 
         evals = []
-        for sampler in eval_samplers:
-            evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device,args.state_type, sym_grounder,
-                                    args.obs_size, args.eval_argmax, eval_procs, args.ignoreLTL, args.progression_mode,
+        for sampler, argmax in zip(eval_samplers, eval_argmaxs):
+            evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device, args.state_type, sym_grounder,
+                                    args.obs_size, argmax, eval_procs, args.ignoreLTL, args.progression_mode,
                                     args.gnn_model, args.recurrence, args.dumb_ac))
 
         txt_logger.info("-) Evaluators loaded.")

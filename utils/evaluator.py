@@ -32,7 +32,13 @@ class Eval:
         self.dumb_ac = dumb_ac
 
         self.model_dir = model_dir
-        self.eval_dir = self.model_dir + "/eval-" + ltl_sampler
+
+        self.eval_dir = (
+            self.model_dir
+            + "/eval-"
+            + ltl_sampler
+            + ("-argmax" if self.argmax else "")
+        )
 
         self.tb_writer = tensorboardX.SummaryWriter(self.eval_dir)
 
