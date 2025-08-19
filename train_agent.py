@@ -461,7 +461,7 @@ def train_agent(args: Args, device: str = None):
                 data += return_per_episode.values()
                 header += ['average_discounted_return']
                 data += [average_discounted_return]
-                header += ['num_frames/' + key for key in frames_per_episode.keys()]
+                header += ['episode_frames/' + key for key in frames_per_episode.keys()]
                 data += frames_per_episode.values()
 
                 txt_logger.info(f"Evaluator {i}")
