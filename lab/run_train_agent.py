@@ -1,5 +1,5 @@
 import argparse
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import torch
 
 from lab.train_agent_configs import *
