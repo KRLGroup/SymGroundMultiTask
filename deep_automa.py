@@ -186,7 +186,7 @@ class MultiTaskProbabilisticAutoma(nn.Module):
 
     metadata = {
         "reward_types": ["boolean", "ternary"],
-        "initializations": ["gaussian"]
+        "initializations": ["gaussian", "empty"]
     }
 
     def __init__(self, batch_size, num_actions, num_states, initialization="empty", reward_type="ternary", device=None):
@@ -221,6 +221,16 @@ class MultiTaskProbabilisticAutoma(nn.Module):
                 batch_size, num_states, self.num_rewards,
                 device=self.device, dtype=torch.float32
             ).normal_(mean=0, std=0.1)
+
+        elif initialization == "empty":
+            self.trans_prob = torch.empty(
+                batch_size, num_actions, num_states, num_states,
+                device=self.device, dtype=torch.float32
+            )
+            self.rew_matrix = torch.empty(
+                batch_size, num_states, self.num_rewards,
+                device=self.device, dtype=torch.float32
+            )
 
 
     def forward(self, action_seq, current_state=None):
