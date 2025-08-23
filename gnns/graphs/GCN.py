@@ -8,7 +8,10 @@ from dgl.nn.pytorch.conv import GraphConv
 
 from gnns.graphs.GNN import GNN
 
+
+
 class GCN(GNN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim)
 
@@ -20,6 +23,7 @@ class GCN(GNN):
                       in zip([input_dim] + hidden_plus_input_dims[:-1], hidden_dims)])
 
         self.g_embed = nn.Linear(hidden_dims[-1], output_dim)
+
 
     # Uses the base implementation which averages hidden representations of all nodes
     def forward(self, g):
@@ -40,10 +44,13 @@ class GCN(GNN):
         return self.g_embed(hg).squeeze(1)
 
 
+
 # GCN, but the graph representation is only the representation of the root node.
 class GCNRoot(GCN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim, **kwargs)
+
 
     def forward(self, g):
         g = np.array(g).reshape((1, -1)).tolist()[0]
@@ -56,13 +63,15 @@ class GCNRoot(GCN):
                 h = self.convs[i](g, torch.cat([h, h_0], dim=1))
             else:
                 h = self.convs[i](g, h)
-
         g.ndata['h'] = h
-        hg = dgl.sum_nodes(g, 'h', weight='is_root')
+
+        hg = g.ndata['h'][g.ndata['is_root'].bool()]
         return self.g_embed(hg).squeeze(1)
 
 
+
 class GCNRootShared(GNN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim)
         hidden_dim = kwargs.get('hidden_dim', 32)
@@ -72,6 +81,7 @@ class GCNRootShared(GNN):
         self.linear_in = nn.Linear(input_dim, hidden_dim)
         self.conv = GraphConv(2*hidden_dim, hidden_dim, activation=F.relu)
         self.g_embed = nn.Linear(hidden_dim, output_dim)
+
 
     def forward(self, g):
         g = np.array(g).reshape((1, -1)).tolist()[0]
@@ -84,5 +94,5 @@ class GCNRootShared(GNN):
             h = self.conv(g, torch.cat([h, h_0], dim=1))
         g.ndata['h'] = h
 
-        hg = dgl.sum_nodes(g, 'h', weight='is_root')
+        hg = g.ndata['h'][g.ndata['is_root'].bool()]
         return self.g_embed(hg).squeeze(1)
