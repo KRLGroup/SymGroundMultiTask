@@ -26,17 +26,16 @@ class RGCN(GNN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, ndata=['feat', 'is_root'])
-        h_0 = g.ndata["feat"].float()
-        h = h_0
-        etypes = g.edata["type"]
 
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
-                h = self.convs[i](g, torch.cat([h, h_0], dim=1), etypes)
+                h = self.convs[i](g, torch.cat([h, h_0], dim=1), g.edata["type"])
             else:
-                h = self.convs[i](g, h, etypes)
+                h = self.convs[i](g, h, g.edata["type"])
         g.ndata['h'] = h
 
         # Calculate graph representation by averaging all the hidden node representations.
@@ -52,17 +51,16 @@ class RGCNRoot(RGCN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, ndata=['feat', 'is_root'])
-        h_0 = g.ndata["feat"].float().squeeze()
-        h = h_0
-        etypes = g.edata["type"]
 
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
-                h = self.convs[i](g, torch.cat([h, h_0], dim=1), etypes)
+                h = self.convs[i](g, torch.cat([h, h_0], dim=1), g.edata["type"])
             else:
-                h = self.convs[i](g, h, etypes)
+                h = self.convs[i](g, h, g.edata["type"])
         g.ndata['h'] = h
 
         hg = g.ndata['h'][g.ndata['is_root'].bool()]
@@ -84,15 +82,13 @@ class RGCNRootShared(GNN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, ndata=['feat', 'is_root'])
-        h_0 = self.linear_in(g.ndata["feat"].float().squeeze())
-        h = h_0
-        etypes = g.edata["type"]
 
-        # Apply convolution layers
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = self.linear_in(g.ndata["feat"].float())
+
+        h = h_0
         for _ in range(self.num_layers):
-            h = self.conv(g, torch.cat([h, h_0], dim=1), etypes)
+            h = self.conv(g, torch.cat([h, h_0], dim=1), g.edata["type"])
         g.ndata['h'] = h
 
         hg = g.ndata['h'][g.ndata['is_root'].bool()]

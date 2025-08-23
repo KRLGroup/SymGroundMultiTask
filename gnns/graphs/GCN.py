@@ -27,11 +27,11 @@ class GCN(GNN):
 
     # Uses the base implementation which averages hidden representations of all nodes
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
-        h_0 = g.ndata["feat"].float()
-        h = h_0
 
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
                 h = self.convs[i](g, torch.cat([h, h_0], dim=1))
@@ -53,11 +53,11 @@ class GCNRoot(GCN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
-        h_0 = g.ndata["feat"].float()
-        h = h_0
 
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
                 h = self.convs[i](g, torch.cat([h, h_0], dim=1))
@@ -84,12 +84,11 @@ class GCNRootShared(GNN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g)
-        h_0 = self.linear_in(g.ndata["feat"].float())
-        h = h_0
 
-        # Apply convolution layers
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = self.linear_in(g.ndata["feat"].float())
+
+        h = h_0
         for i in range(self.num_layers):
             h = self.conv(g, torch.cat([h, h_0], dim=1))
         g.ndata['h'] = h
