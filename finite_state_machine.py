@@ -124,33 +124,33 @@ class DFA:
         self.alphabet = list(range(self.num_of_symbols))
 
 
-    def random_init(self, numb_of_states, numb_of_symbols):
-        self.num_of_states = numb_of_states
-        self.num_of_symbols = numb_of_symbols
+    def random_init(self, num_of_states, num_of_symbols):
+        self.num_of_states = num_of_states
+        self.num_of_symbols = num_of_symbols
 
         transitions = {}
-        acceptance = np.random.randint(0, 2, size=numb_of_states, dtype=bool).tolist()
+        acceptance = np.random.randint(0, 2, size=num_of_states, dtype=bool).tolist()
 
-        for s in range(numb_of_states):
+        for s in range(num_of_states):
             trans_from_s = {}
 
-            if s < numb_of_states - 1:
-                s_prime = np.random.randint(s + 1, numb_of_states)
-                a_start = np.random.randint(numb_of_symbols)
+            if s < num_of_states - 1:
+                s_prime = np.random.randint(s + 1, num_of_states)
+                a_start = np.random.randint(num_of_symbols)
                 trans_from_s[a_start] = s_prime
             else:
                 a_start = None
 
             # Fill in the rest
-            for a in range(numb_of_symbols):
+            for a in range(num_of_symbols):
                 if a != a_start:
-                    trans_from_s[a] = np.random.randint(numb_of_states)
+                    trans_from_s[a] = np.random.randint(num_of_states)
 
             transitions[s] = trans_from_s.copy()
 
         self.transitions = transitions
         self.acceptance = acceptance
-        self.alphabet = list(range(numb_of_symbols))
+        self.alphabet = list(range(num_of_symbols))
 
 
     def accepts(self, string):

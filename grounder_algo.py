@@ -195,8 +195,8 @@ class GrounderAlgo():
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
                 batch_size = batch_size,
-                numb_of_actions = self.num_symbols,
-                numb_of_states = max([tr.shape[0] for tr in dfa_trans]),
+                num_actions = self.num_symbols,
+                num_states = max([tr.shape[0] for tr in dfa_trans]),
                 reward_type = "ternary",
                 device = self.device
             )
@@ -208,7 +208,7 @@ class GrounderAlgo():
 
             # predict reward probability from symbols probability with DeepDFA
             _, preds = deepDFA(symbols_probs)
-            preds = preds.view(-1, deepDFA.numb_of_rewards)
+            preds = preds.view(-1, deepDFA.num_rewards)
 
             # maps rewards to label
             labels = (rews + 1).view(-1)
@@ -235,8 +235,8 @@ class GrounderAlgo():
 
                 deepDFA = MultiTaskProbabilisticAutoma(
                     batch_size = batch_size,
-                    numb_of_actions = self.num_symbols,
-                    numb_of_states = max([tr.shape[0] for tr in dfa_trans]),
+                    num_actions = self.num_symbols,
+                    num_states = max([tr.shape[0] for tr in dfa_trans]),
                     reward_type = "ternary",
                     device = self.device
                 )
@@ -246,7 +246,7 @@ class GrounderAlgo():
                 symbols_probs = symbols_probs.view(*obss.shape[:2], -1)
 
                 _, preds = deepDFA(symbols_probs)
-                preds = preds.view(-1, deepDFA.numb_of_rewards)
+                preds = preds.view(-1, deepDFA.num_rewards)
 
                 labels = (rews + 1).view(-1)
 
