@@ -322,6 +322,7 @@ def train_agent(args: Args, device: str = None):
     logs2 = utils.empty_buffer_logs()
     logs3 = utils.empty_algo_logs()
     logs4 = utils.empty_grounder_algo_logs()
+    logs5 = utils.empty_grounder_eval_logs(num_symbols)
     logs_exp = utils.empty_episode_logs()
 
     num_frames = status['num_frames']

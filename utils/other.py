@@ -72,6 +72,14 @@ def empty_grounder_algo_logs():
     return logs
 
 
+def empty_grounder_eval_logs(n_syms):
+    logs = {
+        'grounder_acc': 0.0,
+        'grounder_recall': [0.0] * n_syms
+    }
+    return logs
+
+
 def accumulate_episode_logs(logs_exp, logs):
 
     if logs.keys() == logs_exp.keys():
