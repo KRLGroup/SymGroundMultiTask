@@ -20,5 +20,17 @@
 
 ## Training
 
+1. (optional) Pretrain the GNN using the configuration in ltl_bootcamp_config.py
+
+    ```bash
+    python -m lab.run_ltl_bootcamp.py --device <device>
+    ```
+
+2. Train the Agent using the configuration in train_agent_config.py
+
+    ```bash
+    python -m lab.run_train_agent.py --device <device>
+    ```
+
 
 ## Evaluation
