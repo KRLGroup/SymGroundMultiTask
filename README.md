@@ -5,7 +5,7 @@
 
 ## Installation
 
-1. Create a new conda environment with Python 3.7.16 and the dependencies specified in environment.yml and requirements.txt:
+1. Create a new conda environment with Python 3.7.16 and the dependencies specified in ```environment.yml``` and ```requirements.txt```:
 
     ```bash
     conda env create -f environment.yml
@@ -18,15 +18,30 @@
     ```
 
 
+## Dataset Creation
+
+Create the datasets of formulas and automata needed for training the grounder
+
+```bash
+python -m datasets.create_datasets --path <dataset>
+```
+
+
 ## Training
 
-1. (optional) Pretrain the GNN using the configuration in ltl_bootcamp_config.py
+1. (optional) Pretrain the GNN using the configuration in ```ltl_bootcamp_config.py```
 
     ```bash
     python -m lab.run_ltl_bootcamp.py --device <device>
     ```
 
-2. Train the Agent using the configuration in train_agent_config.py
+2. (optional) Pretrain the grounder using the configuration in ```train_grounder_config.py```
+
+    ```bash
+    python -m lab.run_train_grounder.py --device <device>
+    ```
+
+3. Train the agent using the configuration in ```train_agent_config.py```
 
     ```bash
     python -m lab.run_train_agent.py --device <device>
