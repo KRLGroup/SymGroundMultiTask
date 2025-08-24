@@ -465,7 +465,7 @@ def train_agent(args: Args, device: str = None):
                 header += ['episode_frames/' + key for key in frames_per_episode.keys()]
                 data += frames_per_episode.values()
 
-                txt_logger.info(f"Evaluator {i}")
+                txt_logger.info(f"Evaluator {i} ({evalu.eval_dir})")
                 txt_logger.info(
                     ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
                     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
