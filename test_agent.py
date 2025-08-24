@@ -84,7 +84,7 @@ data += [average_discounted_return]
 header += ['episode_frames/' + key for key in frames_per_episode.keys()]
 data += frames_per_episode.values()
 
-print(f"Evaluator {evalu.eval_dir}")
+print(f"Evaluator {evalu.eval_name}")
 print(
     ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
