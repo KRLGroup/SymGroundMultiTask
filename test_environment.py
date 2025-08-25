@@ -7,7 +7,7 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--env", default="GridWorld-fixed-v1")
+parser.add_argument("--env", default="GridWorld-fixed-v1", type=str)
 parser.add_argument("--render_mode", default="image", choices=["human", "terminal"])
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)

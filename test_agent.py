@@ -8,8 +8,8 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="full_agent")
-parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--agent_dir", default="full_agent", type=str)
+parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
 parser.add_argument('--argmax', dest='argmax', default=True, action='store_true')
 parser.add_argument('--no-argmax', dest='argmax', action='store_false')
 parser.add_argument('--eval_procs', default=1, type=int)

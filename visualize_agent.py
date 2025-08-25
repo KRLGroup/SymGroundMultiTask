@@ -8,8 +8,8 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="full_agent")
-parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--agent_dir", default="full_agent", type=str)
+parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
 parser.add_argument("--seed", default=1, type=int)
 parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
