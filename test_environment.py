@@ -8,6 +8,7 @@ import utils
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
 parser.add_argument("--env", default="GridWorld-fixed-v1")
+parser.add_argument("--render_mode", default="image", choices=["human", "terminal"])
 parser.add_argument("--input_type", default="keyboard", choices=["keyboard", "terminal"])
 parser.add_argument("--formula_id", default=0, type=int)
 parser.add_argument("--sampler", default="Dataset_e54test_no-shuffle", type=str)
@@ -25,6 +26,7 @@ env = utils.make_env(
     seed = 1,
     obs_size = (56,56)
 )
+env.env.render_mode = args.render_mode
 
 if "GridWorld" in args.env:
     str_to_action = {"s":0,"d":1,"w":2,"a":3}
@@ -47,7 +49,7 @@ step = 0
 while not done:
 
     step += 1
-    env.show()
+    env.render()
 
     print(f"\n---")
     print(f"Step: {step}")
