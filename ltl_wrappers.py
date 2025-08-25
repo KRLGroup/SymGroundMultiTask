@@ -123,6 +123,10 @@ class LTLEnv(gym.Wrapper):
         return ltl_obs, reward, done, info
 
 
+    def render(self):
+        return self.env.render()
+
+
     def progression(self, ltl_formula, truth_assignment):
         if (ltl_formula, truth_assignment) not in self.known_progressions:
             result_ltl = ltl_progression.progress_and_clean(ltl_formula, truth_assignment)
@@ -196,6 +200,10 @@ class NoLTLWrapper(gym.Wrapper):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         return obs, reward, done, info
+
+
+    def render(self):
+        return self.env.render()
 
 
     def get_propositions(self):
