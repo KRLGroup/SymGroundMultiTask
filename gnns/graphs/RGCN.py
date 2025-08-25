@@ -9,6 +9,7 @@ from gnns.graphs.GNN import GNN
 from utils.ast_builder import edge_types
 
 
+
 class RGCN(GNN):
 
     def __init__(self, input_dim, output_dim, **kwargs):
@@ -25,44 +26,46 @@ class RGCN(GNN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
-        h_0 = g.ndata["feat"].float()
-        h = h_0
-        etypes = g.edata["type"].float()
 
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
-                h = self.convs[i](g, torch.cat([h, h_0], dim=1), etypes)
+                h = self.convs[i](g, torch.cat([h, h_0], dim=1), g.edata["type"])
             else:
-                h = self.convs[i](g, h, etypes)
-
+                h = self.convs[i](g, h, g.edata["type"])
         g.ndata['h'] = h
+
         # Calculate graph representation by averaging all the hidden node representations.
         hg = dgl.mean_nodes(g, 'h')
         return self.g_embed(hg).squeeze(1)
 
 
+
 class RGCNRoot(RGCN):
+
     def __init__(self, input_dim, output_dim, **kwargs):
         super().__init__(input_dim, output_dim, **kwargs)
 
-    def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
-        h_0 = g.ndata["feat"].float().squeeze()
-        h = h_0
-        etypes = g.edata["type"]
 
+    def forward(self, g):
+
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = g.ndata["feat"].float()
+
+        h = h_0
         for i in range(self.num_layers):
             if i != 0:
-                h = self.convs[i](g, torch.cat([h, h_0], dim=1), etypes)
+                h = self.convs[i](g, torch.cat([h, h_0], dim=1), g.edata["type"])
             else:
-                h = self.convs[i](g, h, etypes)
+                h = self.convs[i](g, h, g.edata["type"])
+        g.ndata['h'] = h
 
-        g.ndata['h'] = h # TODO: Check if this is redundant
-        hg = dgl.sum_nodes(g, 'h', weight='is_root')
+        hg = g.ndata['h'][g.ndata['is_root'].bool()]
         return self.g_embed(hg).squeeze(1)
+
 
 
 class RGCNRootShared(GNN):
@@ -79,16 +82,14 @@ class RGCNRootShared(GNN):
 
 
     def forward(self, g):
-        g = np.array(g).reshape((1, -1)).tolist()[0]
-        g = dgl.batch(g, node_attrs=['feat', 'is_root'])
-        h_0 = self.linear_in(g.ndata["feat"].float().squeeze())
-        h = h_0
-        etypes = g.edata["type"]
 
-        # Apply convolution layers
-        for i in range(self.num_layers):
-            h = self.conv(g, torch.cat([h, h_0], dim=1), etypes)
+        g = dgl.batch(g.squeeze(1), ndata=['feat', 'is_root'])
+        h_0 = self.linear_in(g.ndata["feat"].float())
+
+        h = h_0
+        for _ in range(self.num_layers):
+            h = self.conv(g, torch.cat([h, h_0], dim=1), g.edata["type"])
         g.ndata['h'] = h
 
-        hg = dgl.sum_nodes(g, 'h', weight='is_root')
+        hg = g.ndata['h'][g.ndata['is_root'].bool()]
         return self.g_embed(hg).squeeze(1)

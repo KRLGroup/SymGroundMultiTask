@@ -6,11 +6,11 @@ from ltl_samplers import getLTLSampler
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", type=str, default="sampler", choices=["sampler", "manual"])
-parser.add_argument("--sampler", type=str, default="Dataset_e54")
-parser.add_argument("--id", type=int, default=0)
-parser.add_argument("--formula", type=ast.literal_eval, default=('eventually', 'b'))
-parser.add_argument("--symbols", nargs="+", type=str, default=["a", "b", "c", "d", "e", ""])
+parser.add_argument("--mode", default="sampler", choices=["sampler", "manual"])
+parser.add_argument("--sampler", default="Dataset_e54", type=str)
+parser.add_argument("--id", default=0, type=int)
+parser.add_argument("--formula", default=('eventually', 'b'), type=ast.literal_eval)
+parser.add_argument("--symbols", nargs="+", default=["a", "b", "c", "d", "e", ""], type=str)
 parser.add_argument('--automaton', dest='automaton', default=True, action='store_true')
 parser.add_argument('--no-automaton', dest='automaton', action='store_false')
 args = parser.parse_args()

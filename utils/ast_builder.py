@@ -44,8 +44,7 @@ class ASTBuilder(object):
         if (library == "networkx"): return nxg
 
         # convert the Networkx graph to dgl graph and pass the 'feat' attribute
-        g = dgl.DGLGraph()
-        g.from_networkx(nxg, node_attrs=["feat", "is_root"], edge_attrs=["type"]) # dgl does not support string attributes (i.e., token)
+        g = dgl.from_networkx(nxg, node_attrs=["feat", "is_root"], edge_attrs=["type"]) # dgl does not support string attributes (i.e., token)
         return g
 
 

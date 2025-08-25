@@ -8,10 +8,13 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="full_agent")
-parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle")
+parser.add_argument("--agent_dir", default="full_agent", type=str)
+parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
+parser.add_argument('--argmax', dest='argmax', default=True, action='store_true')
+parser.add_argument('--no-argmax', dest='argmax', action='store_false')
+parser.add_argument('--eval_procs', default=1, type=int)
+parser.add_argument('--eval_episodes', default=1000, type=int)
 parser.add_argument("--seed", default=1, type=int)
-parser.add_argument("--formula_id", default=0, type=int)
 args = parser.parse_args()
 
 device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,85 +31,61 @@ agent_dir = os.path.join(storage_dir, args.agent_dir)
 
 # load training config
 config = utils.load_config(agent_dir)
-print(f"\nConfig:\n{config}")
 
 # load training status
 status = utils.get_status(agent_dir, device)
 
-# build environment
-env = utils.make_env(
-    config.env,
-    progression_mode = config.progression_mode,
-    ltl_sampler = args.ltl_sampler,
-    seed = 1,
-    intrinsic = config.int_reward,
-    noLTL = config.noLTL,
-    state_type = config.state_type,
-    grounder = None,
-    obs_size = config.obs_size
-)
-action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
+print("\n---\n")
+print("Config:")
+for field_name, value in vars(config).items():
+    print(f"\t{field_name}: {value}")
+print(f"\nDevice: {device}")
+print("\n---\n")
 
-# set formula
-env.sampler.sampled_tasks = args.formula_id
+# create evaluator
+evalu = utils.Eval(config.eval_env, agent_dir, args.ltl_sampler, args.seed, device, config.state_type, None,
+                   config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode, config.gnn_model,
+                   config.recurrence, config.dumb_ac)
 
 # create and load grounder
 sym_grounder = utils.make_grounder(
     model_name = config.grounder_model,
-    num_symbols = len(env.propositions),
+    num_symbols = len(evalu.eval_env.envs[0].propositions) + 1,
     obs_size = config.obs_size,
     freeze_grounder = True
 )
 sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
 sym_grounder.to(device) if sym_grounder is not None else None
-env.env.sym_grounder = sym_grounder
-
-agent = utils.Agent(env, env.observation_space, env.action_space, agent_dir, config.ignoreLTL, config.progression_mode,
-                    config.gnn_model, config.recurrence, config.dumb_ac, device, False, 1, False)
+for env in evalu.eval_env.envs:
+    env.env.sym_grounder = sym_grounder
 
 
 # TEST
 
-obs = env.reset()
-done = False
-step = 0
+print("Starting Evaluation...")
 
-while not done:
+eval_start_time = time.time()
+return_per_episode, frames_per_episode = evalu.eval(args.eval_episodes)
+eval_end_time = time.time()
 
-    step += 1
-    env.show()
+duration = int(eval_end_time - eval_start_time)
 
-    time.sleep(0.5)
+total_eval_frames = sum(frames_per_episode)
+average_discounted_return = utils.average_discounted_return(return_per_episode, frames_per_episode, config.discount)
+return_per_episode = utils.synthesize(return_per_episode)
+frames_per_episode = utils.synthesize(frames_per_episode)
 
-    print(f"\n---")
-    print(f"Step: {step}")
-    print(f"Predicted Residual Task:")
-    utils.pprint_ltl_formula(env.translate_formula(env.pred_ltl_goal))
+header = ['time/frames', 'time/duration']
+data = [total_eval_frames, duration]
+header += ['return/' + key for key in return_per_episode.keys()]
+data += return_per_episode.values()
+header += ['average_discounted_return']
+data += [average_discounted_return]
+header += ['episode_frames/' + key for key in frames_per_episode.keys()]
+data += frames_per_episode.values()
 
-    if env.real_ltl_goal != env.pred_ltl_goal:
-        print("WRONG PREDICTED RESIDUAL FORMULA")
-
-    print("\nAction: ", end="")
-
-    action = agent.get_action(obs).item()
-    print(action_to_str[action])
-
-    obs, reward, done, info = env.step(action)
-
-    real_sym = env.env.translate_formula(env.env.get_real_events())
-    print(f"Real Symbol: {real_sym}")
-    pred_sym = env.env.translate_formula(env.env.get_events())
-    print(f"Pred Symbol: {pred_sym}")
-    if env.env.get_events() != env.env.get_real_events():
-        print("WRONG PREDICTION")
-    print(f"Reward: {reward}")
-
-    if done:
-        break
-
-env.show()
-print("Done!")
-print("Closing...")
-
-time.sleep(2.0)
-env.close()
+print(f"Evaluator {evalu.eval_name}")
+print(
+    ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+    " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
+)

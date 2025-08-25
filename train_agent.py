@@ -58,7 +58,8 @@ class Args:
     eval_env: Optional[str] = None
     eval_interval: int = 100
     eval_samplers: Optional[List[str]] = None
-    eval_episodes: List[int] = None
+    eval_episodes: Optional[List[int]] = None
+    eval_argmaxs: Optional[List[bool]] = None
     eval_procs: int = 1
 
     # Train parameters
@@ -78,8 +79,9 @@ class Args:
     grounder_buffer_size: int = 1000
     grounder_buffer_start: int = 32
     grounder_max_env_steps: int = 75
-    grounder_batch_size: int = 32
+    grounder_train_interval: int = 1
     grounder_lr: float = 0.001
+    grounder_batch_size: int = 32
     grounder_update_steps: int = 4
     grounder_accumulation: int = 1
     grounder_evaluate_steps: int = 1
@@ -112,6 +114,8 @@ def train_agent(args: Args, device: str = None):
         assert args.grounder_pretrain is not None
     if args.eval and args.eval_samplers:
         assert len(args.eval_episodes) == len(args.eval_samplers)
+    if args.eval and args.eval_argmaxs:
+        assert len(args.eval_episodes) == len(args.eval_argmaxs)
     if train_grounder:
         assert args.grounder_buffer_size >= args.grounder_buffer_start
     if train_grounder and args.grounder_use_early_stopping:
@@ -181,44 +185,20 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # load grounder algo environment
-    grounder_algo_env = utils.make_env(
-        env_key = args.env,
-        progression_mode = args.progression_mode,
-        ltl_sampler = args.ltl_sampler,
-        seed = args.seed,
-        intrinsic = args.int_reward,
-        noLTL = args.noLTL,
-        state_type = args.state_type,
-        grounder = None,
-        obs_size = args.obs_size
-    )
+    grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
+                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
-    num_symbols = len(grounder_algo_env.propositions)
+    num_symbols = len(grounder_algo_env.propositions) + 1
 
     # create grounder
-    sym_grounder = utils.make_grounder(
-        model_name = args.grounder_model,
-        num_symbols = num_symbols,
-        obs_size = args.obs_size,
-        freeze_grounder = args.freeze_grounder
-    )
-
+    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size, args.freeze_grounder)
     grounder_algo_env.env.sym_grounder = sym_grounder
 
     # load environments
     envs = []
     for i in range(args.procs):
-        envs.append(utils.make_env(
-            env_key = args.env,
-            progression_mode = args.progression_mode,
-            ltl_sampler = args.ltl_sampler,
-            seed = args.seed,
-            intrinsic = args.int_reward,
-            noLTL = args.noLTL,
-            state_type = args.state_type,
-            grounder = sym_grounder,
-            obs_size = args.obs_size
-        ))
+        envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
+                                   args.noLTL, args.state_type, sym_grounder, args.obs_size))
 
     txt_logger.info("-) Environments loaded.")
 
@@ -239,11 +219,11 @@ def train_agent(args: Args, device: str = None):
 
     # create model
     if use_mem:
-        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model,
-                                   args.dumb_ac, args.freeze_gnn, device, False)
+        acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
+                                   args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
-        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL, args.gnn_model, args.dumb_ac,
-                          args.freeze_gnn, device, False)
+        acmodel = ACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
+                          args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
 
     # load existing model
     if 'model_state' in status:
@@ -295,7 +275,7 @@ def train_agent(args: Args, device: str = None):
 
     # load grounder algo
     grounder_algo = GrounderAlgo(sym_grounder, grounder_algo_env, train_grounder, args.grounder_max_env_steps,
-                                 args.grounder_buffer_size, args.grounder_batch_size, args.grounder_lr,
+                                 args.grounder_buffer_size, args.grounder_lr, args.grounder_batch_size,
                                  args.grounder_update_steps, args.grounder_accumulation, args.grounder_evaluate_steps,
                                  args.grounder_use_early_stopping, args.grounder_patience, args.grounder_min_delta,
                                  model_dir, device)
@@ -318,14 +298,15 @@ def train_agent(args: Args, device: str = None):
     # initialize the evaluators
     if args.eval:
 
-        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
         eval_env = args.eval_env if args.eval_env else args.env
-        eval_procs = args.eval_procs if args.eval_procs else args.procs
+        eval_samplers = args.eval_samplers if args.eval_samplers else [args.ltl_sampler]
+        eval_argmaxs = args.eval_argmaxs if args.eval_argmaxs else [True for _ in range(len(eval_samplers))]
+        eval_procs = args.eval_procs if args.eval_procs else 1
 
         evals = []
-        for sampler in eval_samplers:
-            evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device,args.state_type, sym_grounder,
-                                    args.obs_size, False, eval_procs, args.ignoreLTL, args.progression_mode,
+        for sampler, argmax in zip(eval_samplers, eval_argmaxs):
+            evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device, args.state_type, sym_grounder,
+                                    args.obs_size, argmax, eval_procs, args.ignoreLTL, args.progression_mode,
                                     args.gnn_model, args.recurrence, args.dumb_ac))
 
         txt_logger.info("-) Evaluators loaded.")
@@ -341,6 +322,7 @@ def train_agent(args: Args, device: str = None):
     logs2 = utils.empty_buffer_logs()
     logs3 = utils.empty_algo_logs()
     logs4 = utils.empty_grounder_algo_logs()
+    logs5 = utils.empty_grounder_eval_logs(num_symbols)
     logs_exp = utils.empty_episode_logs()
 
     num_frames = status['num_frames']
@@ -364,17 +346,20 @@ def train_agent(args: Args, device: str = None):
         update_start_time = time.time()
         update += 1
 
-        # collect experiences from environments
+        # collect experiences by playing in the environments
         exps, logs1 = algo.collect_experiences()
         logs2 = grounder_algo.process_experiences(exps)
-
-        # updated agent and grounder
-        logs3 = algo.update_parameters(exps)
-        logs4 = grounder_algo.update_parameters()
-
-        update_end_time = time.time()
         num_frames += logs1['num_frames']
         logs_exp = utils.accumulate_episode_logs(logs_exp, logs1)
+
+        # updated agent
+        logs3 = algo.update_parameters(exps)
+
+        # update grounder
+        if update % args.grounder_train_interval == 0:
+            logs4 = grounder_algo.update_parameters()
+
+        update_end_time = time.time()
 
         # Print logs (accumulated during the log_interval)
 
@@ -477,12 +462,12 @@ def train_agent(args: Args, device: str = None):
                 data += return_per_episode.values()
                 header += ['average_discounted_return']
                 data += [average_discounted_return]
-                header += ['num_frames/' + key for key in frames_per_episode.keys()]
+                header += ['episode_frames/' + key for key in frames_per_episode.keys()]
                 data += frames_per_episode.values()
 
-                txt_logger.info(f"Evaluator {i}")
+                txt_logger.info(f"Evaluator {i} ({evalu.eval_name})")
                 txt_logger.info(
-                    ("F {:7} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+                    ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
                     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
                 )
 

@@ -4,7 +4,7 @@ from train_grounder import Args
 train_grounder_base = Args(
 
     # General parameters
-    model_name = "grounder_with_algo",
+    model_name = "grounder",
     log_interval = 1,
     save_interval = 10,
     seed = 1,
@@ -15,19 +15,19 @@ train_grounder_base = Args(
 
     # Environment parameters
     max_num_steps = 50,
-    env = "GridWorld-fixed-v1",
+    env = "GridWorld-v1",
     ltl_sampler = "Dataset_e54",
     progression_mode = "full",
 
     # Training parameters
     updates = 10000,
     episodes_per_update = 1,
-    buffer_size = 1024,
-    buffer_start = 32,
-    batch_size = 32,
+    buffer_size = 2048,
+    buffer_start = 512,
     lr = 0.001,
-    update_steps = 4,
-    accumulation = 1,
+    batch_size = 16,
+    update_steps = 64,
+    accumulation = 4,
 
     # Early Stopping
     use_early_stopping = False,
@@ -35,7 +35,7 @@ train_grounder_base = Args(
     min_delta = 0.0,
 
     # Evaluation parameters
-    evaluate_steps = 1,
+    evaluate_steps = 256,
 
     # Agent parameters
     use_agent = False,

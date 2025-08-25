@@ -12,8 +12,8 @@ class ReplayBuffer:
         self.buffer = deque(maxlen=capacity)
 
 
-    def push(self, obss, rews, dfa_trans, dfa_rew):
-        self.buffer.append((obss, rews, dfa_trans, dfa_rew))
+    def push(self, obss, rews, dfa_trans, dfa_rews):
+        self.buffer.append((obss, rews, dfa_trans, dfa_rews))
         self.total_episodes += 1
 
 
@@ -22,17 +22,23 @@ class ReplayBuffer:
 
 
     def __iter__(self):
-        for obss, rews, dfa_trans, dfa_rew in self.buffer:
-            yield obss.to(self.device), rews.to(self.device), dfa_trans, dfa_rew
+        for obss, rews, dfa_trans, dfa_rews in self.buffer:
+            obss = obss.to(self.device)
+            rews = rews.to(self.device)
+            dfa_trans = dfa_trans.to(self.device)
+            dfa_rews = dfa_rews.to(self.device)
+            yield obss, rews, dfa_trans, dfa_rews
 
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         batch = [self.buffer[idx] for idx in indices]
-        obss, rews, dfa_trans, dfa_rew = zip(*batch)
+        obss, rews, dfa_trans, dfa_rews = zip(*batch)
         obss = self._pad_batch(obss).to(self.device)
         rews = self._pad_batch(rews).to(self.device)
-        return obss, rews, dfa_trans, dfa_rew
+        dfa_trans = [tr.to(self.device) for tr in dfa_trans]
+        dfa_rews = [rw.to(self.device) for rw in dfa_rews]
+        return obss, rews, dfa_trans, dfa_rews
 
 
     def _pad_batch(self, sequences):
@@ -56,10 +62,12 @@ class ReplayBuffer:
         buffer_list = list(self.buffer)
         for i in range(0, len(buffer_list), batch_size):
             batch = buffer_list[i:i + batch_size]
-            obss, rews, dfa_trans, dfa_rew = zip(*batch)
+            obss, rews, dfa_trans, dfa_rews = zip(*batch)
             obss = self._pad_batch(obss).to(self.device)
             rews = self._pad_batch(rews).to(self.device)
-            yield obss, rews, dfa_trans, dfa_rew
+            dfa_trans = [tr.to(self.device) for tr in dfa_trans]
+            dfa_rews = [rw.to(self.device) for rw in dfa_rews]
+            yield obss, rews, dfa_trans, dfa_rews
 
 
     def clear(self):

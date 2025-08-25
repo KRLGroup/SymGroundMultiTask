@@ -11,7 +11,7 @@ from deep_automa import MultiTaskProbabilisticAutoma
 # class for training the grounder
 class GrounderAlgo():
 
-    def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, batch_size=32, lr=0.001,
+    def __init__(self, grounder, env, train_grounder, max_env_steps=75, buffer_size=1024, lr=0.001, batch_size=32,
         update_steps=4, accumulation=1, evaluate_steps=1, use_early_stopping=False, patience=20, min_delta=0.0,
         save_dir=None, device=None):
 
@@ -36,7 +36,7 @@ class GrounderAlgo():
         self.sampler = env.sampler
 
         self.train_grounder = train_grounder and grounder is not None
-        self.num_symbols = len(env.propositions)
+        self.num_symbols = len(env.propositions) + 1
 
         if self.train_grounder:
             self.buffer = ReplayBuffer(capacity=self.buffer_size, device=device)
@@ -102,13 +102,13 @@ class GrounderAlgo():
 
             # add episode to the buffer
             if to_add:
-
-                task = masked_exps.obs.task_id[0]
                 obss = torch.cat([masked_exps.obs.image, last_obs[episode_id, env_id].unsqueeze(0)], dim=0)
                 rews = torch.cat([masked_exps.reward.new_zeros(1), masked_exps.reward], dim=0)
-
+                task = masked_exps.obs.task_id[0]
                 dfa = self.sampler.get_automaton(task)
-                self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
+                dfa_transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+                dfa_rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+                self.add_episode(obss, rews, dfa_transitions, dfa_rewards)
 
         self.residual_exps = DictList({
             'obs': exps.obs[~used_mask],
@@ -157,7 +157,9 @@ class GrounderAlgo():
             obss = torch.tensor(np.stack(obss), device=self.device, dtype=torch.float32)
             rews = torch.tensor(rews, device=self.device, dtype=torch.int64)
             dfa = self.env.sampler.get_current_automaton()
-            self.add_episode(obss, rews, dfa.transitions, dfa.rewards)
+            dfa_transitions = torch.tensor(dfa['transitions'], device=self.device, dtype=torch.int64)
+            dfa_rewards = torch.tensor(dfa['rewards'], device=self.device, dtype=torch.int64)
+            self.add_episode(obss, rews, dfa_transitions, dfa_rewards)
 
         logs = {
             'buffer': len(self.buffer), 'val_buffer': len(self.val_buffer),
@@ -193,8 +195,8 @@ class GrounderAlgo():
             # build the differentiable reward machine for the task
             deepDFA = MultiTaskProbabilisticAutoma(
                 batch_size = batch_size,
-                numb_of_actions = self.num_symbols,
-                numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                num_actions = self.num_symbols,
+                num_states = max([tr.shape[0] for tr in dfa_trans]),
                 reward_type = "ternary",
                 device = self.device
             )
@@ -206,7 +208,7 @@ class GrounderAlgo():
 
             # predict reward probability from symbols probability with DeepDFA
             _, preds = deepDFA(symbols_probs)
-            preds = preds.view(-1, deepDFA.numb_of_rewards)
+            preds = preds.view(-1, deepDFA.num_rewards)
 
             # maps rewards to label
             labels = (rews + 1).view(-1)
@@ -233,8 +235,8 @@ class GrounderAlgo():
 
                 deepDFA = MultiTaskProbabilisticAutoma(
                     batch_size = batch_size,
-                    numb_of_actions = self.num_symbols,
-                    numb_of_states = max([len(tr.keys()) for tr in dfa_trans]),
+                    num_actions = self.num_symbols,
+                    num_states = max([tr.shape[0] for tr in dfa_trans]),
                     reward_type = "ternary",
                     device = self.device
                 )
@@ -244,7 +246,7 @@ class GrounderAlgo():
                 symbols_probs = symbols_probs.view(*obss.shape[:2], -1)
 
                 _, preds = deepDFA(symbols_probs)
-                preds = preds.view(-1, deepDFA.numb_of_rewards)
+                preds = preds.view(-1, deepDFA.num_rewards)
 
                 labels = (rews + 1).view(-1)
 

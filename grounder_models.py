@@ -40,6 +40,7 @@ class CNN_grounder(nn.Module):
         return self
 
 
+
 class GridworldClassifier(nn.Module):
 
     def __init__(self, num_symbols):  # 10 items da classificare
