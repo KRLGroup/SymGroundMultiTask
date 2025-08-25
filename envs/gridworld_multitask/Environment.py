@@ -179,6 +179,30 @@ class GridWorldEnv_multitask(gym.Env):
         return observation, reward, done, info
 
 
+    def set_map(self, map_dict):
+
+        used_locations = (map_dict['pickaxe'] + map_dict['lava'] + map_dict['door'] +
+                          map_dict['gem'] + map_dict['egg'])
+
+        assert len(used_locations + [map_dict['agent']]) == len(set(used_locations + [map_dict['agent']]))
+        for pos in (used_locations + [map_dict['agent']]):
+            assert pos not in self.all_locations
+
+        self.pickaxe_locations = map_dict['pickaxe']
+        self.lava_locations = map_dict['lava']
+        self.door_locations = map_dict['door']
+        self.gem_locations = map_dict['gem']
+        self.egg_locations = map_dict['egg']
+
+        self.free_locations = self.all_locations - set(used_locations)
+        self.initial_agent_location = map_dict['agent']
+
+        self._precompute_observations()
+        self.agent_location = self.initial_agent_location
+
+        return self.loc_to_obs[self.agent_location]
+
+
     def _precompute_observations(self, save_obs=False):
 
         # precompute symbols per location
