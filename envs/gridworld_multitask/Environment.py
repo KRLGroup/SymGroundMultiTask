@@ -57,34 +57,6 @@ class GridWorldEnv_multitask(gym.Env):
             3: (-1, 0),  # LEFT
         }
 
-        # default locations
-        self.all_locations = {(x,y) for x in range(self.map_size) for y in range(self.map_size)}
-        default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
-
-        # assign items locations
-        self.pickaxe_locations = default_locations[0:2]
-        self.lava_locations = default_locations[2:4]
-        self.door_locations = default_locations[4:6]
-        self.gem_locations = default_locations[6:8]
-        self.egg_locations = default_locations[8:10]
-
-        # assign agent initial location
-        self.free_locations = self.all_locations - set(default_locations)
-        self.initial_agent_location = (0,0)
-
-        # precompute symbols per location
-        self.loc_to_label = {loc: 5 for loc in self.all_locations}
-        for loc in self.pickaxe_locations:
-            self.loc_to_label[loc] = 0
-        for loc in self.lava_locations:
-            self.loc_to_label[loc] = 1
-        for loc in self.door_locations:
-            self.loc_to_label[loc] = 2
-        for loc in self.gem_locations:
-            self.loc_to_label[loc] = 3
-        for loc in self.egg_locations:
-            self.loc_to_label[loc] = 4
-
         # variables to hide icons
         self.pickaxe_display = True
         self.gem_display = True
@@ -113,47 +85,34 @@ class GridWorldEnv_multitask(gym.Env):
             self.cell_size = self.pickaxe_img.shape[0]
             self.canvas_size = self.map_size * self.cell_size
 
+        # default locations
+        self.all_locations = {(x,y) for x in range(self.map_size) for y in range(self.map_size)}
+        default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+
+        # assign items locations
+        self.pickaxe_locations = default_locations[0:2]
+        self.lava_locations = default_locations[2:4]
+        self.door_locations = default_locations[4:6]
+        self.gem_locations = default_locations[6:8]
+        self.egg_locations = default_locations[8:10]
+
+        # assign agent initial location
+        self.free_locations = self.all_locations - set(default_locations)
+        self.initial_agent_location = (0,0)
+
+        self.loc_to_labels = {}
+        self.loc_to_obs = {}
+        self._precompute_observations(save_obs)
+
         if self.state_type == "image":
-
-            # precompute image observations per location
-            self.loc_to_obs = {}
-            for loc in self.all_locations:
-                self.agent_location = loc
-                self.loc_to_obs[loc] = self._get_image_obs()
-
-            # save images as seen by the agent
-            if save_obs:
-                obs_folder = os.path.join(REPO_DIR, 'saves/env_obs')
-                if not os.path.exists(obs_folder):
-                    os.makedirs(obs_folder)
-                for r,c in self.all_locations:
-                    image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
-                    image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                    obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
-                    cv2.imwrite(obs_path, image_bgr)
-
-            # normalize observations
-            mean = np.mean(self.loc_to_obs[self.initial_agent_location])
-            stdev = np.std(self.loc_to_obs[self.initial_agent_location])
-            for loc in self.all_locations:
-                norm_img = (self.loc_to_obs[loc] - mean) / (stdev + 1e-10)
-                self.loc_to_obs[loc] = norm_img
-
             self.observation_space = spaces.Box(
                 low = np.float32(-np.inf),
                 high = np.float32(np.inf),
-                shape = self.loc_to_obs[0, 0].shape,
+                shape = self.loc_to_obs[0,0].shape,
                 dtype = np.float32
             )
 
         elif self.state_type == "symbol":
-
-            # precompute symbol observations per location
-            self.loc_to_obs = {}
-            for loc in self.all_locations:
-                self.agent_location = loc
-                self.loc_to_obs[loc] = self._get_symbol_obs()
-
             self.observation_space = spaces.Box(low=0, high=1, shape=self.loc_to_obs[0,0].shape, dtype=np.uint8)
 
         # reset the agent location
@@ -183,41 +142,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.free_locations = self.all_locations - set(sampled_locations)
             self.initial_agent_location = random.sample(self.free_locations, 1)[0]
 
-            # precompute symbols per location
-            self.loc_to_label = {loc: 5 for loc in self.all_locations}
-            for loc in self.pickaxe_locations:
-                self.loc_to_label[loc] = 0
-            for loc in self.lava_locations:
-                self.loc_to_label[loc] = 1
-            for loc in self.door_locations:
-                self.loc_to_label[loc] = 2
-            for loc in self.gem_locations:
-                self.loc_to_label[loc] = 3
-            for loc in self.egg_locations:
-                self.loc_to_label[loc] = 4
-
-            if self.state_type == "image":
-
-                # precompute image observations per location
-                self.loc_to_obs = {}
-                for loc in self.all_locations:
-                    self.agent_location = loc
-                    self.loc_to_obs[loc] = self._get_image_obs()
-
-                # normalize observations
-                mean = np.mean(self.loc_to_obs[self.initial_agent_location])
-                stdev = np.std(self.loc_to_obs[self.initial_agent_location])
-                for loc in self.all_locations:
-                    norm_img = (self.loc_to_obs[loc] - mean) / (stdev + 1e-10)
-                    self.loc_to_obs[loc] = norm_img
-
-            elif self.state_type == "symbol":
-
-                # precompute symbol observations per location
-                self.loc_to_obs = {}
-                for loc in self.all_locations:
-                    self.agent_location = loc
-                    self.loc_to_obs[loc] = self._get_symbol_obs()
+            self._precompute_observations()
 
         # extract new initial location
         elif self.randomize_start:
@@ -252,6 +177,56 @@ class GridWorldEnv_multitask(gym.Env):
         info = None
 
         return observation, reward, done, info
+
+
+    def _precompute_observations(self, save_obs=False):
+
+        # precompute symbols per location
+        self.loc_to_label = {loc: 5 for loc in self.all_locations}
+        for loc in self.pickaxe_locations:
+            self.loc_to_label[loc] = 0
+        for loc in self.lava_locations:
+            self.loc_to_label[loc] = 1
+        for loc in self.door_locations:
+            self.loc_to_label[loc] = 2
+        for loc in self.gem_locations:
+            self.loc_to_label[loc] = 3
+        for loc in self.egg_locations:
+            self.loc_to_label[loc] = 4
+
+        if self.state_type == "image":
+
+            # precompute image observations per location
+            self.loc_to_obs = {}
+            for loc in self.all_locations:
+                self.agent_location = loc
+                self.loc_to_obs[loc] = self._get_image_obs()
+
+            # save images as seen by the agent
+            if save_obs:
+                obs_folder = os.path.join(REPO_DIR, 'saves/env_obs')
+                if not os.path.exists(obs_folder):
+                    os.makedirs(obs_folder)
+                for r,c in self.all_locations:
+                    image = (np.transpose(self.loc_to_obs[r,c], (1, 2, 0)) * 255).astype(np.uint8)
+                    image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                    obs_path = os.path.join(obs_folder, f'obs_{r}_{c}.png')
+                    cv2.imwrite(obs_path, image_bgr)
+
+            # normalize observations
+            mean = np.mean(self.loc_to_obs[self.initial_agent_location])
+            stdev = np.std(self.loc_to_obs[self.initial_agent_location])
+            for loc in self.all_locations:
+                norm_img = (self.loc_to_obs[loc] - mean) / (stdev + 1e-10)
+                self.loc_to_obs[loc] = norm_img
+
+        elif self.state_type == "symbol":
+
+            # precompute symbol observations per location
+            self.loc_to_obs = {}
+            for loc in self.all_locations:
+                self.agent_location = loc
+                self.loc_to_obs[loc] = self._get_symbol_obs()
 
 
     def _get_symbol_obs(self):
