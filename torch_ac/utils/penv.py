@@ -1,8 +1,12 @@
 from torch.multiprocessing import Process, Pipe
 import gym
 
+import utils
 
-def worker(conn, env):
+
+def worker(conn, env, seed):
+
+    utils.set_seed(seed)
 
     while True:
 
@@ -27,6 +31,7 @@ def worker(conn, env):
             raise NotImplementedError
 
 
+
 class ParallelEnv(gym.Env):
     """A concurrent execution of environments in multiple processes."""
 
@@ -41,10 +46,10 @@ class ParallelEnv(gym.Env):
         self.locals = []
         self.processes = []
 
-        for env in self.envs[1:]:
+        for worker_id, env in enumerate(self.envs[1:]):
             local, remote = Pipe()
             self.locals.append(local)
-            p = Process(target=worker, args=(remote, env))
+            p = Process(target=worker, args=(remote, env, worker_id))
             p.daemon = True
             p.start()
             self.processes.append(p)
