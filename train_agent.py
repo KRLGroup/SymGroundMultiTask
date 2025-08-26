@@ -417,7 +417,8 @@ def train_agent(args: Args, device: str = None):
                           or (args.eval and num_frames >= args.frames))
 
         save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
-                          or (eval_condition))
+                          or (eval_condition)
+                          or (num_frames >= args.frames))
 
         # Save status
 
@@ -473,3 +474,18 @@ def train_agent(args: Args, device: str = None):
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
+
+
+    # TERMINATION
+
+    # close loggers
+    tb_write.close()
+    for evalu in evals:
+        evalu.tb_write.close()
+    utils.close_txt_logger(txt_logger)
+    csv_file.close()
+
+    # kill subprocesses
+    algo.env.close()
+    for evalu in evals:
+        evalu.eval_env.close()
