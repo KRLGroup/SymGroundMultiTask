@@ -50,7 +50,7 @@ class ParallelEnv(gym.Env):
             local, remote = Pipe()
             self.locals.append(local)
             p = Process(target=worker, args=(remote, env, worker_id))
-            p.daemon = True
+            p.daemon = False
             p.start()
             self.processes.append(p)
             remote.close()
