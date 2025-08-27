@@ -8,7 +8,7 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="full_agent", type=str)
+parser.add_argument("--model_dir", default="full_agent", type=str)
 parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
 parser.add_argument("--seed", default=1, type=int)
 parser.add_argument("--formula_id", default=0, type=int)
@@ -24,7 +24,7 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # compute agent dir
 storage_dir = os.path.join(REPO_DIR, "storage")
-agent_dir = os.path.join(storage_dir, args.agent_dir)
+agent_dir = os.path.join(storage_dir, args.model_dir)
 
 # load training config
 config = utils.load_config(agent_dir)
