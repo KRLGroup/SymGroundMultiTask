@@ -186,7 +186,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         assert len(used_locations + [map_dict['agent']]) == len(set(used_locations + [map_dict['agent']]))
         for pos in (used_locations + [map_dict['agent']]):
-            assert pos not in self.all_locations
+            assert pos in self.all_locations
 
         self.pickaxe_locations = map_dict['pickaxe']
         self.lava_locations = map_dict['lava']
