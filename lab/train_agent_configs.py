@@ -9,8 +9,8 @@ test_gridworld = Args(
     seed = 1,
     log_interval = 1,
     save_interval = 10,
-    procs = 1,
-    frames_per_proc = 512,
+    procs = 16,
+    frames_per_proc = 128,
     frames = 20000000,
     checkpoint_dir = None,
 
@@ -32,8 +32,8 @@ test_gridworld = Args(
 
     # Grounder parameters
     grounder_model = "ObjectCNN",
-    use_pretrained_grounder = True,
-    grounder_pretrain = "full_grounder_56",
+    use_pretrained_grounder = False,
+    grounder_pretrain = None,
     freeze_grounder = True,
 
     # Agent parameters
