@@ -479,9 +479,9 @@ def train_agent(args: Args, device: str = None):
     # TERMINATION
 
     # close loggers
-    tb_write.close()
+    tb_writer.close()
     for evalu in evals:
-        evalu.tb_write.close()
+        evalu.tb_writer.close()
     utils.close_txt_logger(txt_logger)
     csv_file.close()
 
