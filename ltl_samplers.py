@@ -12,8 +12,6 @@ import pickle
 import yaml
 import numpy as np
 
-from finite_state_machine import MooreMachine
-
 
 
 class LTLSampler():
@@ -191,6 +189,7 @@ class EventuallySampler(LTLSampler):
         return ('eventually',('and', term, self._get_sequence(seq[1:])))
 
 
+
 # This generates several sequence tasks which can be accomplished in parallel with a global avoidance.
 # These tasks are not co-safe
 class TrueGlobalAvoidanceSampler(LTLSampler):
@@ -249,6 +248,7 @@ class TrueGlobalAvoidanceSampler(LTLSampler):
         if len(seq) == 1:
             return ('eventually',term)
         return ('eventually',('and', term, self._get_sequence(seq[1:])))
+
 
 
 # This generates several sequence tasks which can be accomplished in parallel with a global avoidance.
@@ -311,6 +311,7 @@ class GlobalAvoidanceSampler(LTLSampler):
         if len(avoids) == 1:
             return ('not', term)
         return ('and', ('not', term), self._get_avoidance(avoids[1:]))
+
 
 
 class AdversarialEnvSampler(LTLSampler):
