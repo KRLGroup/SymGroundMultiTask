@@ -133,7 +133,6 @@ class BaseAlgo(ABC):
         for i in range(self.num_frames_per_proc):
 
             # Do one agent-environment interaction
-
             preprocessed_obs = self.preprocess_obss(self.obs, device=self.device)
             with torch.no_grad():
                 if self.acmodel.recurrent:
@@ -141,11 +140,9 @@ class BaseAlgo(ABC):
                 else:
                     dist, value = self.acmodel(preprocessed_obs)
             action = dist.sample()
-
             obs, reward, done, info = self.env.step(action.cpu().numpy())
 
-            # Update experiences values
-
+            # Collect values
             self.obss[i] = self.obs
             self.last_obss[i] = [proc_info["last_obs"] for proc_info in info]
             self.obs = obs
@@ -182,8 +179,7 @@ class BaseAlgo(ABC):
             self.log_episode_reshaped_return *= self.mask
             self.log_episode_num_frames *= self.mask
 
-        # Add advantage and return to experiences
-
+        # Compute advantage of the state after the last step
         preprocessed_obs = self.preprocess_obss(self.obs, device=self.device)
         with torch.no_grad():
             if self.acmodel.recurrent:
@@ -191,11 +187,11 @@ class BaseAlgo(ABC):
             else:
                 _, next_value = self.acmodel(preprocessed_obs)
 
+        # Compute advantage
         for i in reversed(range(self.num_frames_per_proc)):
             next_mask = self.masks[i+1] if i < self.num_frames_per_proc - 1 else self.mask
             next_value = self.values[i+1] if i < self.num_frames_per_proc - 1 else next_value
             next_advantage = self.advantages[i+1] if i < self.num_frames_per_proc - 1 else 0
-
             delta = self.rewards[i] + self.discount * next_value * next_mask - self.values[i]
             self.advantages[i] = delta + self.discount * self.gae_lambda * next_advantage * next_mask
 
@@ -207,6 +203,7 @@ class BaseAlgo(ABC):
         #   - P is self.num_procs,
         #   - D is the dimensionality.
 
+        # Build experience dictionary
         exps = DictList()
         exps.obs = [self.obss[i][j]
                     for j in range(self.num_procs)
@@ -228,7 +225,6 @@ class BaseAlgo(ABC):
         exps.log_prob = self.log_probs.transpose(0, 1).reshape((-1, ) + self.action_space_shape)
 
         # Preprocess experiences
-
         exps.obs = self.preprocess_obss(exps.obs, device=self.device)
         exps.last_obs = np.array(exps.last_obs, dtype=object)
 
