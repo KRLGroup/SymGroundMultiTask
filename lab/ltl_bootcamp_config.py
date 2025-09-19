@@ -14,7 +14,6 @@ test_simple_ltl_5l = Args(
 
     # Environment parameters
     env = "Simple-LTL-Env-5L-v0",
-    obs_size = (56,56),
     ltl_sampler = "Eventually_1_5_1_4",
 
     # GNN parameters
@@ -33,8 +32,9 @@ test_simple_ltl_5l = Args(
     eval = True,
     eval_env = "Simple-LTL-Env-5L-v0",
     eval_interval = 100,
-    eval_samplers = ['Eventually_1_5_1_4'],
-    eval_episodes = [500],
+    eval_samplers = ['Eventually_1_5_1_4', 'Eventually_1_5_1_4'],
+    eval_episodes = [1000, 1000],
+    eval_argmaxs = [True, False],
     eval_procs = 1,
 
     # Train parameters
