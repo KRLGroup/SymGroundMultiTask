@@ -44,6 +44,7 @@ class GrounderAlgo():
             self.loss_func = torch.nn.CrossEntropyLoss()
             self.optimizer = torch.optim.Adam(self.grounder.parameters(), lr=lr)
             self.optimizer.zero_grad()
+            assert self.sampler.has_automata
 
         else:
             self.buffer = None
