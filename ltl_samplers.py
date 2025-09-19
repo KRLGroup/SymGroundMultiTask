@@ -18,6 +18,7 @@ class LTLSampler():
 
     def __init__(self, propositions):
         self.propositions = propositions
+        self.has_automata = False
 
 
     def sample(self):
