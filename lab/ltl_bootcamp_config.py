@@ -9,7 +9,7 @@ test_simple_ltl_5l = Args(
     seed = 1,
     log_interval = 10,
     save_interval = 100,
-    procs = 1,
+    procs = 16,
     frames = 20000000,
 
     # Environment parameters
