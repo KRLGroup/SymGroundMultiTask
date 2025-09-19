@@ -343,10 +343,9 @@ def getLTLSampler(sampler_id, propositions):
 
     if (tokens[0] == "Dataset"):
         dataset_name = tokens[1]
-        use_automata = False if "no-automata" in tokens[2:] else True
         shuffle = False if "no-shuffle" in tokens[2:] else True
         ids = None
-        return DatasetSampler(propositions, dataset_name, shuffle, use_automata)
+        return DatasetSampler(propositions, dataset_name, shuffle)
 
     elif (tokens[0] == "OrSampler"):
         return OrSampler(propositions)
@@ -385,12 +384,11 @@ DATASETS_DIR = os.path.join(REPO_DIR, "datasets")
 # (computing the automata is too slow to be done online)
 class DatasetSampler(LTLSampler):
 
-    def __init__(self, propositions, dataset_name, shuffle=True, use_automata=True, ids=None):
+    def __init__(self, propositions, dataset_name, shuffle=True, ids=None):
 
         dataset_folder = os.path.join(DATASETS_DIR, dataset_name)
 
         self.shuffle = shuffle
-        self.use_automata = use_automata
         self.ids = ids
         self.sampled_tasks = 0
         self.propositions = propositions
@@ -412,10 +410,13 @@ class DatasetSampler(LTLSampler):
 
         automata = [None] * self.config["n_formulas"]
 
-        if self.use_automata:
+        automata_path = os.path.join(dataset_folder, 'automata.pkl')
+        self.has_automata = os.path.exists(automata_path)
+
+        if self.has_automata:
 
             # load automata
-            with open(os.path.join(dataset_folder, 'automata.pkl'), 'rb') as f:
+            with open(automata_path, 'rb') as f:
                 automata = pickle.load(f)
             assert len(automata) == self.config["n_formulas"]
 
