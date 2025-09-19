@@ -365,13 +365,13 @@ def train_agent(args: Args, device: str = None):
 
         if update % args.log_interval == 0:
 
+            fps = logs1['num_frames']/(update_end_time - update_start_time)
+            duration = int(time.time() - start_time)
+
             logs1 = utils.elaborate_episode_logs(logs_exp, args.discount)
             logs5 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
             logs_exp = utils.empty_episode_logs()
-
-            fps = logs['num_frames']/(update_end_time - update_start_time)
-            duration = int(time.time() - start_time)
 
             header = ['time/update', 'time/frames', 'time/fps', 'time/duration']
             data = [update, num_frames, fps, duration]
@@ -391,7 +391,7 @@ def train_agent(args: Args, device: str = None):
             # F: episode frames | H: entropy | V: value | pL: policy loss | vL: value loss 
             # nabla: grad norm | gL: grounder loss | gvL: grounder validation loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+                ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | R:μσmM {:5.2f} {:5.2f} {:5.2f} {:5.2f} | ADR {:.3f}" +
                 " | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f}" +
                 " | ∇ {:.3f} | gL {:.6f} | gvL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
