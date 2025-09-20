@@ -58,7 +58,7 @@ class GridWorldEnv_multitask(gym.Env):
         }
 
         # variables to hide icons
-        self.pickaxe_display = True
+        self.pick_display = True
         self.gem_display = True
         self.agent_display = True
 
@@ -66,15 +66,15 @@ class GridWorldEnv_multitask(gym.Env):
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             # icons file paths
-            self._PICKAXE = os.path.join(ENV_DIR, img_dir, "pickaxe.png")
+            self._PICK = os.path.join(ENV_DIR, img_dir, "pick.png")
             self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
             self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
             self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
-            self._EGG = os.path.join(ENV_DIR, img_dir, "turtle_egg.png")
+            self._EGG = os.path.join(ENV_DIR, img_dir, "egg.png")
             self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
 
             # icons files
-            self.pickaxe_img = cv2.imread(self._PICKAXE, cv2.IMREAD_UNCHANGED)
+            self.pick_img = cv2.imread(self._PICK, cv2.IMREAD_UNCHANGED)
             self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
             self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
             self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
@@ -82,7 +82,7 @@ class GridWorldEnv_multitask(gym.Env):
             self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
 
             # dimensions of true canvas
-            self.cell_size = self.pickaxe_img.shape[0]
+            self.cell_size = self.pick_img.shape[0]
             self.canvas_size = self.map_size * self.cell_size
 
         # default locations
@@ -90,7 +90,7 @@ class GridWorldEnv_multitask(gym.Env):
         default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
 
         # assign items locations
-        self.pickaxe_locations = default_locations[0:2]
+        self.pick_locations = default_locations[0:2]
         self.lava_locations = default_locations[2:4]
         self.door_locations = default_locations[4:6]
         self.gem_locations = default_locations[6:8]
@@ -132,7 +132,7 @@ class GridWorldEnv_multitask(gym.Env):
             sampled_locations = random.sample(self.all_locations, num_items)
 
             # assign item locations
-            self.pickaxe_locations = sampled_locations[0:2]
+            self.pick_locations = sampled_locations[0:2]
             self.lava_locations = sampled_locations[2:4]
             self.door_locations = sampled_locations[4:6]
             self.gem_locations = sampled_locations[6:8]
@@ -181,14 +181,14 @@ class GridWorldEnv_multitask(gym.Env):
 
     def set_map(self, map_dict):
 
-        used_locations = (map_dict['pickaxe'] + map_dict['lava'] + map_dict['door'] +
+        used_locations = (map_dict['pick'] + map_dict['lava'] + map_dict['door'] +
                           map_dict['gem'] + map_dict['egg'])
 
         assert len(used_locations + [map_dict['agent']]) == len(set(used_locations + [map_dict['agent']]))
         for pos in (used_locations + [map_dict['agent']]):
             assert pos in self.all_locations
 
-        self.pickaxe_locations = map_dict['pickaxe']
+        self.pick_locations = map_dict['pick']
         self.lava_locations = map_dict['lava']
         self.door_locations = map_dict['door']
         self.gem_locations = map_dict['gem']
@@ -207,7 +207,7 @@ class GridWorldEnv_multitask(gym.Env):
 
         # precompute symbols per location
         self.loc_to_label = {loc: 5 for loc in self.all_locations}
-        for loc in self.pickaxe_locations:
+        for loc in self.pick_locations:
             self.loc_to_label[loc] = 0
         for loc in self.lava_locations:
             self.loc_to_label[loc] = 1
@@ -283,7 +283,7 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_info(self):
         info = {
             'agent location': self.agent_location,
-            'inventory': "gem" if self._has_gem else "pickaxe" if self._has_pickaxe else "empty"
+            'inventory': "gem" if self._has_gem else "pick" if self._has_pick else "empty"
         }
         return info
 
@@ -327,7 +327,7 @@ class GridWorldEnv_multitask(gym.Env):
                     overlay_image(canvas, item_img, (x, y))
 
         # blit each type of item
-        blit_item(self.pickaxe_img, self.pickaxe_locations, self.pickaxe_display)
+        blit_item(self.pick_img, self.pick_locations, self.pick_display)
         blit_item(self.lava_img, self.lava_locations)
         blit_item(self.door_img, self.door_locations)
         blit_item(self.gem_img, self.gem_locations, self.gem_display)
@@ -365,7 +365,7 @@ class GridWorldEnv_multitask(gym.Env):
     def translate_formula(self, formula):
 
         symbol_to_meaning = {
-            'a': 'pickaxe', 'b': 'lava', 'c': 'door',
+            'a': 'pick', 'b': 'lava', 'c': 'door',
             'd': 'gem', 'e': 'egg', '': 'nothing'
         }
 
