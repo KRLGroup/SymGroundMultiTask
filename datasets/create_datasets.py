@@ -14,6 +14,7 @@ e54_dataset = Dataset(
     n_formulas = 10000,
     propositions = ["a", "b", "c", "d", "e"],
     sampler = "Eventually_1_5_1_4",
+    allow_duplicates = False,
     disjoint_from = None,
 )
 
@@ -23,6 +24,7 @@ e54test_dataset = Dataset(
     n_formulas = 1000,
     propositions = ["a", "b", "c", "d", "e"],
     sampler = "Eventually_1_5_1_4",
+    allow_duplicates = False,
     disjoint_from = e54_dataset,
 )
 
@@ -32,6 +34,7 @@ ga321_dataset = Dataset(
     n_formulas = 10000,
     propositions = ["a", "b", "c", "d", "e"],
     sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = False,
     disjoint_from = None,
 )
 
@@ -41,6 +44,7 @@ ga321test_dataset = Dataset(
     n_formulas = 1000,
     propositions = ["a", "b", "c", "d", "e"],
     sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = False,
     disjoint_from = ga321_dataset,
 )
 
