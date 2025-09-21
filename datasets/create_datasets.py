@@ -18,6 +18,16 @@ e54_dataset = Dataset(
     disjoint_from = None,
 )
 
+e54dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e54dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e"],
+    sampler = "Eventually_1_5_1_4",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
 e54test_dataset = Dataset(
     path = Path(os.path.join(DATASETS_DIR, "e54test")),
     seed = 42,
@@ -38,6 +48,16 @@ ga321_dataset = Dataset(
     disjoint_from = None,
 )
 
+ga321dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "ga321dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e"],
+    sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
 ga321test_dataset = Dataset(
     path = Path(os.path.join(DATASETS_DIR, "ga321test")),
     seed = 42,
@@ -52,9 +72,11 @@ ga321test_dataset = Dataset(
 datasets = [
 
     e54_dataset,
+    e54dup_dataset,
     e54test_dataset,
 
     ga321_dataset,
+    ga321dup_dataset,
     ga321test_dataset,
 
 ]
