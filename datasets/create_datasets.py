@@ -93,11 +93,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", type=str, default="./datasets/e54")
+    parser.add_argument("--name", type=str, default="e54")
     parser.add_argument("--target", type=str, default="both", choices=["formulas", "automata", "both"])
     args = parser.parse_args()
 
-    dataset_path = Path(args.path)
+    dataset_path = Path(os.path.join(DATASET_DIR, args.name))
     target = args.target
     dataset = get_dataset(dataset_path)
 
