@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--target", type=str, default="both", choices=["formulas", "automata", "both"])
     args = parser.parse_args()
 
-    dataset_path = Path(os.path.join(DATASET_DIR, args.name))
+    dataset_path = Path(os.path.join(DATASETS_DIR, args.name))
     target = args.target
     dataset = get_dataset(dataset_path)
 
