@@ -52,11 +52,9 @@ datasets = [
 
     train_dataset,
     test_dataset,
-    hard_test_dataset,
 
     ga_train_dataset,
     ga_test_dataset,
-    ga_hard_test_dataset
 
 ]
 
