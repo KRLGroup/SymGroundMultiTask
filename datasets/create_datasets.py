@@ -56,6 +56,17 @@ datasets = [
 ]
 
 
+# Only samplers:
+
+# e65hard -> Eventually_6_6_5_5
+# e+depth -> Eventually_1_15_1_4
+# e+conjs -> Eventually_1_5_1_12
+
+# ga431hard -> GlobalAvoidance_4_4_3_3_1_1
+# ga+depth -> GlobalAvoidance_1_6_1_2_1_1
+# ga+conjs -> GlobalAvoidance_1_3_1_3_1_1
+
+
 def get_dataset(path: Path) -> Dataset:
     resolved_path = path.resolve()
     for dataset in datasets:
