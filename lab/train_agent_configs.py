@@ -27,7 +27,7 @@ test_gridworld = Args(
     ignoreLTL = False,
     gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
-    gnn_pretrain = "gnn_pretrain",
+    gnn_pretrain = "new_gnn_pretrain_e",
     freeze_gnn = False,
 
     # Grounder parameters
@@ -44,9 +44,9 @@ test_gridworld = Args(
     eval = True,
     eval_env = "GridWorld-v1",
     eval_interval = 1000,
-    eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
-    eval_episodes = [1000, 50],
-    eval_argmaxs = [True, True],
+    eval_samplers = ['Dataset_e54test', 'Dataset_e54test', 'Eventually_1_5_1_4', 'Eventually_1_5_1_4'],
+    eval_episodes = [1000, 1000, 1000, 1000],
+    eval_argmaxs = [True, False, True, False],
     eval_procs = 1,
 
     # Train parameters
