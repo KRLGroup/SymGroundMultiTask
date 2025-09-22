@@ -363,7 +363,7 @@ def train_agent(args: Args, device: str = None):
 
         # Print logs (accumulated during the log_interval)
 
-        if update % args.log_interval == 0:
+        if (update % args.log_interval == 0) or (num_frames >= args.frames):
 
             fps = logs1['num_frames']/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
