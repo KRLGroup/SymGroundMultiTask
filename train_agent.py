@@ -414,7 +414,8 @@ def train_agent(args: Args, device: str = None):
                 tb_writer.add_scalar(field, value, num_frames)
 
         eval_condition = ((args.eval and args.eval_interval > 0 and update % args.eval_interval == 0)
-                          or (args.eval and num_frames >= args.frames))
+                          or (args.eval and num_frames >= args.frames)
+                          or (args.eval and update == 1))
 
         save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
                           or (eval_condition)
