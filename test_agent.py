@@ -7,14 +7,15 @@ import utils
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--model_dir", default="full_agent", type=str)
-parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
+parser.add_argument('--device', default=None, type=str)
+parser.add_argument('--model_dir', default='full_agent', type=str)
+parser.add_argument('--ltl_sampler', default='Dataset_e54test_no-shuffle', type=str)
 parser.add_argument('--argmax', dest='argmax', default=True, action='store_true')
 parser.add_argument('--no-argmax', dest='argmax', action='store_false')
 parser.add_argument('--eval_procs', default=1, type=int)
 parser.add_argument('--eval_episodes', default=1000, type=int)
-parser.add_argument("--seed", default=1, type=int)
+parser.add_argument('--seed', default=1, type=int)
+parser.add_argument('--max_num_steps', default=750, type=int)
 args = parser.parse_args()
 
 device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -46,6 +47,9 @@ print("\n---\n")
 evalu = utils.Eval(config.eval_env, agent_dir, args.ltl_sampler, args.seed, device, config.state_type, None,
                    config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode, config.gnn_model,
                    config.recurrence, config.dumb_ac)
+
+for env in evalu.eval_env.envs:
+    env.env.max_num_steps = args.max_num_steps
 
 # create and load grounder
 sym_grounder = utils.make_grounder(
