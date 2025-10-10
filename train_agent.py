@@ -307,7 +307,7 @@ def train_agent(args: Args, device: str = None):
         for sampler, argmax in zip(eval_samplers, eval_argmaxs):
             evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device, args.state_type, sym_grounder,
                                     args.obs_size, argmax, eval_procs, args.ignoreLTL, args.progression_mode,
-                                    args.gnn_model, args.recurrence, args.dumb_ac))
+                                    args.gnn_model, args.recurrence, args.dumb_ac, None))
 
         txt_logger.info("-) Evaluators loaded.")
 
