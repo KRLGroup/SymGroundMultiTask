@@ -89,3 +89,6 @@ print(
     ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
 )
+
+# kill subprocesses
+evalu.eval_env.close()
