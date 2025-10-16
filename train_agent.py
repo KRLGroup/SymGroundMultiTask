@@ -330,7 +330,7 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    if train_grounder:
+    if train_grounder and not status['grounder_early_stop']:
         txt_logger.info("Initializing Buffer...\n")
         progress = tqdm(total=args.grounder_buffer_start)
         while progress.n < args.grounder_buffer_start:
