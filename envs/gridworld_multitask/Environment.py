@@ -21,12 +21,21 @@ class GridWorldEnv_multitask(gym.Env):
         "render_fps": 4
     }
 
+    symbol_to_name = {
+        'a': 'pick', 'b': 'lava', 'c': 'door', 'd': 'gem', 'e': 'egg', '': 'nothing'
+    }
+
+    symbol_to_letter = {
+        'a': 'P', 'b': 'L', 'c': 'D', 'd': 'G', 'e': 'E', '': '.'
+    }
+
     def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
         max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False,
-        wrap_around_map=True, agent_centric_view=True):
+        symbols=['a', 'b', 'c', 'd', 'e'], wrap_around_map=True, agent_centric_view=True):
 
-        self.dictionary_symbols = ['a', 'b', 'c', 'd', 'e', '']
+        self.dictionary_symbols = symbols + ['']
         self.num_symbols = len(self.dictionary_symbols)
+        self.dictionary_icons = [self.symbol_to_name[symbol] for symbol in self.dictionary_symbols[:-1]]
 
         self.randomize_locations = randomize_loc
         self.randomize_start = randomize_start
@@ -41,6 +50,7 @@ class GridWorldEnv_multitask(gym.Env):
         self.win_size = win_size
 
         assert not agent_centric_view or (self.map_size%2==1 and wrap_around_map)
+        assert self.num_symbols*2 <= self.map_size**2
         self.wrap_around_map = wrap_around_map
         self.agent_centric_view = agent_centric_view
 
@@ -58,43 +68,36 @@ class GridWorldEnv_multitask(gym.Env):
         }
 
         # variables to hide icons
-        self.pick_display = True
-        self.gem_display = True
         self.agent_display = True
 
         # load icons using OpenCV (if they are used)
         if self.state_type == 'image' or self.render_mode in ['human', 'rgb_array']:
 
             # icons file paths
-            self._PICK = os.path.join(ENV_DIR, img_dir, "pick.png")
-            self._LAVA = os.path.join(ENV_DIR, img_dir, "lava.png")
-            self._DOOR = os.path.join(ENV_DIR, img_dir, "door.png")
-            self._GEM = os.path.join(ENV_DIR, img_dir, "gem.png")
-            self._EGG = os.path.join(ENV_DIR, img_dir, "egg.png")
-            self._AGENT = os.path.join(ENV_DIR, img_dir, "agent.png")
+            self.icons_paths = {}
+            for icon in self.dictionary_icons:
+                self.icons_paths[icon] = os.path.join(ENV_DIR, img_dir, icon+".png")
+            self.icons_paths['agent'] = os.path.join(ENV_DIR, img_dir, "agent.png")
 
             # icons files
-            self.pick_img = cv2.imread(self._PICK, cv2.IMREAD_UNCHANGED)
-            self.lava_img = cv2.imread(self._LAVA, cv2.IMREAD_UNCHANGED)
-            self.door_img = cv2.imread(self._DOOR, cv2.IMREAD_UNCHANGED)
-            self.gem_img = cv2.imread(self._GEM, cv2.IMREAD_UNCHANGED)
-            self.egg_img = cv2.imread(self._EGG, cv2.IMREAD_UNCHANGED)
-            self.agent_img = cv2.imread(self._AGENT, cv2.IMREAD_UNCHANGED)
+            self.icons = {}
+            for icon in self.dictionary_icons:
+                self.icons[icon] = cv2.imread(self.icons_paths[icon], cv2.IMREAD_UNCHANGED)
+            self.icons['agent'] = cv2.imread(self.icons_paths['agent'], cv2.IMREAD_UNCHANGED)
 
             # dimensions of true canvas
-            self.cell_size = self.pick_img.shape[0]
+            self.cell_size = self.icons['pick'].shape[0]
             self.canvas_size = self.map_size * self.cell_size
 
         # default locations
         self.all_locations = {(x,y) for x in range(self.map_size) for y in range(self.map_size)}
         default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+        default_locations = default_locations[:(self.num_symbols-1)*2]
 
         # assign items locations
-        self.pick_locations = default_locations[0:2]
-        self.lava_locations = default_locations[2:4]
-        self.door_locations = default_locations[4:6]
-        self.gem_locations = default_locations[6:8]
-        self.egg_locations = default_locations[8:10]
+        self.icon_locations = {}
+        for label, icon in enumerate(self.dictionary_icons):
+            self.icon_locations[icon] = default_locations[label*2:(label+1)*2]
 
         # assign agent initial location
         self.free_locations = self.all_locations - set(default_locations)
@@ -127,16 +130,13 @@ class GridWorldEnv_multitask(gym.Env):
         # randomize item locations and recompute observations
         if self.randomize_locations:
 
-            # select 10 random locations
-            num_items = 10
+            # select random locations for items
+            num_items = (self.num_symbols-1)*2
             sampled_locations = random.sample(self.all_locations, num_items)
 
             # assign item locations
-            self.pick_locations = sampled_locations[0:2]
-            self.lava_locations = sampled_locations[2:4]
-            self.door_locations = sampled_locations[4:6]
-            self.gem_locations = sampled_locations[6:8]
-            self.egg_locations = sampled_locations[8:10]
+            for label, icon in enumerate(self.dictionary_icons):
+                self.icon_locations[icon] = default_locations[label*2:(label+1)*2]
 
             # assign agent initial location
             self.free_locations = self.all_locations - set(sampled_locations)
@@ -181,18 +181,15 @@ class GridWorldEnv_multitask(gym.Env):
 
     def set_map(self, map_dict):
 
-        used_locations = (map_dict['pick'] + map_dict['lava'] + map_dict['door'] +
-                          map_dict['gem'] + map_dict['egg'])
+        assert map_dict.keys() == self.dictionary_icons + ['agent']
+        used_locations = (map_dict[icon] for icon in self.dictionary_icons)
 
         assert len(used_locations + [map_dict['agent']]) == len(set(used_locations + [map_dict['agent']]))
         for pos in (used_locations + [map_dict['agent']]):
             assert pos in self.all_locations
 
-        self.pick_locations = map_dict['pick']
-        self.lava_locations = map_dict['lava']
-        self.door_locations = map_dict['door']
-        self.gem_locations = map_dict['gem']
-        self.egg_locations = map_dict['egg']
+        for icon in self.dictionary_icons:
+            self.icon_locations[icon] = map_dict[icon]
 
         self.free_locations = self.all_locations - set(used_locations)
         self.initial_agent_location = map_dict['agent']
@@ -206,17 +203,10 @@ class GridWorldEnv_multitask(gym.Env):
     def _precompute_observations(self, save_obs=False):
 
         # precompute symbols per location
-        self.loc_to_label = {loc: 5 for loc in self.all_locations}
-        for loc in self.pick_locations:
-            self.loc_to_label[loc] = 0
-        for loc in self.lava_locations:
-            self.loc_to_label[loc] = 1
-        for loc in self.door_locations:
-            self.loc_to_label[loc] = 2
-        for loc in self.gem_locations:
-            self.loc_to_label[loc] = 3
-        for loc in self.egg_locations:
-            self.loc_to_label[loc] = 4
+        self.loc_to_label = {loc: self.num_symbols-1 for loc in self.all_locations}
+        for label, icon in enumerate(self.dictionary_icons):
+            for loc in self.icon_locations[icon]:
+                self.loc_to_label[loc] = label
 
         if self.state_type == "image":
 
@@ -283,7 +273,6 @@ class GridWorldEnv_multitask(gym.Env):
     def _get_info(self):
         info = {
             'agent location': self.agent_location,
-            'inventory': "gem" if self._has_gem else "pick" if self._has_pick else "empty"
         }
         return info
 
@@ -327,12 +316,9 @@ class GridWorldEnv_multitask(gym.Env):
                     overlay_image(canvas, item_img, (x, y))
 
         # blit each type of item
-        blit_item(self.pick_img, self.pick_locations, self.pick_display)
-        blit_item(self.lava_img, self.lava_locations)
-        blit_item(self.door_img, self.door_locations)
-        blit_item(self.gem_img, self.gem_locations, self.gem_display)
-        blit_item(self.egg_img, self.egg_locations)
-        blit_item(self.agent_img, [self.agent_location], self.agent_display)
+        for icon in self.dictionary_icons:
+            blit_item(self.icons[icon], self.icon_locations[icon])
+        blit_item(self.icons['agent'], [self.agent_location], self.agent_display)
 
         return cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
@@ -364,22 +350,15 @@ class GridWorldEnv_multitask(gym.Env):
 
     def translate_formula(self, formula):
 
-        symbol_to_meaning = {
-            'a': 'pick', 'b': 'lava', 'c': 'door',
-            'd': 'gem', 'e': 'egg', '': 'nothing'
-        }
-
         if isinstance(formula, tuple):
             return tuple(self.translate_formula(item) for item in formula)
-        elif formula in symbol_to_meaning:
-            return symbol_to_meaning[formula]
+        elif formula in self.symbol_to_name:
+            return self.symbol_to_name[formula]
         else:
             return formula
 
 
     def show_to_terminal(self):
-
-        label_to_icon = {0: 'P', 1: 'L', 2: 'D', 3: 'G', 4: 'E', 5: '.'}
 
         for c in range(self.map_size):
             row_str = ""
@@ -387,12 +366,12 @@ class GridWorldEnv_multitask(gym.Env):
                 loc = (r, c)
                 if self.agent_centric_view:
                     loc = self._agent_centric_to_absolute(loc)
-                label = self.loc_to_label.get(loc, 5)
-                symbol = label_to_icon.get(label, '?')
+                label = self.loc_to_label.get(loc, self.num_symbols-1)
+                letter = self.symbol_to_letter[self.dictionary_symbols[label]]
                 if self.agent_location == loc:
-                    row_str += f"[{symbol}]"
+                    row_str += f"[{letter}]"
                 else:
-                    row_str += f" {symbol} "
+                    row_str += f" {letter} "
             print(row_str)
 
 
@@ -471,6 +450,7 @@ class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols=['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = True,
             agent_centric_view = False
@@ -483,6 +463,7 @@ class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = False,
             wrap_around_map = True,
             agent_centric_view = False
@@ -495,6 +476,7 @@ class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = True,
             agent_centric_view = True
@@ -507,6 +489,7 @@ class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = False,
             wrap_around_map = True,
             agent_centric_view = True
@@ -519,6 +502,7 @@ class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = False,
             agent_centric_view = False
@@ -531,6 +515,7 @@ class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = False,
             wrap_around_map = False,
             agent_centric_view = False
