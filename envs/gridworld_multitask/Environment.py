@@ -23,8 +23,9 @@ class GridWorldEnv_multitask(gym.Env):
 
     symbol_to_name = {
         'a': 'pick', 'b': 'lava', 'c': 'door', 'd': 'gem', 'e': 'egg', 'f': 'sword',
-        'g': 'bow':, 'h': 'arrow', 'i': 'potion', 'j': 'book', 'k': 'food', 'l': 'gold',
+        'g': 'bow', 'h': 'arrow', 'i': 'potion', 'j': 'book', 'k': 'food', 'l': 'gold',
         '': 'nothing'
+    }
 
     def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
         max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False,
@@ -89,6 +90,11 @@ class GridWorldEnv_multitask(gym.Env):
         # default locations
         self.all_locations = {(x,y) for x in range(self.map_size) for y in range(self.map_size)}
         default_locations = [(1,1), (5,2), (3,3), (1,4), (3,0), (3,5), (0,3), (6,4), (2,1), (5,6)]
+        
+        default_locations = [(0,0), (0,3), (0,6), (1,1), (1,4), (1,6), (2,1), (2,5), (3,0), (3,3),
+                             (3,5), (4,1), (4,4), (4,6), (5,0), (5,2), (5,6), (6,1), (6,3), (6,5),
+                             (2,3), (3,6), (6,0), (0,5)]
+
         default_locations = default_locations[:(self.num_symbols-1)*2]
 
         # assign items locations
@@ -133,7 +139,7 @@ class GridWorldEnv_multitask(gym.Env):
 
             # assign item locations
             for label, icon in enumerate(self.dictionary_icons):
-                self.icon_locations[icon] = default_locations[label*2:(label+1)*2]
+                self.icon_locations[icon] = sampled_locations[label*2:(label+1)*2]
 
             # assign agent initial location
             self.free_locations = self.all_locations - set(sampled_locations)
