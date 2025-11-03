@@ -41,6 +41,41 @@ register(
 )
 
 
+
+
+register(
+    id='GridWorld-12-v0',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_Base'
+)
+
+register(
+    id='GridWorld-12-fixed-v0',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_Base_FixedMap'
+)
+
+register(
+    id='GridWorld-12-v1',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_AgentCentric'
+)
+
+register(
+    id='GridWorld-12-fixed-v1',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_AgentCentric_FixedMap'
+)
+
+register(
+    id='GridWorld-12-v2',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_NoWrapAround'
+)
+
+register(
+    id='GridWorld-12-fixed-v2',
+    entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_NoWrapAround_FixedMap'
+)
+
+
+
+
 ### Simple LTL Envs
 register(
     id='Simple-LTL-Env-v0',

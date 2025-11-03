@@ -22,12 +22,9 @@ class GridWorldEnv_multitask(gym.Env):
     }
 
     symbol_to_name = {
-        'a': 'pick', 'b': 'lava', 'c': 'door', 'd': 'gem', 'e': 'egg', '': 'nothing'
-    }
-
-    symbol_to_letter = {
-        'a': 'P', 'b': 'L', 'c': 'D', 'd': 'G', 'e': 'E', '': '.'
-    }
+        'a': 'pick', 'b': 'lava', 'c': 'door', 'd': 'gem', 'e': 'egg', 'f': 'sword',
+        'g': 'bow':, 'h': 'arrow', 'i': 'potion', 'j': 'book', 'k': 'food', 'l': 'gold',
+        '': 'nothing'
 
     def __init__(self, render_mode="human", state_type="image", obs_size=(56,56), win_size=(896,896), map_size=7,
         max_num_steps=75, randomize_loc=False, randomize_start=True, img_dir="imgs_16x16", save_obs=False,
@@ -367,7 +364,7 @@ class GridWorldEnv_multitask(gym.Env):
                 if self.agent_centric_view:
                     loc = self._agent_centric_to_absolute(loc)
                 label = self.loc_to_label.get(loc, self.num_symbols-1)
-                letter = self.symbol_to_letter[self.dictionary_symbols[label]]
+                letter = self.dictionary_symbols[label]
                 if self.agent_location == loc:
                     row_str += f"[{letter}]"
                 else:
@@ -450,7 +447,7 @@ class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
-            symbols=['a', 'b', 'c', 'd', 'e'],
+            symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = True,
             agent_centric_view = False
@@ -515,7 +512,85 @@ class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
-            symbols = ['a', 'b', 'c', 'd', 'e'],
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = False,
+            wrap_around_map = False,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_12_Base(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = True,
+            wrap_around_map = True,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_12_Base_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_12_AgentCentric(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = True,
+            wrap_around_map = True,
+            agent_centric_view = True
+        )
+
+
+class GridWorldEnv_12_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = False,
+            wrap_around_map = True,
+            agent_centric_view = True
+        )
+
+
+class GridWorldEnv_12_NoWrapAround(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
+            randomize_loc = True,
+            wrap_around_map = False,
+            agent_centric_view = False
+        )
+
+
+class GridWorldEnv_12_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
+    def __init__(self, state_type, grounder, obs_size):
+        super().__init__(
+            state_type = state_type,
+            grounder = grounder,
+            obs_size = obs_size,
+            symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = False,
             wrap_around_map = False,
             agent_centric_view = False
