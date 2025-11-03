@@ -48,6 +48,48 @@ e54duptest_dataset = Dataset(
     disjoint_from = e54dup_dataset,
 )
 
+
+e54prop12_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e54prop12")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "Eventually_1_5_1_4",
+    allow_duplicates = False,
+    disjoint_from = None,
+)
+
+e54prop12dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e54prop12dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "Eventually_1_5_1_4",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
+e54prop12test_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e54prop12test")),
+    seed = 42,
+    n_formulas = 1000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "Eventually_1_5_1_4",
+    allow_duplicates = False,
+    disjoint_from = e54prop12_dataset,
+)
+
+e54prop12duptest_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e54prop12duptest")),
+    seed = 42,
+    n_formulas = 1000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "Eventually_1_5_1_4",
+    allow_duplicates = True,
+    disjoint_from = e54prop12dup_dataset,
+)
+
+
 ga321_dataset = Dataset(
     path = Path(os.path.join(DATASETS_DIR, "ga321")),
     seed = 42,
@@ -89,6 +131,47 @@ ga321duptest_dataset = Dataset(
 )
 
 
+ga321prop12_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "ga321prop12")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = False,
+    disjoint_from = None,
+)
+
+ga321prop12dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "ga321prop12dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
+ga321prop12test_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "ga321prop12test")),
+    seed = 42,
+    n_formulas = 1000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = False,
+    disjoint_from = ga321prop12_dataset,
+)
+
+ga321prop12duptest_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "ga321prop12duptest")),
+    seed = 42,
+    n_formulas = 1000,
+    propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
+    sampler = "GlobalAvoidance_1_3_1_2_1_1",
+    allow_duplicates = True,
+    disjoint_from = ga321prop12dup_dataset,
+)
+
+
 datasets = [
 
     e54_dataset,
@@ -96,10 +179,20 @@ datasets = [
     e54test_dataset,
     e54duptest_dataset,
 
+    e54prop12_dataset,
+    e54prop12dup_dataset,
+    e54prop12test_dataset,
+    e54prop12duptest_dataset,
+
     ga321_dataset,
     ga321dup_dataset,
     ga321test_dataset,
     ga321duptest_dataset,
+
+    ga321prop12_dataset,
+    ga321prop12dup_dataset,
+    ga321prop12test_dataset,
+    ga321prop12duptest_dataset,
 
 ]
 
@@ -132,7 +225,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", type=str, default="e54")
+    parser.add_argument("--name", type=str, default="e54dup")
     parser.add_argument("--target", type=str, default="both", choices=["formulas", "automata", "both"])
     args = parser.parse_args()
 
