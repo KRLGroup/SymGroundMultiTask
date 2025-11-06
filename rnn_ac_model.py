@@ -2,9 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch_ac
 from gym import spaces
+from argparse import Namespace
 
 from utils.rnn_utils import *
+
 
 
 class BasePolicy(nn.Module):
@@ -80,6 +83,7 @@ class BasePolicy(nn.Module):
         return rnn_out, hidden_state, out_state
 
 
+
 class LangEmbedding(nn.Module):
     def __init__(self, symbol_size, emb_size=32, rnn_depth=1):
         super(LangEmbedding, self).__init__()
@@ -104,6 +108,7 @@ class LangEmbedding(nn.Module):
         rnn_out = rnn_out[-1]  # choose output from the last token
         rnn_out = self.out_linear(rnn_out)
         return rnn_out
+
 
 
 class ImageEmbedding(nn.Module):
@@ -131,6 +136,7 @@ class ImageEmbedding(nn.Module):
         x = x.reshape(batch_size, -1)
         x = torch.relu(self._lin(x))
         return x
+
 
 
 class LTLPolicy(nn.Module):
@@ -295,13 +301,37 @@ class LTLPolicy(nn.Module):
         return rnn_out.squeeze(0)
 
 
-class LTLActorCritic(torch.nn.Module):
-    def __init__(self, ltl_tree, symbols, args):
-        super(LTLActorCritic, self).__init__()
+
+# Took LTLActorCritic and made it into a torch_ac's ACModel
+class RnnACModel(torch.nn.Module, torch_ac.ACModel):
+
+    def __init__(self, env, obs_space, action_space, symbols, device):
+        super(RnnACModel, self).__init__()
+
+        ltl_tree = default_ltl_tree(symbols)
+
+        # parameters from Kuo et al.
+        args = Namespace(
+            observation_space = obs_space,
+            recipe_path = None,
+            baseline = False,
+            lang_emb = False,
+            alphabets = symbols,
+            lang_emb_size = None,
+            env_name = env,
+            action_space = action_space,
+            rnn_size = 64,
+            rnn_depth = 1,
+            image_emb_size = 64,
+            output_state_size = 32,
+            device = device
+        )
+
         # base policy
         if args.baseline:
             symbols = ['all']
         self.base = LTLPolicy(ltl_tree, symbols, args)
+
         # actor: the final linear layer for action prediction
         if args.action_space.__class__.__name__ == "MultiBinary":
             num_outputs = args.action_space.shape[0]
@@ -311,68 +341,22 @@ class LTLActorCritic(torch.nn.Module):
             self.actor = Categorical(args.rnn_size, num_outputs)
         else:
             raise NotImplementedError
+
         # critic: the final linear layer to estimate the value function
         self.critic_linear = nn.Linear(args.rnn_size, 1)
+
 
     def update_formula(self, ltl_tree, ltl_onehot=None):
         '''Update the ltl_tree for both actor and critic'''
         self.base.update_formula(ltl_tree, ltl_onehot)
 
+
     def reset(self):
         self.base.reset()
 
-    def log_param(self, writer, iter):
-        self.base.log_param(writer, iter)
-        for tag, value in self.critic_linear.named_parameters():
-            tag = tag.replace('.', '/')
-            writer.add_histogram('critic_' + tag,
-                                 value.cpu().data.numpy(), iter)
-            if value.grad is not None:
-                writer.add_histogram('critic_' + tag+'/grad',
-                                     value.grad.cpu().data.numpy(), iter)
-
-    def freeze(self, symbols):
-        for name, param in self.base.named_parameters():
-            name = name.split('.')[0]
-            if name in symbols:
-                param.requires_grad = True
-            else:
-                param.requires_grad = False
-
-    def unfreeze(self):
-        for param in self.base.parameters():
-            param.requires_grad = True
 
     def forward(self, obs):
         x = self.base(obs)
-        return self.critic_linear(x), self.actor(obs), x
-
-    def act(self, obs, masks, deterministic=False, no_hidden=False):
-        x = self.base(obs, masks, no_hidden=no_hidden)
-        value = self.critic_linear(x)
-        dist = self.actor(x)
-        
-        if deterministic:
-            action = dist.mode()
-        else:
-            action = dist.sample()
-
-        action_log_probs = dist.log_probs(action)
-        dist_entropy = dist.entropy().mean()
-
-        return value, action, action_log_probs
-
-    def get_value(self, inputs, masks):
-        x = self.base(inputs, masks)
-        value = self.critic_linear(x)
-        return value
-
-    def evaluate_actions(self, inputs, masks, action):
-        x = self.base(inputs, masks)
         dist = self.actor(x)
         value = self.critic_linear(x)
-
-        action_log_probs = dist.log_probs(action)
-        dist_entropy = dist.entropy().mean()
-
-        return value, action_log_probs, dist_entropy
+        return dist, value

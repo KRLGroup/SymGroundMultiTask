@@ -153,6 +153,10 @@ def ltl2tree(formula, symbols, baseline=False):
     return None
 
 
+def default_ltl_tree(symbols):
+    return ltl2tree(symbols[0], symbols)
+
+
 def ltlstr2template(formula):
     tokens = formula.split(' ')
     for i, token in enumerate(tokens):
