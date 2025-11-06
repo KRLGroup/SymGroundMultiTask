@@ -4,6 +4,7 @@ gym_minigrid==1.0.1
 ltlf2dfa==1.0.2
 matplotlib==3.5.3
 networkx==2.4
+nltk==3.6.6
 numpy==1.21.6
 opencv_python==4.11.0.86
 protobuf==3.20.3
@@ -17,6 +18,7 @@ tensorboard==2.2.2
 tensorboardX==2.0
 tensorflow-cpu==2.2.0
 torch==1.13.1+cu117
+torchvision==0.14.1+cu117
 tqdm==4.67.1
 werkzeug==1.0.1
 
