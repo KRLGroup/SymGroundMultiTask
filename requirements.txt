@@ -18,7 +18,7 @@ tensorboard==2.2.2
 tensorboardX==2.0
 tensorflow-cpu==2.2.0
 torch==1.13.1+cu117
-torchvision==0.14.1+cu117
+torchvision==0.14.1
 tqdm==4.67.1
 werkzeug==1.0.1
 

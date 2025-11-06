@@ -312,7 +312,7 @@ class RnnACModel(torch.nn.Module, torch_ac.ACModel):
 
         # parameters from Kuo et al.
         args = Namespace(
-            observation_space = obs_space,
+            observation_space = np.array([obs_space]),
             recipe_path = None,
             baseline = False,
             lang_emb = False,
