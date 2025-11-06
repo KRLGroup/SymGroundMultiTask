@@ -40,7 +40,7 @@ class DFA:
     def calculate_live_states(self):
 
         self.liveliness = [self.acceptance[q] for q in range(self.num_of_states)]
-        
+
         changed = True
         while changed:
             changed = False
@@ -76,6 +76,8 @@ class DFA:
         # from symbolic DFA to simple DFA
         self.alphabet = dictionary_symbols
         self.transitions = self.reduce_dfa(dfa)
+
+        # convert final states
         self.num_of_states = len(self.transitions)
         final_states = set(dfa._final_states)
         self.acceptance = [s in final_states for s in range(self.num_of_states)]
