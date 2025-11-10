@@ -20,6 +20,7 @@ from gnns.graphs.GNN import GNNMaker
 from env_model import getEnvModel
 from policy_network import PolicyNetwork
 
+
 # Function from https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/model.py
 def init_params(m):
     classname = m.__class__.__name__
@@ -33,7 +34,9 @@ def init_params(m):
         m.W.data *= 1 / torch.sqrt(m.W.data.pow(2).sum(1, keepdim=True))
 
 
+
 class ACModel(nn.Module, torch_ac.ACModel):
+
     def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_gnn, device, verbose=True):
         super().__init__()
 
@@ -86,17 +89,16 @@ class ACModel(nn.Module, torch_ac.ACModel):
         self.embedding_size = self.env_model.size()
         if verbose:
             print("embedding size:", self.embedding_size)
+
         if self.use_text or self.use_ast or self.use_progression_info:
             self.embedding_size += self.text_embedding_size
 
         if self.dumb_ac:
             # Define actor's model
             self.actor = PolicyNetwork(self.embedding_size, self.action_space)
-
             # Define critic's model
-            self.critic = nn.Sequential(
-                nn.Linear(self.embedding_size, 1)
-            )
+            self.critic = nn.Sequential(nn.Linear(self.embedding_size, 1))
+
         else:
             # Define actor's model
             self.actor = PolicyNetwork(self.embedding_size, self.action_space, hiddens=[64, 64, 64], activation=nn.ReLU())
@@ -112,6 +114,7 @@ class ACModel(nn.Module, torch_ac.ACModel):
 
         # Initialize parameters correctly
         self.apply(init_params)
+
 
     def forward(self, obs):
         embedding = self.env_model(obs)
@@ -139,6 +142,7 @@ class ACModel(nn.Module, torch_ac.ACModel):
 
         return dist, value
 
+
     def load_pretrained_gnn(self, model_state):
         # We delete all keys relating to the actor/critic.
         new_model_state = model_state.copy()
@@ -156,6 +160,7 @@ class ACModel(nn.Module, torch_ac.ACModel):
                 param.requires_grad = False
 
 
+
 class LSTMModel(nn.Module):
     def __init__(self, obs_size, word_embedding_size=32, hidden_dim=32, text_embedding_size=32):
         super().__init__()
@@ -167,6 +172,7 @@ class LSTMModel(nn.Module):
     def forward(self, text):
         hidden, _ = self.lstm(self.word_embedding(text))
         return self.output_layer(hidden[:, -1, :])
+
 
 
 class GRUModel(nn.Module):

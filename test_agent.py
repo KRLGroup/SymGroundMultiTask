@@ -7,14 +7,15 @@ import utils
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--device", default=None, type=str)
-parser.add_argument("--agent_dir", default="full_agent", type=str)
-parser.add_argument("--ltl_sampler", default="Dataset_e54test_no-shuffle", type=str)
+parser.add_argument('--device', default=None, type=str)
+parser.add_argument('--model_dir', default='full_agent', type=str)
+parser.add_argument('--ltl_sampler', default='Dataset_e54test_no-shuffle', type=str)
 parser.add_argument('--argmax', dest='argmax', default=True, action='store_true')
 parser.add_argument('--no-argmax', dest='argmax', action='store_false')
 parser.add_argument('--eval_procs', default=1, type=int)
 parser.add_argument('--eval_episodes', default=1000, type=int)
-parser.add_argument("--seed", default=1, type=int)
+parser.add_argument('--seed', default=1, type=int)
+parser.add_argument('--max_num_steps', default=150, type=int)
 args = parser.parse_args()
 
 device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -27,7 +28,7 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # compute agent dir
 storage_dir = os.path.join(REPO_DIR, "storage")
-agent_dir = os.path.join(storage_dir, args.agent_dir)
+agent_dir = os.path.join(storage_dir, args.model_dir)
 
 # load training config
 config = utils.load_config(agent_dir)
@@ -45,7 +46,7 @@ print("\n---\n")
 # create evaluator
 evalu = utils.Eval(config.eval_env, agent_dir, args.ltl_sampler, args.seed, device, config.state_type, None,
                    config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode, config.gnn_model,
-                   config.recurrence, config.dumb_ac)
+                   config.recurrence, config.dumb_ac, args.max_num_steps)
 
 # create and load grounder
 sym_grounder = utils.make_grounder(
@@ -89,3 +90,6 @@ print(
     ("F {:7.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
     " | F:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f}").format(*data)
 )
+
+# kill subprocesses
+evalu.eval_env.close()

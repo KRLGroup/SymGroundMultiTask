@@ -8,3 +8,4 @@ from .grounder import *
 from .agent import *
 from .evaluator import *
 from .format import *
+from .rnn_utils import *

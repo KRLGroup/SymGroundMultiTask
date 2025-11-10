@@ -296,6 +296,7 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Grounder training algorithm loaded.")
 
     # initialize the evaluators
+    evals = []
     if args.eval:
 
         eval_env = args.eval_env if args.eval_env else args.env
@@ -303,11 +304,10 @@ def train_agent(args: Args, device: str = None):
         eval_argmaxs = args.eval_argmaxs if args.eval_argmaxs else [True for _ in range(len(eval_samplers))]
         eval_procs = args.eval_procs if args.eval_procs else 1
 
-        evals = []
         for sampler, argmax in zip(eval_samplers, eval_argmaxs):
             evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device, args.state_type, sym_grounder,
                                     args.obs_size, argmax, eval_procs, args.ignoreLTL, args.progression_mode,
-                                    args.gnn_model, args.recurrence, args.dumb_ac))
+                                    args.gnn_model, args.recurrence, args.dumb_ac, None))
 
         txt_logger.info("-) Evaluators loaded.")
 
@@ -330,7 +330,7 @@ def train_agent(args: Args, device: str = None):
     start_time = time.time()
 
     # populate buffer
-    if train_grounder:
+    if train_grounder and not status['grounder_early_stop']:
         txt_logger.info("Initializing Buffer...\n")
         progress = tqdm(total=args.grounder_buffer_start)
         while progress.n < args.grounder_buffer_start:
@@ -363,15 +363,15 @@ def train_agent(args: Args, device: str = None):
 
         # Print logs (accumulated during the log_interval)
 
-        if update % args.log_interval == 0:
+        if (update % args.log_interval == 0) or (num_frames >= args.frames):
+
+            fps = logs1['num_frames']/(update_end_time - update_start_time)
+            duration = int(time.time() - start_time)
 
             logs1 = utils.elaborate_episode_logs(logs_exp, args.discount)
             logs5 = grounder_algo.evaluate()
             logs = {**logs1, **logs2, **logs3, **logs4, **logs5}
             logs_exp = utils.empty_episode_logs()
-
-            fps = logs['num_frames']/(update_end_time - update_start_time)
-            duration = int(time.time() - start_time)
 
             header = ['time/update', 'time/frames', 'time/fps', 'time/duration']
             data = [update, num_frames, fps, duration]
@@ -391,7 +391,7 @@ def train_agent(args: Args, device: str = None):
             # F: episode frames | H: entropy | V: value | pL: policy loss | vL: value loss 
             # nabla: grad norm | gL: grounder loss | gvL: grounder validation loss | gA: grounder accuracy | b: buffer
             txt_logger.info(
-                ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | R:μσmM {:.2f} {:.2f} {:.2f} {:.2f} | ADR {:.3f}" +
+                ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | R:μσmM {:5.2f} {:5.2f} {:5.2f} {:5.2f} | ADR {:6.3f}" +
                 " | eF:μσmM {:4.1f} {:4.1f} {:2.0f} {:2.0f} | H {:.3f} | V {:6.3f} | pL {:6.3f} | vL {:.3f}" +
                 " | ∇ {:.3f} | gL {:.6f} | gvL {:.6f} | gA {:.4f} | b {:5}").format(*data)
             )
@@ -414,10 +414,12 @@ def train_agent(args: Args, device: str = None):
                 tb_writer.add_scalar(field, value, num_frames)
 
         eval_condition = ((args.eval and args.eval_interval > 0 and update % args.eval_interval == 0)
-                          or (args.eval and num_frames >= args.frames))
+                          or (args.eval and num_frames >= args.frames)
+                          or (args.eval and update == 1))
 
         save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
-                          or (eval_condition))
+                          or (eval_condition)
+                          or (num_frames >= args.frames))
 
         # Save status
 
@@ -473,3 +475,18 @@ def train_agent(args: Args, device: str = None):
 
                 for field, value in zip(header, data):
                     evalu.tb_writer.add_scalar(field, value, num_frames)
+
+
+    # TERMINATION
+
+    # close loggers
+    tb_writer.close()
+    for evalu in evals:
+        evalu.tb_writer.close()
+    utils.close_txt_logger(txt_logger)
+    csv_file.close()
+
+    # kill subprocesses
+    algo.env.close()
+    for evalu in evals:
+        evalu.eval_env.close()

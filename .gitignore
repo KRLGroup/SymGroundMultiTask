@@ -1,6 +1,7 @@
 symbolicDFAs/
 untracked/
 saves/
+plots/
 storage/
 storage-pretrain/
 storage-old/

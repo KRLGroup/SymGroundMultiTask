@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from lab.ltl_bootcamp_config import *
+from lab.ltl_bootcamp_configs import *
 from train_agent import train_agent
 
 

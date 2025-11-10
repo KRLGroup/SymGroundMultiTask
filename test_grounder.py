@@ -9,7 +9,7 @@ import utils
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", default=None, type=str)
 parser.add_argument('--env', default="GridWorld-v1", type=str)
-parser.add_argument("--grounder", default=None, type=str)
+parser.add_argument("--model_dir", default=None, type=str)
 parser.add_argument("--iters", default=2000, type=int)
 args = parser.parse_args()
 
@@ -21,7 +21,7 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # compute grounder dir
 storage_dir = os.path.join(REPO_DIR, "storage")
-grounder_dir = os.path.join(storage_dir, args.grounder)
+grounder_dir = os.path.join(storage_dir, args.model_dir)
 
 # load training config
 config = utils.load_config(grounder_dir)

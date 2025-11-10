@@ -67,7 +67,9 @@ class RGCNRoot(RGCN):
         return self.g_embed(hg).squeeze(1)
 
 
-
+# Root: the final representation depends only on the last-layer embedding of the root node
+# Shared: all the RGCN layers use the same weights
+# Uses initial residual connection: input of each layer is concatenation of initial input and current representation
 class RGCNRootShared(GNN):
 
     def __init__(self, input_dim, output_dim, **kwargs):

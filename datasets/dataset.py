@@ -34,6 +34,7 @@ class Dataset:
     n_formulas: int
     propositions: List[str]
     sampler: str
+    allow_duplicates: bool
     disjoint_from: Optional['Dataset']
 
 
@@ -81,7 +82,7 @@ class Dataset:
             # Ensure that the generated formulas are unique
             while formula is None:
                 formula = sampler.sample()
-                if formula in formulas or formula in disjoint_formulas:
+                if (not self.allow_duplicates and formula in formulas) or (formula in disjoint_formulas):
                     formula = None
             formulas.append(formula)
         save_verbose(formulas, self.formulas_path, 'formulas')

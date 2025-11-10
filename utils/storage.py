@@ -64,6 +64,12 @@ def get_txt_logger(model_dir):
     return logging.getLogger()
 
 
+def close_txt_logger(logger):
+    for handler in logger.handlers[:]:
+        handler.close()
+        logger.removeHandler(handler)
+
+
 def get_csv_logger(model_dir):
     csv_path = os.path.join(model_dir, "log.csv")
     create_folders_if_necessary(csv_path)
@@ -76,6 +82,7 @@ def load_config(model_dir):
     if (not os.path.exists(path)):
         print(f"No config file found at: {path}")
     return pickle.load(open(path, "rb"))
+
 
 def save_config(model_dir, config):
     path = os.path.join(model_dir, "config.pickle")

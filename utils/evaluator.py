@@ -7,7 +7,6 @@ from .storage import get_model_dir
 from .env import make_env
 from .agent import Agent
 from .other import synthesize, average_discounted_return
-from envs.gym_letters.letter_env import LetterEnv
 from torch_ac.utils.penv import ParallelEnv
 
 
@@ -18,8 +17,8 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 class Eval:
 
     def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
-        obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1, 
-        dumb_ac=False):
+        obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1,
+        dumb_ac=False, max_num_steps=None):
 
         self.env = env
         self.device = device
@@ -56,10 +55,9 @@ class Eval:
                 obs_size = obs_size
             ))
 
-        eval_envs[0].reset()
-        if isinstance(eval_envs[0].env, LetterEnv):
+        if max_num_steps is not None:
             for env in eval_envs:
-                env.env.map = eval_envs[0].env.map
+                env.env.max_num_steps = max_num_steps
 
         self.eval_envs = eval_envs
         self.eval_env = ParallelEnv(eval_envs)

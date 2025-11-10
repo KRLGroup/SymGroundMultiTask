@@ -25,6 +25,7 @@ from ac_model import LSTMModel, GRUModel, init_params
 
 
 class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
+
     def __init__(self, env, obs_space, action_space, ignoreLTL, gnn_type, dumb_ac, freeze_gnn, device, verbose=True):
         super().__init__()
 
@@ -107,13 +108,16 @@ class RecurrentACModel(nn.Module, torch_ac.RecurrentACModel):
         # Initialize parameters correctly
         self.apply(init_params)
 
+
     @property
     def memory_size(self):
         return 2*self.semi_memory_size
 
+
     @property
     def semi_memory_size(self):
         return self.image_embedding_size
+
 
     def forward(self, obs, memory):
         x = self.env_model(obs)

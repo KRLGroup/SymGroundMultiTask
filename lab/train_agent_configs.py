@@ -9,8 +9,8 @@ test_gridworld = Args(
     seed = 1,
     log_interval = 1,
     save_interval = 10,
-    procs = 1,
-    frames_per_proc = 512,
+    procs = 16,
+    frames_per_proc = 128,
     frames = 20000000,
     checkpoint_dir = None,
 
@@ -27,13 +27,13 @@ test_gridworld = Args(
     ignoreLTL = False,
     gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
-    gnn_pretrain = "gnn_pretrain",
+    gnn_pretrain = "new_gnn_pretrain_e",
     freeze_gnn = False,
 
     # Grounder parameters
     grounder_model = "ObjectCNN",
-    use_pretrained_grounder = True,
-    grounder_pretrain = "full_grounder_56",
+    use_pretrained_grounder = False,
+    grounder_pretrain = None,
     freeze_grounder = True,
 
     # Agent parameters
@@ -44,9 +44,9 @@ test_gridworld = Args(
     eval = True,
     eval_env = "GridWorld-v1",
     eval_interval = 1000,
-    eval_samplers = ['Dataset_e54test', 'Dataset_e65test'],
-    eval_episodes = [1000, 50],
-    eval_argmaxs = [True, True],
+    eval_samplers = ['Dataset_e54test', 'Dataset_e54test', 'Eventually_1_5_1_4', 'Eventually_1_5_1_4'],
+    eval_episodes = [1000, 1000, 1000, 1000],
+    eval_argmaxs = [True, False, True, False],
     eval_procs = 1,
 
     # Train parameters

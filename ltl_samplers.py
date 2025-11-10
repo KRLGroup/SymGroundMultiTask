@@ -12,14 +12,13 @@ import pickle
 import yaml
 import numpy as np
 
-from finite_state_machine import MooreMachine
-
 
 
 class LTLSampler():
 
     def __init__(self, propositions):
         self.propositions = propositions
+        self.has_automata = False
 
 
     def sample(self):
@@ -81,7 +80,7 @@ class DefaultSampler(LTLSampler):
 # This code is a generalization of the DefaultSampler---which is equivalent to UntilTaskSampler(propositions, 2, 2, 1, 1)
 class UntilTaskSampler(LTLSampler):
 
-    def __init__(self, propositions, min_levels=1, max_levels=2, min_conjunctions=1 , max_conjunctions=2):
+    def __init__(self, propositions, min_levels=1, max_levels=2, min_conjunctions=1, max_conjunctions=2):
         super().__init__(propositions)
         self.levels       = (int(min_levels), int(max_levels))
         self.conjunctions = (int(min_conjunctions), int(max_conjunctions))
@@ -193,9 +192,8 @@ class EventuallySampler(LTLSampler):
 
 
 # This generates several sequence tasks which can be accomplished in parallel with a global avoidance.
-# e.g. in (until (not d) (eventually (a and eventually c)) and (eventually b))
-# the two sequence tasks are "a->c" and "b" (without passing for "d").
-class GlobalAvoidanceSampler(LTLSampler):
+# These tasks are not co-safe
+class TrueGlobalAvoidanceSampler(LTLSampler):
 
     def __init__(self, propositions, min_levels=1, max_levels=4, min_conjunctions=1, max_conjunctions=3, min_avoid=1, max_avoid=2):
         super().__init__(propositions)
@@ -254,6 +252,69 @@ class GlobalAvoidanceSampler(LTLSampler):
 
 
 
+# This generates several sequence tasks which can be accomplished in parallel with a global avoidance.
+# (special case of the until task sampler with the same avoidances at each step)
+# e.g. ('until', ('and',('not','a'), ('not','c')), ('and', 'b', ('until',('and',('not','a'), ('not','c')),'d')))
+# the sequence is b->d without passing for a and c
+# These tasks are co-safe
+class GlobalAvoidanceSampler(LTLSampler):
+
+    def __init__(self, propositions, min_levels=1, max_levels=4, min_conjunctions=1, max_conjunctions=3, min_avoid=1, max_avoid=2):
+        super().__init__(propositions)
+        assert(len(propositions) >= int(max_avoid) + 2)
+        self.conjunctions = (int(min_conjunctions), int(max_conjunctions))
+        self.levels = (int(min_levels), int(max_levels))
+        self.avoids = (int(min_avoid), int(max_avoid))
+
+
+    def sample(self):
+
+        n_avoids = random.randint(*self.avoids)
+        avoids = random.sample(self.propositions, n_avoids)
+        remaining = [item for item in self.propositions if item not in avoids]
+
+        avoidance = self._get_avoidance(avoids)
+
+        conjs = random.randint(*self.conjunctions)
+        ltl = None
+        for i in range(conjs):
+            task = self.sample_sequence(remaining, avoidance)
+            if ltl is None:
+                ltl = task
+            else:
+                ltl = ('and', task, ltl)
+
+        return ltl
+
+
+    def sample_sequence(self, propositions, avoidance):
+        length = random.randint(*self.levels)
+        seq = []
+        last = []
+        while len(seq) < length:
+            population = [p for p in propositions if p not in last]
+            c = random.sample(population, 1)
+            seq.append(c)
+            last = c
+        ret = self._get_sequence(seq, avoidance)
+        return ret
+
+
+    def _get_sequence(self, seq, avoidance):
+        term = seq[0][0]
+        if len(seq) == 1:
+            return ('until', avoidance, term)
+        return ('until', avoidance, ('and', term, self._get_sequence(seq[1:], avoidance)))
+
+
+    def _get_avoidance(self, avoids):
+        term = avoids[0]
+        if len(avoids) == 1:
+            return ('not', term)
+        return ('and', ('not', term), self._get_avoidance(avoids[1:]))
+
+
+
 class AdversarialEnvSampler(LTLSampler):
 
     def sample(self):
@@ -283,10 +344,9 @@ def getLTLSampler(sampler_id, propositions):
 
     if (tokens[0] == "Dataset"):
         dataset_name = tokens[1]
-        use_automata = False if "no-automata" in tokens[2:] else True
         shuffle = False if "no-shuffle" in tokens[2:] else True
         ids = None
-        return DatasetSampler(propositions, dataset_name, shuffle, use_automata)
+        return DatasetSampler(propositions, dataset_name, shuffle)
 
     elif (tokens[0] == "OrSampler"):
         return OrSampler(propositions)
@@ -325,12 +385,11 @@ DATASETS_DIR = os.path.join(REPO_DIR, "datasets")
 # (computing the automata is too slow to be done online)
 class DatasetSampler(LTLSampler):
 
-    def __init__(self, propositions, dataset_name, shuffle=True, use_automata=True, ids=None):
+    def __init__(self, propositions, dataset_name, shuffle=True, ids=None):
 
         dataset_folder = os.path.join(DATASETS_DIR, dataset_name)
 
         self.shuffle = shuffle
-        self.use_automata = use_automata
         self.ids = ids
         self.sampled_tasks = 0
         self.propositions = propositions
@@ -352,10 +411,13 @@ class DatasetSampler(LTLSampler):
 
         automata = [None] * self.config["n_formulas"]
 
-        if self.use_automata:
+        automata_path = os.path.join(dataset_folder, 'automata.pkl')
+        self.has_automata = os.path.exists(automata_path)
+
+        if self.has_automata:
 
             # load automata
-            with open(os.path.join(dataset_folder, 'automata.pkl'), 'rb') as f:
+            with open(automata_path, 'rb') as f:
                 automata = pickle.load(f)
             assert len(automata) == self.config["n_formulas"]
 

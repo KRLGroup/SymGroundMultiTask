@@ -1,8 +1,12 @@
 from torch.multiprocessing import Process, Pipe
 import gym
 
+import utils
 
-def worker(conn, env):
+
+def worker(conn, env, seed):
+
+    utils.set_seed(seed)
 
     while True:
 
@@ -27,6 +31,7 @@ def worker(conn, env):
             raise NotImplementedError
 
 
+
 class ParallelEnv(gym.Env):
     """A concurrent execution of environments in multiple processes."""
 
@@ -36,23 +41,43 @@ class ParallelEnv(gym.Env):
         self.envs = envs
         self.observation_space = self.envs[0].observation_space
         self.action_space = self.envs[0].action_space
+        self.closed = False
 
         self.locals = []
-        for env in self.envs[1:]:
+        self.processes = []
+
+        for worker_id, env in enumerate(self.envs[1:]):
             local, remote = Pipe()
             self.locals.append(local)
-            p = Process(target=worker, args=(remote, env))
-            p.daemon = True
+            p = Process(target=worker, args=(remote, env, worker_id))
+            p.daemon = False
             p.start()
+            self.processes.append(p)
             remote.close()
 
 
     def __del__(self):
-        for local in self.locals:
-            local.send(("kill", None))
+        self.close()
+
+
+    def check_closed(self):
+        if self.closed:
+            raise RuntimeError("Attempt to use ParallelEnv after it has been closed.")
+
+
+    def close(self):
+        if not self.closed:
+            for local in self.locals:
+                local.send(("kill", None))
+            for p in self.processes:
+                p.join()
+            self.locals = []
+            self.processes = []
+            self.closed = True
 
 
     def reset(self):
+        self.check_closed()
         for local in self.locals:
             local.send(("reset", None))
         results = [self.envs[0].reset()] + [local.recv() for local in self.locals]
@@ -61,6 +86,7 @@ class ParallelEnv(gym.Env):
 
     def step(self, actions):
 
+        self.check_closed()
         for local, action in zip(self.locals, actions[1:]):
             local.send(("step", action))
 
