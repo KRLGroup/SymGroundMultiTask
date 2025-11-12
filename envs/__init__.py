@@ -4,12 +4,12 @@ from envs.gym_letters.letter_env import LetterEnv
 from envs.simple_ltl.simple_ltl_env import SimpleLTLEnv
 from envs.minigrid.minigrid_env import MinigridEnv
 from envs.gridworld_multitask.Environment import GridWorldEnv_LTL2Action
-# from envs.safety.zones_env import ZonesEnv
+from envs.safety.zones_env import ZonesEnv
 
-__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action"] #"ZonesEnv"]
+__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action", "ZonesEnv"]
 
 
-### GridWorld multi-task Envs
+### GridWorld multi-task Envs (5 symbols)
 register(
     id='GridWorld-v0',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_Base'
@@ -42,7 +42,7 @@ register(
 
 
 
-
+### GridWorld multi-task Envs (12 symbols)
 register(
     id='GridWorld-12-v0',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_Base'
@@ -72,7 +72,6 @@ register(
     id='GridWorld-12-fixed-v2',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_NoWrapAround_FixedMap'
 )
-
 
 
 
@@ -150,6 +149,7 @@ register(
 )
 
 
+
 ### Minigrid Envs
 register(
     id='Adversarial-v0',
@@ -157,19 +157,20 @@ register(
 )
 
 
-# ### Safety Envs
-# register(
-#     id='Zones-1-v0',
-#     entry_point='envs.safety.zones_env:ZonesEnv1')
 
-# register(
-#     id='Zones-1-v1',
-#     entry_point='envs.safety.zones_env:ZonesEnv1Fixed')
+### Safety Envs
+register(
+    id='Zones-1-v0',
+    entry_point='envs.safety.zones_env:ZonesEnv1')
 
-# register(
-#     id='Zones-5-v0',
-#     entry_point='envs.safety.zones_env:ZonesEnv5')
+register(
+    id='Zones-1-v1',
+    entry_point='envs.safety.zones_env:ZonesEnv1Fixed')
 
-# register(
-#     id='Zones-5-v1',
-#     entry_point='envs.safety.zones_env:ZonesEnv5Fixed')
+register(
+    id='Zones-5-v0',
+    entry_point='envs.safety.zones_env:ZonesEnv5')
+
+register(
+    id='Zones-5-v1',
+    entry_point='envs.safety.zones_env:ZonesEnv5Fixed')
