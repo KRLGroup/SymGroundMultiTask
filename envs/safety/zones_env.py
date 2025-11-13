@@ -240,15 +240,29 @@ else:
     # interface needed to build the ltl_wrapper
     class ZonesEnv_LTL2Action(ZonesEnv):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, grounder, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            self.sym_grounder = grounder
+            self.current_obs = None
+
+
+        def reset(self):
+            obs = super().reset()
+            self.current_obs = obs
+            return obs
+
+
+        def step(self, action):
+            obs, rew, done, info = super().step(action)
+            self.current_obs = obs
+            return obs, rew, done, info
 
 
         def get_propositions(self):
             return [str(i) for i in self.zone_types]
 
 
-        def get_events(self):
+        def get_real_events(self):
             events = ""
             for h_inedx, h_pos in enumerate(self.zones_pos):
                 h_dist = self.dist_xy(h_pos)
@@ -256,6 +270,20 @@ else:
                     # We assume the agent to be in one zone at a time
                     events += str(self.zones[h_inedx])
             return events
+
+
+        def get_events(self):
+
+            # returns the proposition that currently holds
+            if self.sym_grounder == None:
+                return self.get_real_events()
+
+            # returns the proposition that currently holds according to the grounder
+            else:
+                with torch.no_grad():
+                    img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+                    pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
+                return self.dictionary_symbols[pred_sym]
 
 
 
