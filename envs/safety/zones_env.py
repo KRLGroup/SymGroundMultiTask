@@ -65,7 +65,11 @@ else:
         For now we only support the 'point' robot.
         """
 
-        def __init__(self, zones:list, use_fixed_map:float, timeout:int, config=dict):
+        def __init__(self, zones, use_fixed_map, timeout, config={}, state_type='lidar', obs_size=(56,56), grounder = None):
+
+            self.obs_size = obs_size
+            self.state_type = state_type
+
             walled = True
             self.DEFAULT.update({
                 'observe_zones': False,
@@ -125,15 +129,38 @@ else:
         def build_observation_space(self):
             super().build_observation_space()
 
-            if self.observe_zones:
-                for zone_type in self.zone_types:
-                    self.obs_space_dict.update({f'zones_lidar_{zone_type}': gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)})
+            if self.state_type == 'image':
+                self.observation_flatten = False
+                self.obs_space_dict = {}
+                self.observation_space = gym.spaces.Box(
+                    np.float32(0.0),
+                    np.float32(1.0),
+                    self.obs_size + (3,),
+                    dtype=np.float32
+                )
 
-            if self.observation_flatten:
-                self.obs_flat_size = sum([np.prod(i.shape) for i in self.obs_space_dict.values()])
-                self.observation_space = gym.spaces.Box(-np.inf, np.inf, (self.obs_flat_size,), dtype=np.float32)
             else:
-                self.observation_space = gym.spaces.Dict(self.obs_space_dict)
+
+                if self.observe_zones:
+                    for zone_type in self.zone_types:
+                        self.obs_space_dict.update({f'zones_lidar_{zone_type}': gym.spaces.Box(
+                            np.float32(0.0),
+                            np.float32(1.0),
+                            (self.lidar_num_bins,),
+                            dtype=np.float32
+                        )})
+
+                if self.observation_flatten:
+                    self.obs_flat_size = sum([np.prod(i.shape) for i in self.obs_space_dict.values()])
+                    self.observation_space = gym.spaces.Box(
+                        np.float32(-np.inf),
+                        np.float32(np.inf),
+                        (self.obs_flat_size,),
+                        dtype=np.float32
+                    )
+
+                else:
+                    self.observation_space = gym.spaces.Dict(self.obs_space_dict)
 
 
         def build_placements_dict(self):
@@ -162,7 +189,13 @@ else:
             return world_config
 
 
-        def build_obs(self):
+        def build_image_obs(self):
+            vision = self.render(mode='rgb_array', width=self.obs_size[0], height=self.obs_size[1], camera_id=1)
+            vision = np.array(vision, dtype='float32') / 255
+            return vision
+
+
+        def build_lidar_obs(self):
             obs = super().build_obs()
 
             if self.observe_zones:
@@ -173,6 +206,15 @@ else:
                     obs[f'zones_lidar_{zone_type}'] = self.obs_lidar(pos_in_type, GROUP_ZONE)
 
             return obs
+
+
+        def build_obs(self):
+            obs = self.build_lidar_obs()
+
+            if self.state_type == 'image':
+                return self.build_image_obs()
+            else:
+                return obs
 
 
         def render_lidars(self):
@@ -220,8 +262,11 @@ else:
     # Preconstructed Environments
 
     class ZonesEnv1(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = False,
                 timeout = 1000
@@ -229,8 +274,11 @@ else:
 
 
     class ZonesEnv1Fixed(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = True,
                 timeout = 1000,
@@ -241,8 +289,11 @@ else:
 
 
     class ZonesEnv5(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = False,
                 timeout = 1000
@@ -250,8 +301,11 @@ else:
 
 
     class ZonesEnv5Fixed(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = True,
                 timeout = 1000

@@ -14,7 +14,7 @@ def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noL
     state_type='image', grounder=None, obs_size=None):
 
     kwargs = {} 
-    if "GridWorld" in env_key:
+    if "GridWorld" in env_key or 'Zones' in env_key:
         kwargs = {
             "state_type": state_type,
             "grounder": grounder,
