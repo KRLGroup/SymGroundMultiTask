@@ -153,6 +153,17 @@ a32prop12duptest_dataset = Dataset(
 )
 
 
+a21dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "a21dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ["a", "b", "c", "d", "e"],
+    sampler = "UntilTaskSampler_1_2_1_1",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
+
 datasets = [
 
     e54_dataset,
@@ -173,6 +184,8 @@ datasets = [
 
     a32prop12dup_dataset,
     a32prop12duptest_dataset,
+
+    a21dup_dataset
 
 ]
 
