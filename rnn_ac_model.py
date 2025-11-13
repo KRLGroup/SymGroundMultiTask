@@ -7,12 +7,14 @@ from gym import spaces
 from argparse import Namespace
 
 from utils.rnn_utils import *
+from utils import ltl_ast2str
+from torch_ac.utils import *
 
 
 
 class BasePolicy(nn.Module):
-    def __init__(self, input_size, output_state_size, config,
-                 n_args=0, rnn_size=64, rnn_depth=1, has_arg=False):
+
+    def __init__(self, input_size, output_state_size, config, n_args=0, rnn_size=64, rnn_depth=1, has_arg=False):
         super(BasePolicy, self).__init__()
 
         self.n_args = n_args
@@ -39,7 +41,9 @@ class BasePolicy(nn.Module):
         # rnn for the symbol or operator
         if has_arg:
             self.combine_obs = nn.Linear(rnn_size+5, rnn_size)
+
         self.rnn = nn.GRU(rnn_input_size, rnn_size, self.rnn_depth)
+
         for name, param in self.rnn.named_parameters():
             if 'bias' in name:
                 nn.init.constant_(param, 0)
@@ -49,42 +53,53 @@ class BasePolicy(nn.Module):
         # a linear layer that convert hidden states to interpretable vectors
         self.out_linear = nn.Linear(rnn_size*rnn_depth, output_state_size)
 
-    def forward(self, inputs, args_obs, child_states, parent_state, hidden_state, masks,
-                no_hidden=False):
+
+    def forward(self, inputs, args_obs, child_states, parent_state, hidden_state, masks, no_hidden=False):
+
         batch_size = inputs.shape[0]
+
         # prepare rnn inputs
         if len(child_states) > 0:
             child_states = torch.cat(child_states, dim=1)
             in_state = self.combine_state(child_states)
             in_state = in_state.to(self.config.device)
+
         if parent_state is None:
             parent_state = torch.zeros(batch_size, self.state_size)
         if hidden_state is None:
             hidden_state = torch.zeros(self.rnn_depth, batch_size, self.rnn_size)
+
         parent_state = parent_state.to(self.config.device)
         hidden_state = hidden_state.to(self.config.device)
+
         if self.config.env_name == 'Craft' and not self.config.use_gui:
             inputs = torch.relu(self.obs_linear(inputs))
+
         if args_obs is not None:
             inputs = torch.relu(self.combine_obs(torch.cat([inputs, args_obs], dim=1)))
+
         if len(child_states) > 0:
             rnn_in = torch.cat([inputs, in_state, parent_state], dim=1)
         else:
             rnn_in = torch.cat([inputs, parent_state], dim=1)
+
         # forward one rnn step
         rnn_in = rnn_in.unsqueeze(0)
-        rnn_out, hidden_state = self.rnn(rnn_in * masks.view(1, -1, 1),
-                                         hidden_state.detach() * masks.view(1, -1, 1))
+        rnn_out, hidden_state = self.rnn(rnn_in * masks.view(1,-1,1), hidden_state.detach() * masks.view(1,-1,1))
+
         if no_hidden:
             hidden_state = torch.zeros(hidden_state.shape)
+
         # convert the hidden state to an interpretable vector
         flatten_hidden = hidden_state.permute(1,0,2).contiguous().view(batch_size, -1)
         out_state = self.out_linear(flatten_hidden)
+
         return rnn_out, hidden_state, out_state
 
 
 
 class LangEmbedding(nn.Module):
+
     def __init__(self, symbol_size, emb_size=32, rnn_depth=1):
         super(LangEmbedding, self).__init__()
         input_size = symbol_size + 9  # including ops and parentheses
@@ -99,6 +114,7 @@ class LangEmbedding(nn.Module):
                 nn.init.orthogonal_(param)
         self.out_linear = nn.Linear(emb_size, emb_size)
 
+
     def forward(self, inputs):
         batch_size = 1
         hidden_state = torch.zeros(self.rnn_depth, batch_size, self.rnn_size)
@@ -112,6 +128,7 @@ class LangEmbedding(nn.Module):
 
 
 class ImageEmbedding(nn.Module):
+
     def __init__(self, input_shape, output_dim=64, hidden_dim=64):
         super(ImageEmbedding, self).__init__()
         self._output_dim = output_dim
@@ -122,6 +139,7 @@ class ImageEmbedding(nn.Module):
         cnn_output_dim = self._forward_cnn(torch.zeros(input_shape).unsqueeze(0)).nelement()
         self._lin = nn.Linear(cnn_output_dim, self._output_dim)
 
+
     def _forward_cnn(self, x):
         x = torch.relu(self._conv1(x))
         x = nn.MaxPool2d(2)(x)
@@ -129,6 +147,7 @@ class ImageEmbedding(nn.Module):
         x = torch.relu(self._conv3(x))
         x = nn.MaxPool2d(2)(x)
         return x
+
 
     def forward(self, x):
         x = self._forward_cnn(x)
@@ -140,13 +159,18 @@ class ImageEmbedding(nn.Module):
 
 
 class LTLPolicy(nn.Module):
+
     def __init__(self, ltl_tree, symbols, args):
         super(LTLPolicy, self).__init__()
 
         self.ltl_tree = ltl_tree
         self.args = args
 
-        if isinstance(args.observation_space, spaces.Tuple):
+        # to handle our inputs
+        if isinstance(args.observation_space[0], dict):
+            input_size = args.image_emb_size
+
+        elif isinstance(args.observation_space, spaces.Tuple):
             if len(args.observation_space) == 3:
                 # initialize for combined image and state value observation space
                 input_size = args.image_emb_size + args.observation_space[1].shape[0]
@@ -154,8 +178,10 @@ class LTLPolicy(nn.Module):
                 input_size = args.observation_space[0].shape[0]
             # get the cookbook to look up index
             # self.cookbook = craft.Cookbook(args.recipe_path)
+
         else:
             input_size = args.observation_space.shape[0]
+
         if args.lang_emb:
             input_size += args.lang_emb_size
 
@@ -164,42 +190,41 @@ class LTLPolicy(nn.Module):
         for symbol in symbols:
             if 'C_' in symbol:  # skip closer predicate
                 continue
-            self._modules[symbol] = BasePolicy(input_size,
-                                               args.output_state_size,
-                                               args,
-                                               n_args=0,
-                                               rnn_size=args.rnn_size,
-                                               rnn_depth=args.rnn_depth)
+            self._modules[symbol] = BasePolicy(input_size, args.output_state_size, args, n_args=0,
+                                               rnn_size=args.rnn_size, rnn_depth=args.rnn_depth)
             self.add_module(symbol, self._modules[symbol])
+
         if args.env_name == 'Craft':
             symbol = 'C'
-            self._modules[symbol] = BasePolicy(input_size,
-                                               args.output_state_size,
-                                               args,
-                                               n_args=0,
-                                               rnn_size=args.rnn_size,
-                                               rnn_depth=args.rnn_depth,
-                                               has_arg=True)
+            self._modules[symbol] = BasePolicy(input_size, args.output_state_size, args, n_args=0,
+                                               rnn_size=args.rnn_size, rnn_depth=args.rnn_depth, has_arg=True)
             self.add_module(symbol, self._modules[symbol])
+
         if not args.baseline:
             for op in LTL_OPS:
-                self._modules[op] = BasePolicy(input_size,
-                                               args.output_state_size,
-                                               args,
-                                               n_args=OP2NARG[op],
-                                               rnn_size=args.rnn_size,
-                                               rnn_depth=args.rnn_depth)
+                self._modules[op] = BasePolicy(input_size, args.output_state_size, args, n_args=OP2NARG[op],
+                                               rnn_size=args.rnn_size, rnn_depth=args.rnn_depth)
                 self.add_module(op, self._modules[op])
+
         # language embedding to encode ltl formulas
         if args.lang_emb:
             self.lang_emb = LangEmbedding(len(args.alphabets), emb_size=args.lang_emb_size)
+
         self.image_emb = None
-        if isinstance(args.observation_space, spaces.Tuple):
+
+        # to handle our inputs
+        if isinstance(args.observation_space[0], dict):
+            img_shape = args.observation_space[0]['image']
+            self.image_emb = ImageEmbedding(img_shape, output_dim=args.image_emb_size)
+
+        elif isinstance(args.observation_space, spaces.Tuple):
             if len(args.observation_space) == 3:
                 img_shape = args.observation_space[0].shape
                 self.image_emb = ImageEmbedding((img_shape[2], img_shape[0], img_shape[1]),
                                                 output_dim=args.image_emb_size)
+
         self.reset()
+
 
     def update_formula(self, ltl_tree, ltl_onehot=None):
         '''Set a new ltl_tree and update the fomula tree'''
@@ -209,6 +234,7 @@ class LTLPolicy(nn.Module):
             self.ltl_onehot = self.ltl_onehot.to(self.args.device)
         self.reset()
 
+
     def reset(self):
         '''Reset the module states'''
         self.prev_hidden_states = [None for _ in range(self.ltl_tree.size)]
@@ -216,53 +242,67 @@ class LTLPolicy(nn.Module):
         self.hidden_states = [None for _ in range(self.ltl_tree.size)]
         self.parent_states = [None for _ in range(self.ltl_tree.size)]
 
+
     def log_param(self, writer, iter):
         for key in self._modules.keys():
             print_key  = key.replace('!', 'not').replace('&', 'and').replace('|', 'or')
             for tag, value in self._modules[key].named_parameters():
                 tag = tag.replace('.', '/')
-                writer.add_histogram(print_key + '_' + tag,
-                                     value.cpu().data.numpy(), iter)
+                writer.add_histogram(print_key + '_' + tag, value.cpu().data.numpy(), iter)
                 if value.grad is not None:
-                    writer.add_histogram(print_key + '_' + tag+'/grad',
-                                         value.grad.cpu().data.numpy(), iter)
+                    writer.add_histogram(print_key + '_' + tag+'/grad', value.grad.cpu().data.numpy(), iter)
         if self.image_emb:
             writer.add_image('image/conv1', make_filter_image(self.image_emb._conv1), iter)
             writer.add_image('image/conv2', make_filter_image(self.image_emb._conv2, use_color=False), iter)
             writer.add_image('image/conv3', make_filter_image(self.image_emb._conv3, use_color=False), iter)
 
+
     def forward_child(self, node, obs, args_obs, masks, no_hidden=False):
+
         values = node.value.split('_')
         value = values[0]
+
         if value in self._modules.keys():
+
             n_args = OP2NARG[value]
             child_states = []
             for i, child in enumerate(node.children):
                 _, hidden_state, out_state = self.forward_child(child, obs, args_obs, masks, no_hidden)
                 child_states.append(out_state)
+
             if len(values) == 1:
                 arg = None
                 in_args_obs = None
+
             else:
                 arg = values[1]
                 in_args_obs = args_obs[:,self.cookbook.get_index(arg)]
-            rnn_out, hidden_state, out_state = \
-                self._modules[value].forward(obs, in_args_obs, child_states,
-                                             self.prev_parent_states[node.id],
-                                             self.prev_hidden_states[node.id],
-                                             masks,
-                                             no_hidden)
+
+            rnn_out, hidden_state, out_state = self._modules[value].forward(obs, in_args_obs, child_states,
+                                                                            self.prev_parent_states[node.id],
+                                                                            self.prev_hidden_states[node.id], 
+                                                                            masks, no_hidden)
             self.hidden_states[node.id] = hidden_state
+
             for child in node.children:
                 self.parent_states[child.id] = out_state
+
             return rnn_out, hidden_state, out_state
+
         else:
             raise NotImplementedError
-    
+
+
     def forward(self, obs, masks, no_hidden=False):
         # make image embedding if observation has images
         args_obs = None
-        if type(obs) is tuple:
+
+        # to handle out input
+        if type(obs) is DictList:
+            obs = self.image_emb(obs.image)
+
+        elif type(obs) is tuple:
+
             if len(self.args.observation_space) == 3:
                 img_obs = ((obs[0] / 255) - 0.5 / 0.5)
                 if len(obs[0].shape) == 3:
@@ -277,6 +317,7 @@ class LTLPolicy(nn.Module):
                 else:
                     args_obs = obs[2]
                 obs = torch.cat((img_emb, pos_obs), 1)
+
             else:
                 if len(obs[0].shape) == 1:
                     pos_obs = obs[0].unsqueeze(0)
@@ -287,14 +328,17 @@ class LTLPolicy(nn.Module):
                 else:
                     args_obs = obs[1]
                 obs = pos_obs
+
         else:
             if len(obs.shape) == 1:
                 obs = obs.unsqueeze(0)
+
         # make language embedding if needed
         if self.args.lang_emb:
             lang_out = self.lang_emb(self.ltl_onehot)
             lang_out = lang_out.repeat(obs.shape[0],1)
             obs = torch.cat((obs, lang_out), 1)
+
         rnn_out, _, _ = self.forward_child(self.ltl_tree, obs, args_obs, masks, no_hidden)
         self.prev_hidden_states = self.hidden_states
         self.prev_parent_states = self.parent_states
@@ -305,27 +349,19 @@ class LTLPolicy(nn.Module):
 # Took LTLActorCritic and made it into a torch_ac's ACModel
 class RnnACModel(torch.nn.Module, torch_ac.ACModel):
 
+    variable_structure = True
+
     def __init__(self, env, obs_space, action_space, symbols, device):
         super(RnnACModel, self).__init__()
 
-        ltl_tree = default_ltl_tree(symbols)
+        self.symbols = symbols
+        ltl_tree = default_ltl_tree(self.symbols)
 
         # parameters from Kuo et al.
-        args = Namespace(
-            observation_space = np.array([obs_space]),
-            recipe_path = None,
-            baseline = False,
-            lang_emb = False,
-            alphabets = symbols,
-            lang_emb_size = None,
-            env_name = env,
-            action_space = action_space,
-            rnn_size = 64,
-            rnn_depth = 1,
-            image_emb_size = 64,
-            output_state_size = 32,
-            device = device
-        )
+        args = Namespace(observation_space = np.array([obs_space]), recipe_path = None, baseline = False,
+                         lang_emb = False, alphabets = symbols, lang_emb_size = None, env_name = env,
+                         action_space = action_space, rnn_size = 64, rnn_depth = 1, image_emb_size = 64,
+                         output_state_size = 32, device = device)
 
         # base policy
         if args.baseline:
@@ -346,8 +382,10 @@ class RnnACModel(torch.nn.Module, torch_ac.ACModel):
         self.critic_linear = nn.Linear(args.rnn_size, 1)
 
 
-    def update_formula(self, ltl_tree, ltl_onehot=None):
+    def update_formula(self, formula, ltl_onehot=None):
         '''Update the ltl_tree for both actor and critic'''
+        formula = ltl_ast2str(formula)
+        ltl_tree = ltl2tree(formula, self.symbols, False)
         self.base.update_formula(ltl_tree, ltl_onehot)
 
 
@@ -355,8 +393,8 @@ class RnnACModel(torch.nn.Module, torch_ac.ACModel):
         self.base.reset()
 
 
-    def forward(self, obs):
-        x = self.base(obs)
+    def forward(self, obs, masks):
+        x = self.base(obs, masks)
         dist = self.actor(x)
         value = self.critic_linear(x)
         return dist, value
