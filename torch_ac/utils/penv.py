@@ -27,6 +27,13 @@ def worker(conn, env, seed):
         elif cmd == "kill":
             return
 
+        elif cmd == "set_goal":
+            env.ltl_original = data[0]
+            env.task_id = data[1]
+            obs = env.reset()
+            conn.send(obs)
+
+
         else:
             raise NotImplementedError
 
@@ -97,6 +104,18 @@ class ParallelEnv(gym.Env):
             obs = self.envs[0].reset()
 
         results = zip(*[(obs, reward, done, info)] + [local.recv() for local in self.locals])
+        return results
+
+
+    def set_goal(self, goal, idx):
+
+        self.check_closed()
+        for local in self.locals:
+            local.send(("set_goal", (goal, idx)))
+
+        self.envs[0].ltl_original = goal
+        self.envs[0].task_id = idx
+        results = [self.envs[0].reset()] + [local.recv() for local in self.locals]
         return results
 
 
