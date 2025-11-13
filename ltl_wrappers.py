@@ -129,8 +129,8 @@ class LTLEnv(gym.Wrapper):
         return ltl_obs, reward, done, info
 
 
-    def render(self):
-        return self.env.render()
+    def render(self, *args, **kwargs):
+        return self.env.render(*args, **kwargs)
 
 
     def progression(self, ltl_formula, truth_assignment):
@@ -165,6 +165,7 @@ class LTLEnv(gym.Wrapper):
         # NOTE: The propositions must be represented by a char
 
         formula = self.sampler.sample()
+        goal_id = self.sampler.get_current_id()
 
         if isinstance(self.sampler, SequenceSampler):
             def flatten(bla):
@@ -176,7 +177,7 @@ class LTLEnv(gym.Wrapper):
             length = flatten(formula).count("and") + 1
             self.env.timeout = 25 # 10 * length
 
-        return formula
+        return formula, goal_id
 
 
     def get_events(self, obs, act, next_obs):
