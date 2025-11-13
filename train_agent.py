@@ -188,10 +188,10 @@ def train_agent(args: Args, device: str = None):
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
                                        args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
-    num_symbols = len(grounder_algo_env.propositions) + 1
+    num_grounder_classes = len(grounder_algo_env.propositions) + 1
 
     # create grounder
-    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size, args.freeze_grounder)
+    sym_grounder = utils.make_grounder(args.grounder_model, num_grounder_classes, args.obs_size, args.freeze_grounder)
     grounder_algo_env.env.sym_grounder = sym_grounder
 
     # load environments
@@ -322,7 +322,7 @@ def train_agent(args: Args, device: str = None):
     logs2 = utils.empty_buffer_logs()
     logs3 = utils.empty_algo_logs()
     logs4 = utils.empty_grounder_algo_logs()
-    logs5 = utils.empty_grounder_eval_logs(num_symbols)
+    logs5 = utils.empty_grounder_eval_logs(num_grounder_classes)
     logs_exp = utils.empty_episode_logs()
 
     num_frames = status['num_frames']
@@ -402,7 +402,7 @@ def train_agent(args: Args, device: str = None):
             header += ['grounder/buffer_val', 'grounder/total_buffer', 'grounder/total_buffer_val']
             data += [logs['val_buffer'], logs['total_buffer'], logs['total_val_buffer']]
 
-            header += [f'grounder_recall/{i}' for i in range(num_symbols)]
+            header += [f'grounder_recall/{i}' for i in range(num_grounder_classes)]
             data += logs['grounder_recall']
 
             if status['num_frames'] == 0:
