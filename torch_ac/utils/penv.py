@@ -33,7 +33,6 @@ def worker(conn, env, seed):
             obs = env.reset()
             conn.send(obs)
 
-
         else:
             raise NotImplementedError
 
