@@ -65,7 +65,7 @@ else:
         For now we only support the 'point' robot.
         """
 
-        def __init__(self, zones, use_fixed_map, timeout, config={}, state_type='lidar', obs_size=(56,56), grounder = None):
+        def __init__(self, zones, use_fixed_map, timeout, state_type='lidar', obs_size=(56,56), grounder = None):
 
             self.obs_size = obs_size
             self.state_type = state_type
@@ -115,7 +115,6 @@ else:
                 'zones_num': len(zones),
                 'num_steps': timeout
             }
-            parent_config.update(config)
 
             super().__init__(parent_config)
 
@@ -314,10 +313,7 @@ else:
                 obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = True,
-                timeout = 1000,
-                config = {
-                    # 'placements_extents': [-1.5, -1.5, 1.5, 1.5]
-                }
+                timeout = 1000
             )
 
 
