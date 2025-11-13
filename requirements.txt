@@ -1,3 +1,4 @@
+cython==0.29.37
 graphviz==0.20.1
 gym==0.15.7
 gym_minigrid==1.0.1
