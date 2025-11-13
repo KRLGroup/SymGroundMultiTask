@@ -242,17 +242,22 @@ else:
 
         def __init__(self, grounder, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            self.curr_step = 0
+            self.num_episodes = 0
             self.sym_grounder = grounder
             self.current_obs = None
 
 
         def reset(self):
+            self.num_episodes += 1
+            self.curr_step = 0
             obs = super().reset()
             self.current_obs = obs
             return obs
 
 
         def step(self, action):
+            self.curr_step += 1
             obs, rew, done, info = super().step(action)
             self.current_obs = obs
             return obs, rew, done, info
