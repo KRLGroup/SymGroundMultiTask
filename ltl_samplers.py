@@ -348,6 +348,9 @@ def getLTLSampler(sampler_id, propositions):
         ids = None
         return DatasetSampler(propositions, dataset_name, shuffle)
 
+    elif (tokens[0] == "SingleFormula"):
+        return SingleFormulaSampler(propositions, None)
+
     elif (tokens[0] == "OrSampler"):
         return OrSampler(propositions)
 
@@ -481,3 +484,19 @@ class DatasetSampler(LTLSampler):
 
     def get_automaton(self, index):
         return self.items[index]['automaton']
+
+
+
+class SingleFormulaSampler(LTLSampler):
+
+    def __init__(self, propositions, formula):
+        self.propositions = propositions
+        self.formula = None
+
+
+    def sample(self):
+        return self.formula
+
+
+    def set_formula(self, formula):
+        self.formula = formula
