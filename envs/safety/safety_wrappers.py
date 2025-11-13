@@ -19,7 +19,8 @@ class Play(gym.Wrapper):
         self.key_pressed = None
 
 
-    # Shows a text on the upper right corner of the screen (currently used to display the LTL formula)
+    # Shows a text on the upper right corner of the screen
+    # (currently used to display the LTL formula)
     def show_text(self, text):
         self.env.viewer.show_text(text)
 
@@ -31,7 +32,6 @@ class Play(gym.Wrapper):
                 good += [self.env.zone_types[i]]
             if (inf == -1):
                 bad += [self.env.zone_types[i]]
-
         self.env.viewer.prog_info = {"good": good, "bad": bad}
 
 
@@ -39,9 +39,9 @@ class Play(gym.Wrapper):
         if self.env.viewer is None:
             self.env._old_render_mode = 'human'
             self.env.viewer = PlayViewer(self.env.sim)
+            self.env.viewer._render_every_frame = True  # update at every step
             self.env.viewer.cam.fixedcamid = -1
             self.env.viewer.cam.type = const.CAMERA_FREE
-
             self.env.viewer.render_swap_callback = self.env.render_swap_callback
             # Turn all the geom groups on
             self.env.viewer.vopt.geomgroup[:] = 1
@@ -53,19 +53,16 @@ class Play(gym.Wrapper):
     def wrap_obs(self, obs):
         if not self.env.viewer is None:
             self.key_pressed = self.env.viewer.consume_key()
-
         return obs
 
 
     def reset(self):
         obs = self.env.reset()
-
         return self.wrap_obs(obs)
 
 
     def step(self, action):
         next_obs, original_reward, env_done, info = self.env.step(action)
-
         return self.wrap_obs(next_obs), original_reward, env_done, info
 
 
@@ -77,7 +74,6 @@ class PlayViewer(MjViewer):
         self.key_pressed = None
         self.custom_text = None
         self.prog_info = None
-
         glfw.set_window_size(self.window, 840, 680)
 
 
@@ -88,7 +84,6 @@ class PlayViewer(MjViewer):
     def consume_key(self):
         ret = self.key_pressed
         self.key_pressed = None
-
         return ret
 
 
@@ -96,7 +91,6 @@ class PlayViewer(MjViewer):
         self.key_pressed = key
         if action == glfw.RELEASE:
             self.key_pressed = -1
-
         super().key_callback(window, key, scancode, action, mods)
 
 
@@ -106,7 +100,6 @@ class PlayViewer(MjViewer):
         if (self.prog_info):
             self.add_overlay(const.GRID_TOPRIGHT, "Progress", str(self.prog_info["good"]))
             self.add_overlay(const.GRID_TOPRIGHT, "Falsify", str(self.prog_info["bad"]))
-
 
         step = round(self.sim.data.time / self.sim.model.opt.timestep)
         self.add_overlay(const.GRID_BOTTOMRIGHT, "Step", str(step))
