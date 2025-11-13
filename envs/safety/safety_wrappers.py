@@ -9,15 +9,20 @@ and passes the id of the pressed key as part of the observation to the agent.
 
 Should NOT be used for training!
 """
+
+
 class Play(gym.Wrapper):
+
     def __init__(self, env):
         super().__init__(env)
         self.env = env
         self.key_pressed = None
 
+
     # Shows a text on the upper right corner of the screen (currently used to display the LTL formula)
     def show_text(self, text):
         self.env.viewer.show_text(text)
+
 
     def show_prog_info(self, info):
         good, bad = [], []
@@ -28,6 +33,7 @@ class Play(gym.Wrapper):
                 bad += [self.env.zone_types[i]]
 
         self.env.viewer.prog_info = {"good": good, "bad": bad}
+
 
     def render(self, mode='human'):
         if self.env.viewer is None:
@@ -43,16 +49,19 @@ class Play(gym.Wrapper):
 
         super().render()
 
+
     def wrap_obs(self, obs):
         if not self.env.viewer is None:
             self.key_pressed = self.env.viewer.consume_key()
 
         return obs
 
+
     def reset(self):
         obs = self.env.reset()
 
         return self.wrap_obs(obs)
+
 
     def step(self, action):
         next_obs, original_reward, env_done, info = self.env.step(action)
@@ -60,7 +69,9 @@ class Play(gym.Wrapper):
         return self.wrap_obs(next_obs), original_reward, env_done, info
 
 
+
 class PlayViewer(MjViewer):
+
     def __init__(self, sim):
         super().__init__(sim)
         self.key_pressed = None
@@ -69,8 +80,10 @@ class PlayViewer(MjViewer):
 
         glfw.set_window_size(self.window, 840, 680)
 
+
     def show_text(self, text):
         self.custom_text = text
+
 
     def consume_key(self):
         ret = self.key_pressed
@@ -78,12 +91,14 @@ class PlayViewer(MjViewer):
 
         return ret
 
+
     def key_callback(self, window, key, scancode, action, mods):
         self.key_pressed = key
         if action == glfw.RELEASE:
             self.key_pressed = -1
 
         super().key_callback(window, key, scancode, action, mods)
+
 
     def _create_full_overlay(self):
         if (self.custom_text):

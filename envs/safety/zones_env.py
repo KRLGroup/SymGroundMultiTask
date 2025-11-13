@@ -13,13 +13,13 @@ except (ImportError, ModuleNotFoundError) as e:
 
 class zone(enum.Enum):
     JetBlack = 0
-    White    = 1
-    Blue     = 2
-    Green    = 3
-    Red      = 4
-    Yellow   = 5
-    Cyan     = 6
-    Magenta  = 7
+    White = 1
+    Blue = 2
+    Green = 3
+    Red = 4
+    Yellow = 5
+    Cyan = 6
+    Magenta = 7
 
     def __lt__(self, sth):
         return self.value < sth.value
@@ -30,6 +30,7 @@ class zone(enum.Enum):
     def __repr__(self):
         return self.name
 
+
 GROUP_ZONE = 7
 
 
@@ -37,13 +38,15 @@ GROUP_ZONE = 7
 if Engine is None:
 
     class ZonesEnv:
+
         def __init__(self, *args, **kwargs):
             raise ImportError(
                 "ZonesEnv requires MuJoCo and safety_gym to be installed.\n"
                 f"Original error: {_safety_gym_import_error}"
             )
 
-    class LTLZonesEnv(ZonesEnv): pass
+
+    class ZonesEnv_LTL2Action(ZonesEnv): pass
     class ZonesEnv1(ZonesEnv): pass
     class ZonesEnv1Fixed(ZonesEnv): pass
     class ZonesEnv5(ZonesEnv): pass
@@ -61,6 +64,7 @@ else:
 
         For now we only support the 'point' robot.
         """
+
         def __init__(self, zones:list, use_fixed_map:float, timeout:int, config=dict):
             walled = True
             self.DEFAULT.update({
@@ -111,10 +115,12 @@ else:
 
             super().__init__(parent_config)
 
+
         @property
         def zones_pos(self):
             ''' Helper to get the zones positions from layout '''
             return [self.data.get_body_xpos(f'zone{i}').copy() for i in range(self.zones_num)]
+
 
         def build_observation_space(self):
             super().build_observation_space()
@@ -129,11 +135,13 @@ else:
             else:
                 self.observation_space = gym.spaces.Dict(self.obs_space_dict)
 
+
         def build_placements_dict(self):
             super().build_placements_dict()
 
             if self.zones_num: #self.constrain_hazards:
                 self.placements.update(self.placements_dict_from_object('zone'))
+
 
         def build_world_config(self):
             world_config = super().build_world_config()
@@ -152,6 +160,7 @@ else:
                 world_config['geoms'][name] = geom
 
             return world_config
+
 
         def build_obs(self):
             obs = super().build_obs()
@@ -180,16 +189,22 @@ else:
 
             return offset
 
+
         def seed(self, seed=None):
             if (self.use_fixed_map): self._seed = seed
 
 
-    class LTLZonesEnv(ZonesEnv):
-        def __init__(self, zones:list, use_fixed_map:float, timeout:int, config={}):
-            super().__init__(zones=zones, use_fixed_map=use_fixed_map, timeout=timeout, config=config)
+
+    # interface needed to build the ltl_wrapper
+    class ZonesEnv_LTL2Action(ZonesEnv):
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
 
         def get_propositions(self):
             return [str(i) for i in self.zone_types]
+
 
         def get_events(self):
             events = ""
@@ -198,24 +213,46 @@ else:
                 if h_dist <= self.zones_size:
                     # We assume the agent to be in one zone at a time
                     events += str(self.zones[h_inedx])
-
             return events
 
-    class ZonesEnv1(LTLZonesEnv):
-        def __init__(self):
-            super().__init__(zones=[zone.Red], use_fixed_map=False, timeout=1000)
 
-    class ZonesEnv1Fixed(LTLZonesEnv):
-        def __init__(self):
-            config = {
-                # 'placements_extents': [-1.5, -1.5, 1.5, 1.5]
-            }
-            super().__init__(zones=[zone.Red], use_fixed_map=True, timeout=1000, config=config)
 
-    class ZonesEnv5(LTLZonesEnv):
-        def __init__(self):
-            super().__init__(zones=[zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow], use_fixed_map=False, timeout=1000)
+    # Preconstructed Environments
 
-    class ZonesEnv5Fixed(LTLZonesEnv):
+    class ZonesEnv1(ZonesEnv_LTL2Action):
         def __init__(self):
-            super().__init__(zones=[zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow], use_fixed_map=True, timeout=1000)
+            super().__init__(
+                zones = [zone.Red],
+                use_fixed_map = False,
+                timeout = 1000
+            )
+
+
+    class ZonesEnv1Fixed(ZonesEnv_LTL2Action):
+        def __init__(self):
+            super().__init__(
+                zones = [zone.Red],
+                use_fixed_map = True,
+                timeout = 1000,
+                config = {
+                    # 'placements_extents': [-1.5, -1.5, 1.5, 1.5]
+                }
+            )
+
+
+    class ZonesEnv5(ZonesEnv_LTL2Action):
+        def __init__(self):
+            super().__init__(
+                zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
+                use_fixed_map = False,
+                timeout = 1000
+            )
+
+
+    class ZonesEnv5Fixed(ZonesEnv_LTL2Action):
+        def __init__(self):
+            super().__init__(
+                zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
+                use_fixed_map = True,
+                timeout = 1000
+            )
