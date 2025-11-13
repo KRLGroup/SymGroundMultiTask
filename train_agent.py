@@ -130,7 +130,7 @@ def train_agent(args: Args, device: str = None):
 
     # build GNN name
     gnn_name = (
-        ("IgnoreLTL" if args.ignoreLTL else args.gnn_model)
+        ("IgnoreLTL" if args.ignoreLTL else str(args.gnn_model))
         + ("-dumb_ac" if args.dumb_ac else "")
         + ("-pretrained" if args.use_pretrained_gnn else "")
         + ("-freeze_gnn" if args.freeze_gnn else "")
@@ -188,6 +188,7 @@ def train_agent(args: Args, device: str = None):
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
                                        args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
+    symbols = grounder_algo_env.propositions
     num_grounder_classes = len(grounder_algo_env.propositions) + 1
 
     # create grounder
