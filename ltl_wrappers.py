@@ -51,6 +51,10 @@ class LTLEnv(gym.Wrapper):
         self.known_progressions = {}
         self.intrinsic = intrinsic
 
+        self.sample_on_reset = True
+        self.ltl_original = None
+        self.task_id = None
+
 
     def reset(self):
 
@@ -58,8 +62,10 @@ class LTLEnv(gym.Wrapper):
         self.obs = self.env.reset()
 
         # Defining an LTL goal
-        self.ltl_goal = self.sample_ltl_goal()
-        self.ltl_original = self.ltl_goal
+        if self.sample_on_reset:
+            self.ltl_original, self.task_id = self.sample_ltl_goal()
+
+        self.ltl_goal = self.ltl_original
 
         # Adding the ltl goal to the observation
         if self.progression_mode == "partial":
@@ -231,8 +237,11 @@ class LTLGrounderEnv(LTLEnv):
         self.curr_step = 0
         self.obs = self.env.reset()
 
-        # defining an LTL goal
-        self.ltl_original, self.task_id = self.sample_ltl_goal()
+        # sample an LTL goal
+        if self.sample_on_reset:
+            self.ltl_original, self.task_id = self.sample_ltl_goal()
+
+        # initialize progressed LTL goal
         self.real_ltl_goal = self.ltl_original
         self.pred_ltl_goal = self.ltl_original
 
