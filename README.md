@@ -17,7 +17,7 @@
     sudo apt install -y mona
     ```
 
-3. (optional) Install Safety-Gym Environment (requires mujoco):
+3. (optional) Install Safety-Gym Environment (requires mujoco 2.1.0):
 
     ```bash
     pip install -e envs/safety/safety-gym/
