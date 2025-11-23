@@ -80,7 +80,7 @@ else:
                 zone.White : [1, 1, 1, 1]
         }
 
-        def __init__(self, zones, use_fixed_map, max_num_steps, state_type="classic", obs_size=(56,56), grounder = None):
+        def __init__(self, zones, use_fixed_map, max_num_steps, state_type="classic", obs_size=(56,56), grounder=None):
 
             assert state_type in self.metadata["state_types"]
             self.obs_size = obs_size
@@ -287,8 +287,8 @@ else:
             # returns the proposition that currently holds according to the grounder
             else:
                 with torch.no_grad():
-                    img = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
-                    pred_sym = torch.argmax(self.sym_grounder(img), dim=-1)[0]
+                    current_obs = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+                    pred_sym = torch.argmax(self.sym_grounder(current_obs), dim=-1)[0]
                 return self.dictionary_symbols[pred_sym]
 
 
