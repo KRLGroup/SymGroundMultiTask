@@ -141,7 +141,7 @@ else:
                 self.observation_space = gym.spaces.Box(
                     np.float32(0.0),
                     np.float32(1.0),
-                    self.obs_size + (3,),
+                    (3,) + self.obs_size,
                     dtype=np.float32
                 )
 
@@ -198,6 +198,7 @@ else:
         def build_image_obs(self):
             vision = self.render(mode='rgb_array', width=self.obs_size[0], height=self.obs_size[1], camera_id=1)
             vision = np.array(vision, dtype='float32') / 255
+            vision = vision.transpose(2, 0, 1)
             return vision
 
 
