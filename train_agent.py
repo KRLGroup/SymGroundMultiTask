@@ -200,6 +200,7 @@ def train_agent(args: Args, device: str = None):
     for i in range(args.procs):
         envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
                                    args.noLTL, args.state_type, sym_grounder, args.obs_size))
+    assert envs[0].max_num_steps >= args.frames_per_proc
 
     txt_logger.info("-) Environments loaded.")
 
