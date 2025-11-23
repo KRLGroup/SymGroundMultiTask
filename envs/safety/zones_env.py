@@ -65,7 +65,13 @@ else:
         For now we only support the 'point' robot.
         """
 
-        def __init__(self, zones, use_fixed_map, timeout, state_type='lidar', obs_size=(56,56), grounder = None):
+        metadata = {
+            "state_types": ["image", "classic"],
+        }
+
+        def __init__(self, zones, use_fixed_map, timeout, state_type="classic", obs_size=(56,56), grounder = None):
+
+            assert state_type in self.metadata["state_types"]
 
             self.obs_size = obs_size
             self.state_type = state_type
@@ -128,7 +134,7 @@ else:
         def build_observation_space(self):
             super().build_observation_space()
 
-            if self.state_type == 'image':
+            if self.state_type == "image":
                 self.observation_flatten = False
                 self.obs_space_dict = {}
                 self.observation_space = gym.spaces.Box(
