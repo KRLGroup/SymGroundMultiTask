@@ -69,12 +69,13 @@ else:
             "state_types": ["image", "classic"],
         }
 
-        def __init__(self, zones, use_fixed_map, timeout, state_type="classic", obs_size=(56,56), grounder = None):
+        def __init__(self, zones, use_fixed_map, max_num_steps, state_type="classic", obs_size=(56,56), grounder = None):
 
             assert state_type in self.metadata["state_types"]
 
             self.obs_size = obs_size
             self.state_type = state_type
+            self.max_num_steps = max_num_steps
 
             walled = True
             self.DEFAULT.update({
@@ -119,7 +120,7 @@ else:
                 'lidar_num_bins': 16,
                 'observe_zones': True,
                 'zones_num': len(zones),
-                'num_steps': timeout
+                'num_steps': max_num_steps
             }
 
             super().__init__(parent_config)
@@ -307,7 +308,7 @@ else:
                 obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = False,
-                timeout = 1000
+                max_num_steps = 1000
             )
 
 
@@ -319,7 +320,7 @@ else:
                 obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = True,
-                timeout = 1000
+                max_num_steps = 1000
             )
 
 
@@ -331,7 +332,7 @@ else:
                 obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = False,
-                timeout = 1000
+                max_num_steps = 1000
             )
 
 
@@ -343,5 +344,5 @@ else:
                 obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = True,
-                timeout = 1000
+                max_num_steps = 1000
             )
