@@ -69,10 +69,20 @@ else:
             "state_types": ["image", "classic"],
         }
 
+        all_zones_rgbs = {
+                zone.JetBlack: [0, 0, 0, 1],
+                zone.Blue : [0, 0, 1, 1],
+                zone.Green : [0, 1, 0, 1],
+                zone.Cyan : [0, 1, 1, 1],
+                zone.Red : [1, 0, 0, 1],
+                zone.Magenta : [1, 0, 1, 1],
+                zone.Yellow : [1, 1, 0, 1],
+                zone.White : [1, 1, 1, 1]
+        }
+
         def __init__(self, zones, use_fixed_map, max_num_steps, state_type="classic", obs_size=(56,56), grounder = None):
 
             assert state_type in self.metadata["state_types"]
-
             self.obs_size = obs_size
             self.state_type = state_type
             self.max_num_steps = max_num_steps
@@ -101,18 +111,10 @@ else:
             self.zones = zones
             self.zone_types = list(set(zones))
             self.zone_types.sort()
+            self.dictionary_symbols = [str(i) for i in self.zone_types] + ['']
+
             self.use_fixed_map = use_fixed_map
-            self._rgb = {
-                zone.JetBlack: [0, 0, 0, 1],
-                zone.Blue    : [0, 0, 1, 1],
-                zone.Green   : [0, 1, 0, 1],
-                zone.Cyan    : [0, 1, 1, 1],
-                zone.Red     : [1, 0, 0, 1],
-                zone.Magenta : [1, 0, 1, 1],
-                zone.Yellow  : [1, 1, 0, 1],
-                zone.White   : [1, 1, 1, 1]
-            }
-            self.zone_rgbs = np.array([self._rgb[haz] for haz in self.zones])
+            self.zone_rgbs = np.array([self.all_zones_rgbs[haz] for haz in self.zones])
 
             parent_config = {
                 'robot_base': 'xmls/point.xml',
@@ -171,7 +173,6 @@ else:
 
         def build_placements_dict(self):
             super().build_placements_dict()
-
             if self.zones_num: #self.constrain_hazards:
                 self.placements.update(self.placements_dict_from_object('zone'))
 
@@ -204,20 +205,16 @@ else:
 
         def build_lidar_obs(self):
             obs = super().build_obs()
-
             if self.observe_zones:
                 for zone_type in self.zone_types:
                     ind = [i for i, z in enumerate(self.zones) if (self.zones[i] == zone_type)]
                     pos_in_type = list(np.array(self.zones_pos)[ind])
-
                     obs[f'zones_lidar_{zone_type}'] = self.obs_lidar(pos_in_type, GROUP_ZONE)
-
             return obs
 
 
         def build_obs(self):
             obs = self.build_lidar_obs()
-
             if self.state_type == 'image':
                 return self.build_image_obs()
             else:
@@ -226,16 +223,13 @@ else:
 
         def render_lidars(self):
             offset = super().render_lidars()
-
             if self.render_lidar_markers:
                 for zone_type in self.zone_types:
                     if f'zones_lidar_{zone_type}' in self.obs_space_dict:
                         ind = [i for i, z in enumerate(self.zones) if (self.zones[i] == zone_type)]
                         pos_in_type = list(np.array(self.zones_pos)[ind])
-
                         self.render_lidar(pos_in_type, np.array([self._rgb[zone_type]]), offset, GROUP_ZONE)
                         offset += self.render_lidar_offset_delta
-
             return offset
 
 
@@ -271,7 +265,7 @@ else:
 
 
         def get_propositions(self):
-            return [str(i) for i in self.zone_types]
+            return self.dictionary_symbols[:-1].copy()
 
 
         def get_real_events(self):
