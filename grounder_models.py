@@ -134,6 +134,38 @@ class ObjectCNN(nn.Module):
 
 
 
+class LidarGrounder(nn.Module):
+
+    def __init__(self, input_size=(76,), num_symbols=2):
+        super(LidarGrounder, self).__init__()
+
+        assert len(input_size) == 1
+        self.input_size = input_size[0]
+        self.num_symbols = num_symbols
+        self.device = None
+
+        self.classifier = nn.Sequential(
+            nn.Linear(self.input_size, 64),
+            nn.ReLU(),
+            nn.Linear(self.input_size, 64),
+            nn.ReLU(),
+            nn.Linear(64, num_symbols),
+            nn.Softmax(dim=-1)
+        )
+
+
+    def forward(self, x):
+        x = self.classifier(x)
+        return x
+
+
+    def to(self, device):
+        super().to(device)
+        self.device = device
+        return self
+
+
+
 class Linear_grounder_no_droput(nn.Module):
 
     def __init__(self, num_inputs, hidden_size, num_symbols):
