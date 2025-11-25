@@ -209,7 +209,7 @@ def train_agent(args: Args, device: str = None):
     status = utils.get_status(model_dir, device)
     txt_logger.info("-) Looking for status of previous training.")
     if status == None:
-        status = {'num_frames': 0, 'update': 0}
+        status = {'num_frames': 0, 'update': 0, 'grounder_early_stop': False}
         txt_logger.info("-) Previous status not found.")
     else:
         txt_logger.info("-) Previous status found.")
