@@ -34,29 +34,19 @@ print(f"\nConfig:\n{config}")
 status = utils.get_status(agent_dir, device)
 
 # build environment
-env = utils.make_env(
-    config.env,
-    progression_mode = config.progression_mode,
-    ltl_sampler = args.ltl_sampler,
-    seed = 1,
-    intrinsic = config.int_reward,
-    noLTL = config.noLTL,
-    state_type = config.state_type,
-    grounder = None,
-    obs_size = config.obs_size
-)
+env = utils.make_env(config.env, config.progression_mode, args.ltl_sampler, args.seed, config.int_reward, config.noLTL,
+                     config.state_type, None, config.obs_size)
+
+obs_shape = env.observation_space['features'].shape
+num_grounder_classes = len(env.propositions) + 1
+
 action_to_str = {0:"down", 1:"right", 2:"up", 3:"left"}
 
 # set formula
 env.sampler.sampled_tasks = args.formula_id
 
 # create and load grounder
-sym_grounder = utils.make_grounder(
-    model_name = config.grounder_model,
-    num_symbols = len(env.propositions),
-    obs_size = config.obs_size,
-    freeze_grounder = True
-)
+sym_grounder = utils.make_grounder(config.grounder_model, num_grounder_classes, obs_shape, True)
 sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder

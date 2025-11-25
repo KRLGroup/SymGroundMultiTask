@@ -188,11 +188,12 @@ def train_agent(args: Args, device: str = None):
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
                                        args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
+    obs_shape = grounder_algo_env.observation_space['features'].shape
     symbols = grounder_algo_env.propositions
     num_grounder_classes = len(grounder_algo_env.propositions) + 1
 
     # create grounder
-    sym_grounder = utils.make_grounder(args.grounder_model, num_grounder_classes, args.obs_size, args.freeze_grounder)
+    sym_grounder = utils.make_grounder(args.grounder_model, num_grounder_classes, obs_shape, args.freeze_grounder)
     grounder_algo_env.env.sym_grounder = sym_grounder
 
     # load environments

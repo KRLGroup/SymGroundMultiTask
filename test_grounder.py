@@ -28,13 +28,11 @@ config = utils.load_config(grounder_dir)
 print(f"\nConfig:\n{config}")
 
 # build environment
-env = utils.make_env(
-    args.env,
-    progression_mode = "full",
-    ltl_sampler = "Dataset_e54",
-    grounder = None,
-    obs_size = config.obs_size
-)
+env = utils.make_env(args.env, config.progression_mode, config.ltl_sampler, config.seed, 0, False, config.state_type,
+                     None, config.obs_size)
+
+obs_shape = env.observation_space['features'].shape
+num_grounder_classes = len(env.propositions) + 1
 
 num_symbols = len(env.env.dictionary_symbols)
 
@@ -42,12 +40,7 @@ num_symbols = len(env.env.dictionary_symbols)
 status = utils.get_status(grounder_dir, device)
 
 # load grounder
-sym_grounder = utils.make_grounder(
-    model_name = "ObjectCNN",
-    num_symbols = num_symbols,
-    obs_size = config.obs_size,
-    freeze_grounder = True
-)
+sym_grounder = utils.make_grounder(config.grounder_model, num_grounder_classes, obs_shape, True)
 sym_grounder.load_state_dict(status["grounder_state"])
 sym_grounder.to(device)
 

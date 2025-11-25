@@ -27,6 +27,7 @@ class Args:
     # Environment parameters
     max_num_steps: int = 50
     env: str = "GridWorld-fixed-v1"
+    state_type: str = "image"
     ltl_sampler: str = "Dataset_e54"
     progression_mode: str = "full"
 
@@ -98,9 +99,12 @@ def train_grounder(args: Args, device: str = None):
 
     # environment used for training
     env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler,
-                         args.seed, 0, False, 'image', None, args.obs_size)
+                         args.seed, 0, False, args.state_type, None, args.obs_size)
     env.env.max_num_steps = args.max_num_steps
-    num_symbols = len(env.propositions) + 1
+
+    obs_shape = env.observation_space['features'].shape
+    num_grounder_classes = len(env.propositions) + 1
+
     txt_logger.info("-) Environment loaded.")
 
     # load agent
@@ -112,7 +116,7 @@ def train_grounder(args: Args, device: str = None):
                             device, False, 1, False)
 
     # create model
-    sym_grounder = utils.make_grounder(args.sym_grounder_model, num_symbols, args.obs_size, False)
+    sym_grounder = utils.make_grounder(args.grounder_model, num_grounder_classes, obs_shape, False)
     sym_grounder.to(device)
     env.env.sym_grounder = sym_grounder
     txt_logger.info("-) Grounder loaded.")

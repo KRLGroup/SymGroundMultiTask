@@ -45,16 +45,14 @@ print("\n---\n")
 
 # create evaluator
 evalu = utils.Eval(config.eval_env, agent_dir, args.ltl_sampler, args.seed, device, config.state_type, None,
-                   config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode, config.gnn_model,
-                   config.recurrence, config.dumb_ac, args.max_num_steps)
+                   config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode,
+                   config.gnn_model, config.recurrence, config.dumb_ac, args.max_num_steps)
+
+obs_shape = evalu.eval_env.envs[0]..observation_space['features'].shape
+num_grounder_classes = len(evalu.eval_env.envs[0]..propositions) + 1
 
 # create and load grounder
-sym_grounder = utils.make_grounder(
-    model_name = config.grounder_model,
-    num_symbols = len(evalu.eval_env.envs[0].propositions) + 1,
-    obs_size = config.obs_size,
-    freeze_grounder = True
-)
+sym_grounder = utils.make_grounder(config.grounder_model, num_grounder_classes, obs_shape, True)
 sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not None else None
 sym_grounder.to(device) if sym_grounder is not None else None
 for env in evalu.eval_env.envs:
