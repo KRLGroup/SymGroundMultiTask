@@ -25,7 +25,7 @@ class zone(enum.Enum):
         return self.value < sth.value
 
     def __str__(self):
-        return self.name[0]
+        return self.name[0].lower()
 
     def __repr__(self):
         return self.name
