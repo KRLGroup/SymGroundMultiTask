@@ -61,7 +61,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
             preprocess_obss.vocab = vocab
 
 
-        elif isinstance(env, ZonesEnv):
+        elif isinstance(env, ZonesEnv_LTL2Action):
 
             if progression_mode == "partial":
                 obs_space = {"image": obs_space.spaces["features"].shape, "progress_info": len(vocab_space)}
