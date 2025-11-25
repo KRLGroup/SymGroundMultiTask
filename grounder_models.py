@@ -142,14 +142,15 @@ class LidarGrounder(nn.Module):
         assert len(input_size) == 1
         self.input_size = input_size[0]
         self.num_symbols = num_symbols
+        self.hidden_size = 64
         self.device = None
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.input_size, 64),
+            nn.Linear(self.input_size, self.hidden_size),
             nn.ReLU(),
-            nn.Linear(self.input_size, 64),
+            nn.Linear(self.hidden_size, self.hidden_size),
             nn.ReLU(),
-            nn.Linear(64, num_symbols),
+            nn.Linear(self.hidden_size, num_symbols),
             nn.Softmax(dim=-1)
         )
 
