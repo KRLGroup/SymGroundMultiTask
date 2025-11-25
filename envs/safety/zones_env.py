@@ -1,6 +1,7 @@
 import numpy as np
 import enum
 import gym
+import torch
 
 
 try:
@@ -219,6 +220,12 @@ else:
                 return self.build_image_obs()
             else:
                 return obs
+
+
+        def step(self, action):
+            obs, reward, done, info = super().step(action)
+            obs = obs.astype(np.float32)
+            return obs, reward, done, info
 
 
         def render_lidars(self):
