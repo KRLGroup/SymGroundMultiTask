@@ -21,7 +21,7 @@ class Args:
     seed: int = 1
 
     # Grounder parameters
-    sym_grounder_model: str = "ObjectCNN"
+    grounder_model: str = "ObjectCNN"
     obs_size: Tuple[int,int] = (56,56)
 
     # Environment parameters

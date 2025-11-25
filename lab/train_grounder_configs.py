@@ -10,7 +10,7 @@ train_grounder_base = Args(
     seed = 1,
 
     # Grounder parameters
-    sym_grounder_model = "ObjectCNN",
+    grounder_model = "ObjectCNN",
     obs_size = (56,56),
 
     # Environment parameters
