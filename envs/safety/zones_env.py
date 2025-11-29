@@ -87,8 +87,8 @@ else:
             self.obs_size = obs_size
             self.state_type = state_type
             self.max_num_steps = max_num_steps
+            self.world_extent = 2.5
 
-            walled = True
             self.DEFAULT.update({
                 'observe_zones': False,
                 'zones_num': 0,  # Number of hazards in an environment
@@ -98,16 +98,14 @@ else:
                 'zones_size': 0.25,  # Radius of hazards
             })
 
-            if (walled):
-                world_extent = 2.5
-                walls = [(i/10, j) for i in range(int(-world_extent * 10),int(world_extent * 10 + 1),1) for j in [-world_extent, world_extent]]
-                walls += [(i, j/10) for i in [-world_extent, world_extent] for j in range(int(-world_extent * 10), int(world_extent * 10 + 1),1)]
-                self.DEFAULT.update({
-                    'placements_extents': [-world_extent, -world_extent, world_extent, world_extent],
-                    'walls_num': len(walls),  # Number of walls
-                    'walls_locations': walls,  # This should be used and length == walls_num
-                    'walls_size': 0.1,  # Should be fixed at fundamental size of the world
-                })
+            walls = [(i/10, j) for i in range(int(-self.world_extent * 10),int(self.world_extent * 10 + 1),1) for j in [-self.world_extent, self.world_extent]]
+            walls += [(i, j/10) for i in [-self.world_extent, self.world_extent] for j in range(int(-self.world_extent * 10), int(self.world_extent * 10 + 1),1)]
+            self.DEFAULT.update({
+                'placements_extents': [-self.world_extent, -self.world_extent, self.world_extent, self.world_extent],
+                'walls_num': len(walls),  # Number of walls
+                'walls_locations': walls,  # This should be used and length == walls_num
+                'walls_size': 0.1,  # Should be fixed at fundamental size of the world
+            })
 
             self.zones = zones
             self.zone_types = list(set(zones))
