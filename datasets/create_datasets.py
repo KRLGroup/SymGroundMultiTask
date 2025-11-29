@@ -137,7 +137,7 @@ a32prop12dup_dataset = Dataset(
     seed = 42,
     n_formulas = 10000,
     propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
-    sampler = "UntilTaskSampler_1_3_1_2",
+    sampler = "Until_1_3_1_2",
     allow_duplicates = True,
     disjoint_from = None,
 )
@@ -147,7 +147,7 @@ a32prop12duptest_dataset = Dataset(
     seed = 42,
     n_formulas = 1000,
     propositions = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"],
-    sampler = "UntilTaskSampler_1_3_1_2",
+    sampler = "Until_1_3_1_2",
     allow_duplicates = True,
     disjoint_from = a32prop12dup_dataset,
 )
@@ -158,7 +158,7 @@ a21dup_dataset = Dataset(
     seed = 42,
     n_formulas = 10000,
     propositions = ['j', 'w', 'r', 'y'],
-    sampler = "UntilTaskSampler_1_2_1_1",
+    sampler = "Until_1_2_1_1",
     allow_duplicates = True,
     disjoint_from = None,
 )
