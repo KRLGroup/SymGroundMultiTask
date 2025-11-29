@@ -153,6 +153,17 @@ a32prop12duptest_dataset = Dataset(
 )
 
 
+e32dup_dataset = Dataset(
+    path = Path(os.path.join(DATASETS_DIR, "e32dup")),
+    seed = 42,
+    n_formulas = 10000,
+    propositions = ['j', 'w', 'r', 'y'],
+    sampler = "Eventually_1_3_1_2",
+    allow_duplicates = True,
+    disjoint_from = None,
+)
+
+
 a21dup_dataset = Dataset(
     path = Path(os.path.join(DATASETS_DIR, "a21dup")),
     seed = 42,
@@ -184,6 +195,8 @@ datasets = [
 
     a32prop12dup_dataset,
     a32prop12duptest_dataset,
+
+    e32dup_dataset,
 
     a21dup_dataset
 
