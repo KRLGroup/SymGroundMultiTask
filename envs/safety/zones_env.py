@@ -220,10 +220,10 @@ else:
                 return obs
 
 
-        def step(self, action):
-            obs, reward, done, info = super().step(action)
+        def obs(self):
+            obs = super().obs()
             obs = obs.astype(np.float32)
-            return obs, reward, done, info
+            return obs
 
 
         def render_lidars(self):
