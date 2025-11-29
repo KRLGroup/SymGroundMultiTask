@@ -16,6 +16,7 @@ Some notes about the format:
 """
 
 from sympy import *
+import re
 import spot
 
 """
@@ -75,12 +76,11 @@ def _subsume_or(f1, f2):
 
 def progress_and_clean(ltl_formula, truth_assignment):
     ltl = progress(ltl_formula, truth_assignment)
-    # I am using spot to simplify the resulting ltl formula
     ltl_spot = _get_spot_format(ltl)
     f = spot.formula(ltl_spot)
     f = spot.simplify(f)
     ltl_spot = f.__format__("l")
-    ltl_std,r = _get_std_format(ltl_spot.split(' '))
+    ltl_std, r = _get_std_format(ltl_spot.split(' '))
     assert len(r) == 0, "Format error" + str(ltl_std) + " " + str(r)
     return ltl_std
 
@@ -97,7 +97,8 @@ def spotify(ltl_formula):
 def _get_spot_format(ltl_std):
     ltl_spot = str(ltl_std).replace("(","").replace(")","").replace(",","")
     ltl_spot = ltl_spot.replace("'until'","U").replace("'not'","!").replace("'or'","|").replace("'and'","&")
-    ltl_spot = ltl_spot.replace("'next'","X").replace("'eventually'","F").replace("'always'","G").replace("'True'","t").replace("'False'","f").replace("\'","\"")
+    ltl_spot = ltl_spot.replace("'next'","X").replace("'eventually'","F").replace("'always'","G")
+    ltl_spot = ltl_spot.replace("'True'","t").replace("'False'","f").replace("\'","\"")
     return ltl_spot
 
 
@@ -135,18 +136,20 @@ def _get_std_format(ltl_spot):
 
 
 def progress(ltl_formula, truth_assignment):
+
+    # single element (top, bot or proposition)
     if type(ltl_formula) == str:
-        # True, False, or proposition
+        # proposition
         if len(ltl_formula) == 1:
-            # ltl_formula is a proposition
             if ltl_formula in truth_assignment:
                 return 'True'
             else:
                 return 'False'
+        # true or false
         return ltl_formula
 
+    # negation (should be over propositions only according to syntactically cosafe ltl)
     if ltl_formula[0] == 'not':
-        # negations should be over propositions only according to the cosafe ltl syntactic restriction
         result = progress(ltl_formula[1], truth_assignment)
         if result == 'True':
             return 'False'
@@ -155,6 +158,7 @@ def progress(ltl_formula, truth_assignment):
         else:
             raise NotImplementedError("The following formula doesn't follow the cosafe syntactic restriction: " + str(ltl_formula))
 
+    # and
     if ltl_formula[0] == 'and':
         res1 = progress(ltl_formula[1], truth_assignment)
         res2 = progress(ltl_formula[2], truth_assignment)
@@ -162,39 +166,47 @@ def progress(ltl_formula, truth_assignment):
         if res1 == 'False' or res2 == 'False': return 'False'
         if res1 == 'True': return res2
         if res2 == 'True': return res1
-        if res1 == res2:   return res1
+        if res1 == res2: return res1
         #if _subsume_until(res1, res2): return res2
         #if _subsume_until(res2, res1): return res1
         return ('and',res1,res2)
 
+    # or
     if ltl_formula[0] == 'or':
         res1 = progress(ltl_formula[1], truth_assignment)
         res2 = progress(ltl_formula[2], truth_assignment)
-        if res1 == 'True'  or res2 == 'True'  : return 'True'
+        if res1 == 'True' or res2 == 'True'  : return 'True'
         if res1 == 'False' and res2 == 'False': return 'False'
         if res1 == 'False': return res2
         if res2 == 'False': return res1
-        if res1 == res2:    return res1
+        if res1 == res2: return res1
         #if _subsume_until(res1, res2): return res1
         #if _subsume_until(res2, res1): return res2
         return ('or',res1,res2)
 
+    # next
     if ltl_formula[0] == 'next':
-        return progress(ltl_formula[1], truth_assignment)
+        return ltl_formula[1]
 
-    # NOTE: What about release and other temporal operators?
+    # eventually
     if ltl_formula[0] == 'eventually':
         res = progress(ltl_formula[1], truth_assignment)
         return ("or", ltl_formula, res)
 
+    # always
     if ltl_formula[0] == 'always':
         res = progress(ltl_formula[1], truth_assignment)
         return ("and", ltl_formula, res)
 
+    # until
     if ltl_formula[0] == 'until':
-        res1 = progress(ltl_formula[1], truth_assignment)
-        res2 = progress(ltl_formula[2], truth_assignment)
 
+        # doesn't need to compute res1 if res2 is true
+        res2 = progress(ltl_formula[2], truth_assignment)
+        if res2 == 'True':
+            return 'True'
+
+        res1 = progress(ltl_formula[1], truth_assignment)
         if res1 == 'False':
             f1 = 'False'
         elif res1 == 'True':
@@ -202,15 +214,12 @@ def progress(ltl_formula, truth_assignment):
         else:
             f1 = ('and', res1, ('until', ltl_formula[1], ltl_formula[2]))
 
-        if res2 == 'True':
-            return 'True'
         if res2 == 'False':
             return f1
-
-        # Returning ('or', res2, f1)
-        #if _subsume_until(f1, res2): return f1
-        #if _subsume_until(res2, f1): return res2
-        return ('or', res2, f1)
+        else:
+            #if _subsume_until(f1, res2): return f1
+            #if _subsume_until(res2, f1): return res2
+            return ('or', res2, f1)
 
 
 
