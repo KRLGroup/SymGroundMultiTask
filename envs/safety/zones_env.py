@@ -238,6 +238,17 @@ else:
             return offset
 
 
+        def set_pos(self, pos):
+            robot_pos = self.data.get_body_xpos('robot')
+            robot_pos[:] = np.array(pos)
+
+
+        def get_random_pos(self):
+            pos = np.random.uniform(low=-2.5, high=2.5, size=2)
+            rot = np.random.uniform(low=-np.pi, high=np.pi, size=1)
+            return np.concatenate((pos, rot), axis=None)
+
+
         def seed(self, seed=None):
             if (self.use_fixed_map): self._seed = seed
 

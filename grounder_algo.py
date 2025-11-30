@@ -272,14 +272,12 @@ class GrounderAlgo():
 
     def evaluate(self):
 
-        if not self.train_grounder or isinstance(self.env.env, ZonesEnv_LTL2Action):
+        if not self.train_grounder:
             logs = {
                 'grounder_acc': 0.0,
                 'grounder_recall': [0.0 for _ in range(self.num_symbols)]
             }
             return logs
-
-        coords = self.env.env.loc_to_label.keys()
 
         real_syms = []
         pred_syms = []
@@ -287,21 +285,46 @@ class GrounderAlgo():
         # accumulate real and pred symbols
         with torch.no_grad():
 
-            for _ in range(self.evaluate_steps):
+            if isinstance(self.env.env, GridWorldEnv_LTL2Action):
 
-                self.env.reset()
+                coords = self.env.env.loc_to_label.keys()
+                for _ in range(self.evaluate_steps):
+                    self.env.reset()
 
-                step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
-                step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
-                real_syms.append(step_real_syms)
+                    step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
+                    step_real_syms = torch.tensor(step_real_syms, dtype=torch.int32)
+                    real_syms.append(step_real_syms)
 
-                images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
-                images = torch.tensor(images, device=self.device, dtype=torch.float32)
-                step_pred_syms = torch.argmax(self.grounder(images), dim=-1)
-                pred_syms.append(step_pred_syms)
+                    images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
+                    images = torch.tensor(images, device=self.device, dtype=torch.float32)
+                    step_pred_syms = torch.argmax(self.grounder(images), dim=-1)
+                    pred_syms.append(step_pred_syms)
 
-        real_syms = torch.cat(real_syms, dim=0)
-        pred_syms = torch.cat(pred_syms, dim=0)
+                real_syms = torch.cat(real_syms, dim=0)
+                pred_syms = torch.cat(pred_syms, dim=0)
+
+            elif isinstance(self.env.env, ZonesEnv_LTL2Action):
+
+                for _ in range(self.evaluate_steps):
+                    self.env.reset()
+
+                    for i in range(100):
+                        self.env.set_pos(self.env.get_random_pos())
+
+                        real_sym = self.env.get_real_events()
+                        real_sym = self.env.dictionary_symbols.index(real_sym)
+                        real_syms.append(real_sym)
+
+                        obs = self.env.env.obs()
+                        obs = torch.tensor(obs, device=self.device).unsqueeze(0)
+                        pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
+                        pred_syms.append(pred_sym)
+
+                real_syms = torch.tensor(real_syms)
+                pred_syms = torch.tensor(pred_syms)
+
+            else:
+                raise Exception("Environment's grounder evaluation not implemented")
 
         # compute accuracy
         correct = (pred_syms == real_syms)
