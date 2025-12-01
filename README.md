@@ -31,7 +31,7 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
 Create the datasets of formulas and automata needed for training the grounder:
 
 ```bash
-python -m datasets.create_datasets --path <dataset>
+python -m datasets.create_datasets --name <dataset>
 ```
 
 
