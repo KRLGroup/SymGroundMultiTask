@@ -130,7 +130,7 @@ def train_agent(args: Args, device: str = None):
 
     # build GNN name
     gnn_name = (
-        ("IgnoreLTL" if args.ignoreLTL else args.gnn_model)
+        ("IgnoreLTL" if args.ignoreLTL else str(args.gnn_model))
         + ("-dumb_ac" if args.dumb_ac else "")
         + ("-pretrained" if args.use_pretrained_gnn else "")
         + ("-freeze_gnn" if args.freeze_gnn else "")
@@ -188,10 +188,12 @@ def train_agent(args: Args, device: str = None):
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
                                        args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
 
-    num_symbols = len(grounder_algo_env.propositions) + 1
+    obs_shape = grounder_algo_env.observation_space['features'].shape
+    symbols = grounder_algo_env.propositions
+    num_grounder_classes = len(grounder_algo_env.propositions) + 1
 
     # create grounder
-    sym_grounder = utils.make_grounder(args.grounder_model, num_symbols, args.obs_size, args.freeze_grounder)
+    sym_grounder = utils.make_grounder(args.grounder_model, num_grounder_classes, obs_shape, args.freeze_grounder)
     grounder_algo_env.env.sym_grounder = sym_grounder
 
     # load environments
@@ -199,6 +201,7 @@ def train_agent(args: Args, device: str = None):
     for i in range(args.procs):
         envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
                                    args.noLTL, args.state_type, sym_grounder, args.obs_size))
+    assert envs[0].max_num_steps <= args.frames_per_proc
 
     txt_logger.info("-) Environments loaded.")
 
@@ -206,7 +209,7 @@ def train_agent(args: Args, device: str = None):
     status = utils.get_status(model_dir, device)
     txt_logger.info("-) Looking for status of previous training.")
     if status == None:
-        status = {'num_frames': 0, 'update': 0}
+        status = {'num_frames': 0, 'update': 0, 'grounder_early_stop': False}
         txt_logger.info("-) Previous status not found.")
     else:
         txt_logger.info("-) Previous status found.")
@@ -322,7 +325,7 @@ def train_agent(args: Args, device: str = None):
     logs2 = utils.empty_buffer_logs()
     logs3 = utils.empty_algo_logs()
     logs4 = utils.empty_grounder_algo_logs()
-    logs5 = utils.empty_grounder_eval_logs(num_symbols)
+    logs5 = utils.empty_grounder_eval_logs(num_grounder_classes)
     logs_exp = utils.empty_episode_logs()
 
     num_frames = status['num_frames']
@@ -402,7 +405,7 @@ def train_agent(args: Args, device: str = None):
             header += ['grounder/buffer_val', 'grounder/total_buffer', 'grounder/total_buffer_val']
             data += [logs['val_buffer'], logs['total_buffer'], logs['total_val_buffer']]
 
-            header += [f'grounder_recall/{i}' for i in range(num_symbols)]
+            header += [f'grounder_recall/{i}' for i in range(num_grounder_classes)]
             data += logs['grounder_recall']
 
             if status['num_frames'] == 0:

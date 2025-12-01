@@ -1,6 +1,7 @@
 import numpy as np
 import enum
 import gym
+import torch
 
 
 try:
@@ -25,7 +26,7 @@ class zone(enum.Enum):
         return self.value < sth.value
 
     def __str__(self):
-        return self.name[0]
+        return self.name[0].lower()
 
     def __repr__(self):
         return self.name
@@ -65,8 +66,29 @@ else:
         For now we only support the 'point' robot.
         """
 
-        def __init__(self, zones:list, use_fixed_map:float, timeout:int, config=dict):
-            walled = True
+        metadata = {
+            "state_types": ["image", "classic"],
+        }
+
+        all_zones_rgbs = {
+                zone.JetBlack: [0, 0, 0, 1],
+                zone.Blue : [0, 0, 1, 1],
+                zone.Green : [0, 1, 0, 1],
+                zone.Cyan : [0, 1, 1, 1],
+                zone.Red : [1, 0, 0, 1],
+                zone.Magenta : [1, 0, 1, 1],
+                zone.Yellow : [1, 1, 0, 1],
+                zone.White : [1, 1, 1, 1]
+        }
+
+        def __init__(self, zones, use_fixed_map, max_num_steps, state_type="classic", obs_size=(56,56), grounder=None):
+
+            assert state_type in self.metadata["state_types"]
+            self.obs_size = obs_size
+            self.state_type = state_type
+            self.max_num_steps = max_num_steps
+            self.world_extent = 2.5
+
             self.DEFAULT.update({
                 'observe_zones': False,
                 'zones_num': 0,  # Number of hazards in an environment
@@ -76,32 +98,22 @@ else:
                 'zones_size': 0.25,  # Radius of hazards
             })
 
-            if (walled):
-                world_extent = 2.5
-                walls = [(i/10, j) for i in range(int(-world_extent * 10),int(world_extent * 10 + 1),1) for j in [-world_extent, world_extent]]
-                walls += [(i, j/10) for i in [-world_extent, world_extent] for j in range(int(-world_extent * 10), int(world_extent * 10 + 1),1)]
-                self.DEFAULT.update({
-                    'placements_extents': [-world_extent, -world_extent, world_extent, world_extent],
-                    'walls_num': len(walls),  # Number of walls
-                    'walls_locations': walls,  # This should be used and length == walls_num
-                    'walls_size': 0.1,  # Should be fixed at fundamental size of the world
-                })
+            walls = [(i/10, j) for i in range(int(-self.world_extent * 10),int(self.world_extent * 10 + 1),1) for j in [-self.world_extent, self.world_extent]]
+            walls += [(i, j/10) for i in [-self.world_extent, self.world_extent] for j in range(int(-self.world_extent * 10), int(self.world_extent * 10 + 1),1)]
+            self.DEFAULT.update({
+                'placements_extents': [-self.world_extent, -self.world_extent, self.world_extent, self.world_extent],
+                'walls_num': len(walls),  # Number of walls
+                'walls_locations': walls,  # This should be used and length == walls_num
+                'walls_size': 0.1,  # Should be fixed at fundamental size of the world
+            })
 
             self.zones = zones
             self.zone_types = list(set(zones))
             self.zone_types.sort()
+            self.dictionary_symbols = [str(i) for i in self.zone_types] + ['']
+
             self.use_fixed_map = use_fixed_map
-            self._rgb = {
-                zone.JetBlack: [0, 0, 0, 1],
-                zone.Blue    : [0, 0, 1, 1],
-                zone.Green   : [0, 1, 0, 1],
-                zone.Cyan    : [0, 1, 1, 1],
-                zone.Red     : [1, 0, 0, 1],
-                zone.Magenta : [1, 0, 1, 1],
-                zone.Yellow  : [1, 1, 0, 1],
-                zone.White   : [1, 1, 1, 1]
-            }
-            self.zone_rgbs = np.array([self._rgb[haz] for haz in self.zones])
+            self.zone_rgbs = np.array([self.all_zones_rgbs[haz] for haz in self.zones])
 
             parent_config = {
                 'robot_base': 'xmls/point.xml',
@@ -109,9 +121,8 @@ else:
                 'lidar_num_bins': 16,
                 'observe_zones': True,
                 'zones_num': len(zones),
-                'num_steps': timeout
+                'num_steps': max_num_steps
             }
-            parent_config.update(config)
 
             super().__init__(parent_config)
 
@@ -125,20 +136,42 @@ else:
         def build_observation_space(self):
             super().build_observation_space()
 
-            if self.observe_zones:
-                for zone_type in self.zone_types:
-                    self.obs_space_dict.update({f'zones_lidar_{zone_type}': gym.spaces.Box(0.0, 1.0, (self.lidar_num_bins,), dtype=np.float32)})
+            if self.state_type == "image":
+                self.observation_flatten = False
+                self.obs_space_dict = {}
+                self.observation_space = gym.spaces.Box(
+                    np.float32(0.0),
+                    np.float32(1.0),
+                    (3,) + self.obs_size,
+                    dtype=np.float32
+                )
 
-            if self.observation_flatten:
-                self.obs_flat_size = sum([np.prod(i.shape) for i in self.obs_space_dict.values()])
-                self.observation_space = gym.spaces.Box(-np.inf, np.inf, (self.obs_flat_size,), dtype=np.float32)
             else:
-                self.observation_space = gym.spaces.Dict(self.obs_space_dict)
+
+                if self.observe_zones:
+                    for zone_type in self.zone_types:
+                        self.obs_space_dict.update({f'zones_lidar_{zone_type}': gym.spaces.Box(
+                            np.float32(0.0),
+                            np.float32(1.0),
+                            (self.lidar_num_bins,),
+                            dtype=np.float32
+                        )})
+
+                if self.observation_flatten:
+                    self.obs_flat_size = sum([np.prod(i.shape) for i in self.obs_space_dict.values()])
+                    self.observation_space = gym.spaces.Box(
+                        np.float32(-np.inf),
+                        np.float32(np.inf),
+                        (self.obs_flat_size,),
+                        dtype=np.float32
+                    )
+
+                else:
+                    self.observation_space = gym.spaces.Dict(self.obs_space_dict)
 
 
         def build_placements_dict(self):
             super().build_placements_dict()
-
             if self.zones_num: #self.constrain_hazards:
                 self.placements.update(self.placements_dict_from_object('zone'))
 
@@ -162,32 +195,58 @@ else:
             return world_config
 
 
-        def build_obs(self):
-            obs = super().build_obs()
+        def build_image_obs(self):
+            vision = self.render(mode='rgb_array', width=self.obs_size[0], height=self.obs_size[1], camera_id=1)
+            vision = np.array(vision, dtype='float32') / 255
+            vision = vision.transpose(2, 0, 1)
+            return vision
 
+
+        def build_lidar_obs(self):
+            obs = super().build_obs()
             if self.observe_zones:
                 for zone_type in self.zone_types:
                     ind = [i for i, z in enumerate(self.zones) if (self.zones[i] == zone_type)]
                     pos_in_type = list(np.array(self.zones_pos)[ind])
-
                     obs[f'zones_lidar_{zone_type}'] = self.obs_lidar(pos_in_type, GROUP_ZONE)
+            return obs
 
+
+        def build_obs(self):
+            obs = self.build_lidar_obs()
+            if self.state_type == 'image':
+                return self.build_image_obs()
+            else:
+                return obs
+
+
+        def obs(self):
+            obs = super().obs()
+            obs = obs.astype(np.float32)
             return obs
 
 
         def render_lidars(self):
             offset = super().render_lidars()
-
             if self.render_lidar_markers:
                 for zone_type in self.zone_types:
                     if f'zones_lidar_{zone_type}' in self.obs_space_dict:
                         ind = [i for i, z in enumerate(self.zones) if (self.zones[i] == zone_type)]
                         pos_in_type = list(np.array(self.zones_pos)[ind])
-
                         self.render_lidar(pos_in_type, np.array([self._rgb[zone_type]]), offset, GROUP_ZONE)
                         offset += self.render_lidar_offset_delta
-
             return offset
+
+
+        def set_pos(self, pos):
+            robot_pos = self.data.get_body_xpos('robot')
+            robot_pos[:] = np.array(pos)
+
+
+        def get_random_pos(self):
+            pos = np.random.uniform(low=-2.5, high=2.5, size=2)
+            rot = np.random.uniform(low=-np.pi, high=np.pi, size=1)
+            return np.concatenate((pos, rot), axis=None)
 
 
         def seed(self, seed=None):
@@ -198,15 +257,34 @@ else:
     # interface needed to build the ltl_wrapper
     class ZonesEnv_LTL2Action(ZonesEnv):
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, grounder, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            self.curr_step = 0
+            self.num_episodes = 0
+            self.sym_grounder = grounder
+            self.current_obs = None
+
+
+        def reset(self):
+            self.num_episodes += 1
+            self.curr_step = 0
+            obs = super().reset()
+            self.current_obs = obs
+            return obs
+
+
+        def step(self, action):
+            self.curr_step += 1
+            obs, rew, done, info = super().step(action)
+            self.current_obs = obs
+            return obs, rew, done, info
 
 
         def get_propositions(self):
-            return [str(i) for i in self.zone_types]
+            return self.dictionary_symbols[:-1].copy()
 
 
-        def get_events(self):
+        def get_real_events(self):
             events = ""
             for h_inedx, h_pos in enumerate(self.zones_pos):
                 h_dist = self.dist_xy(h_pos)
@@ -216,43 +294,66 @@ else:
             return events
 
 
+        def get_events(self):
+
+            # returns the proposition that currently holds
+            if self.sym_grounder == None:
+                return self.get_real_events()
+
+            # returns the proposition that currently holds according to the grounder
+            else:
+                with torch.no_grad():
+                    current_obs = torch.tensor(self.current_obs, device=self.sym_grounder.device).unsqueeze(0)
+                    pred_sym = torch.argmax(self.sym_grounder(current_obs), dim=-1)[0]
+                return self.dictionary_symbols[pred_sym]
+
+
 
     # Preconstructed Environments
 
     class ZonesEnv1(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = False,
-                timeout = 1000
+                max_num_steps = 1000
             )
 
 
     class ZonesEnv1Fixed(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.Red],
                 use_fixed_map = True,
-                timeout = 1000,
-                config = {
-                    # 'placements_extents': [-1.5, -1.5, 1.5, 1.5]
-                }
+                max_num_steps = 1000
             )
 
 
     class ZonesEnv5(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = False,
-                timeout = 1000
+                max_num_steps = 1000
             )
 
 
     class ZonesEnv5Fixed(ZonesEnv_LTL2Action):
-        def __init__(self):
+        def __init__(self, state_type, grounder, obs_size):
             super().__init__(
+                state_type = state_type,
+                grounder = grounder,
+                obs_size = obs_size,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = True,
-                timeout = 1000
+                max_num_steps = 1000
             )

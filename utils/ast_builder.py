@@ -70,6 +70,7 @@ class ASTBuilder(object):
         rest = formula[1:]
         nxg  = nx.DiGraph()
 
+        # binary operators
         if head in ["until", "and", "or"]:
             nxg.add_node(shift, feat=self._one_hot(head), token=head)
             nxg.add_edge(shift, shift, type=self._get_edge_type("self"))
@@ -87,6 +88,7 @@ class ASTBuilder(object):
 
             return nxg
 
+        # unary operators
         if head in ["next", "eventually", "always", "not"]:
             nxg.add_node(shift, feat=self._one_hot(head), token=head)
             nxg.add_edge(shift, shift, type=self._get_edge_type("self"))
@@ -97,16 +99,16 @@ class ASTBuilder(object):
 
             return nxg
 
+        # top and bot
         if formula in ["True", "False"]:
-            nxg.add_node(shift, feat=self.vocab._one_hot(formula), token=formula)
+            nxg.add_node(shift, feat=self._one_hot(formula), token=formula)
             nxg.add_edge(shift, shift, type=self._get_edge_type("self"))
-
             return nxg
 
+        # propositions
         if formula in self.props:
             nxg.add_node(shift, feat=self._one_hot(formula.replace("'",'')), token=formula)
             nxg.add_edge(shift, shift, type=self._get_edge_type("self"))
-
             return nxg
 
         assert False, "Format error in ast_builder.ASTBuilder._to_graph()"
