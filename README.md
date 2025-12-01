@@ -2,6 +2,8 @@
 
 ## Summary
 
+This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) framework to train Reinforcement Learning (RL) agents that can follow multiple temporally extended tasks expressed in Linear Temporal Logic (LTL) without requiring access to the environment's labelling function. This is done through the usage of [Neural Reward Machines](https://github.com/KRLGroup/NeuralRewardMachines), which enable to provide an indirect supervision signal to a grounder module neural network from the comparison between the ground-truth reward signals and the expected reward signals using the predicted symbols.
+
 
 ## Installation
 
