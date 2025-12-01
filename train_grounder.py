@@ -205,13 +205,13 @@ def train_grounder(args: Args, device: str = None):
             data = [update, num_frames, fps, duration]
             header += ['grounder/buffer', 'grounder/loss', 'grounder/val_loss', 'grounder/acc']
             data += [logs['buffer'], logs['grounder_loss'], logs['grounder_val_loss'], logs['grounder_acc']]
-            header += [f'grounder_recall/{i}' for i in range(num_symbols)]
+            header += [f'grounder_recall/{i}' for i in range(num_grounder_classes)]
             data += logs['grounder_recall']
 
             # U: update | F: frames | D: duration | B: buffer | L: loss | A: accuracy | R: recall
             txt_logger.info(
                 ("U {:5} | tF {:7.0f} | FPS {:4.0f} | D {:5} | B {:5} | L {:.6f} | vL {:.6f} | A {:.4f}" +
-                " | R" + "".join([" {:.3f}" for i in range(num_symbols)])).format(*data)
+                " | R" + "".join([" {:.3f}" for i in range(num_grounder_classes)])).format(*data)
             )
 
             header += ['grounder/buffer_val', 'grounder/total_buffer', 'grounder/total_buffer_val']
