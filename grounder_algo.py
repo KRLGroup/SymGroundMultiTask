@@ -101,7 +101,9 @@ class GrounderAlgo():
             rew = masked_exps.reward[-1]
             frames = mask.sum() + 1
 
-            to_add = (rew != 0 and frames <= self.max_env_steps+1) or (frames < self.max_env_steps+1)
+            to_add = (rew != 0 and frames <= self.max_env_steps+1)  # task terminated with sucess or failure
+            to_add = to_add or (frames < self.max_env_steps+1)  # task interrupted before max_steps
+            to_add = to_add or (masked_exps.obs.text[-1][0].num_nodes() == 1)  # predicted goal simplified to success or failure
 
             # add episode to the buffer
             if to_add:
@@ -153,7 +155,9 @@ class GrounderAlgo():
             frames += 1
             done = done or frames >= self.max_env_steps+1
 
-        to_add = (rew != 0 and frames <= self.max_env_steps+1) or (frames < self.max_env_steps+1)
+        to_add = (rew != 0 and frames <= self.max_env_steps+1)  # task terminated with sucess or failure
+        to_add = to_add or (frames < self.max_env_steps+1)  # task interrupted before max_steps
+        to_add = to_add or (obs['text'] in ['True', 'False'])  # predicted goal simplified to success or failure
 
         # add episode to the buffer
         if to_add:
