@@ -7,8 +7,8 @@ test_gridworld = Args(
     model_name = "agent",
     algo = "ppo",
     seed = 1,
-    log_interval = 1,
-    save_interval = 10,
+    log_interval = 10,
+    save_interval = 100,
     procs = 16,
     frames_per_proc = 128,
     frames = 20000000,
@@ -18,7 +18,7 @@ test_gridworld = Args(
     env = "GridWorld-v1",
     state_type = 'image',
     obs_size = (56,56),
-    ltl_sampler = "Dataset_e54",
+    ltl_sampler = "Dataset_e54dup",
     noLTL = False,
     progression_mode = "full",
     int_reward = 0.0,
@@ -27,27 +27,27 @@ test_gridworld = Args(
     ignoreLTL = False,
     gnn_model = "RGCN_8x32_ROOT_SHARED",
     use_pretrained_gnn = True,
-    gnn_pretrain = "new_gnn_pretrain_e",
-    freeze_gnn = False,
+    gnn_pretrain = "final_gnn_pretrain_e",
+    freeze_gnn = True,
 
     # Grounder parameters
     grounder_model = "ObjectCNN",
     use_pretrained_grounder = False,
     grounder_pretrain = None,
-    freeze_grounder = True,
+    freeze_grounder = False,
 
     # Agent parameters
     dumb_ac = False,
     recurrence = 1,
 
     # Evaluation parameters
-    eval = True,
+    eval = False,
     eval_env = "GridWorld-v1",
-    eval_interval = 1000,
-    eval_samplers = ['Dataset_e54test', 'Dataset_e54test', 'Eventually_1_5_1_4', 'Eventually_1_5_1_4'],
-    eval_episodes = [1000, 1000, 1000, 1000],
-    eval_argmaxs = [True, False, True, False],
-    eval_procs = 1,
+    eval_interval = 500,
+    eval_samplers = ['Dataset_e54duptest', 'Eventually_1_5_1_4'],
+    eval_episodes = [1000, 1000],
+    eval_argmaxs = [False, False],
+    eval_procs = 8,
 
     # Train parameters
     epochs = 4,
@@ -64,7 +64,7 @@ test_gridworld = Args(
 
     # Grounder training parameters
     grounder_buffer_size = 2048,
-    grounder_buffer_start = 512,
+    grounder_buffer_start = 0,
     grounder_max_env_steps = 75,
     grounder_train_interval = 1,
     grounder_lr = 0.001,
@@ -72,8 +72,8 @@ test_gridworld = Args(
     grounder_update_steps = 64,
     grounder_accumulation = 4,
     grounder_evaluate_steps = 256,
-    grounder_use_early_stopping = False,
-    grounder_patience = 20,
+    grounder_use_early_stopping = True,
+    grounder_patience = 250,
     grounder_min_delta = 0.0,
 
 )
