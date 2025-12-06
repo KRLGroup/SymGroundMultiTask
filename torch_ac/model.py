@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 class ACModel:
     recurrent = False
+    compositional = False
 
     @abstractmethod
     def __init__(self, obs_space, action_space):
@@ -15,6 +16,7 @@ class ACModel:
 
 class RecurrentACModel(ACModel):
     recurrent = True
+    compositional = False
 
     @abstractmethod
     def forward(self, obs, memory):

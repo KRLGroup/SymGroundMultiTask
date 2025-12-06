@@ -347,12 +347,12 @@ class LTLPolicy(nn.Module):
 
 
 # Took LTLActorCritic and made it into a torch_ac's ACModel
-class RnnACModel(torch.nn.Module, torch_ac.ACModel):
+class CompositionalACModel(torch.nn.Module, torch_ac.ACModel):
 
-    variable_structure = True
+    compositional = True
 
     def __init__(self, env, obs_space, action_space, symbols, device):
-        super(RnnACModel, self).__init__()
+        super(CompositionalACModel, self).__init__()
 
         self.symbols = symbols
         ltl_tree = default_ltl_tree(self.symbols)
