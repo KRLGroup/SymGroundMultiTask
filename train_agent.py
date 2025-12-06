@@ -10,6 +10,7 @@ import utils
 import torch_ac
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
+from compositional_ac_model import CompositionalACModel
 from grounder_algo import GrounderAlgo
 
 
@@ -52,6 +53,7 @@ class Args:
     # Agent parameters
     dumb_ac: bool = False
     recurrence: int = 1
+    compositional: bool = False
 
     # Evaluation parameters
     eval: bool = False
@@ -120,6 +122,12 @@ def train_agent(args: Args, device: str = None):
         assert args.grounder_buffer_size >= args.grounder_buffer_start
     if train_grounder and args.grounder_use_early_stopping:
         assert args.grounder_patience > 0
+    if args.compositional:
+        assert args.progression_mode == "full"
+        assert args.recurrence == 1
+        assert args.gnn_model is None
+        assert args.grounder_model is None
+        assert args.eval_procs == 1
 
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -221,7 +229,9 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Observations preprocessor loaded.")
 
     # create model
-    if use_mem:
+    if args.compositional:
+        acmodel = CompositionalACModel(args.env, obs_space, envs[0].action_space, symbols, device)
+    elif use_mem:
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
                                    args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
