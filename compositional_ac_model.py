@@ -185,8 +185,9 @@ class LTLPolicy(nn.Module):
         if args.lang_emb:
             input_size += args.lang_emb_size
 
-        # symbols and operators as nn modules
         self._modules = {}
+
+        # ltl symbol modules
         for symbol in symbols:
             if 'C_' in symbol:  # skip closer predicate
                 continue
@@ -194,21 +195,25 @@ class LTLPolicy(nn.Module):
                                                rnn_size=args.rnn_size, rnn_depth=args.rnn_depth)
             self.add_module(symbol, self._modules[symbol])
 
+        # ltl crafting symbol modules
         if args.env_name == 'Craft':
             symbol = 'C'
             self._modules[symbol] = BasePolicy(input_size, args.output_state_size, args, n_args=0,
                                                rnn_size=args.rnn_size, rnn_depth=args.rnn_depth, has_arg=True)
             self.add_module(symbol, self._modules[symbol])
 
+        # ltl operators modules
         if not args.baseline:
             for op in LTL_OPS:
                 self._modules[op] = BasePolicy(input_size, args.output_state_size, args, n_args=OP2NARG[op],
                                                rnn_size=args.rnn_size, rnn_depth=args.rnn_depth)
                 self.add_module(op, self._modules[op])
 
-        # language embedding to encode ltl formulas
+        # language embeddings
         if args.lang_emb:
             self.lang_emb = LangEmbedding(len(args.alphabets), emb_size=args.lang_emb_size)
+
+        # image embeddings
 
         self.image_emb = None
 
@@ -245,7 +250,7 @@ class LTLPolicy(nn.Module):
 
     def log_param(self, writer, iter):
         for key in self._modules.keys():
-            print_key  = key.replace('!', 'not').replace('&', 'and').replace('|', 'or')
+            print_key = key.replace('!', 'not').replace('&', 'and').replace('|', 'or')
             for tag, value in self._modules[key].named_parameters():
                 tag = tag.replace('.', '/')
                 writer.add_histogram(print_key + '_' + tag, value.cpu().data.numpy(), iter)
@@ -280,7 +285,7 @@ class LTLPolicy(nn.Module):
 
             rnn_out, hidden_state, out_state = self._modules[value].forward(obs, in_args_obs, child_states,
                                                                             self.prev_parent_states[node.id],
-                                                                            self.prev_hidden_states[node.id], 
+                                                                            self.prev_hidden_states[node.id],
                                                                             masks, no_hidden)
             self.hidden_states[node.id] = hidden_state
 
@@ -294,11 +299,13 @@ class LTLPolicy(nn.Module):
 
 
     def forward(self, obs, masks, no_hidden=False):
+
         # make image embedding if observation has images
         args_obs = None
 
         # to handle out input
         if type(obs) is DictList:
+            # already normalized
             obs = self.image_emb(obs.image)
 
         elif type(obs) is tuple:
@@ -340,8 +347,10 @@ class LTLPolicy(nn.Module):
             obs = torch.cat((obs, lang_out), 1)
 
         rnn_out, _, _ = self.forward_child(self.ltl_tree, obs, args_obs, masks, no_hidden)
+
         self.prev_hidden_states = self.hidden_states
         self.prev_parent_states = self.parent_states
+
         return rnn_out.squeeze(0)
 
 
