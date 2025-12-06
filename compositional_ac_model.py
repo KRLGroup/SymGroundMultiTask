@@ -356,7 +356,7 @@ class LTLPolicy(nn.Module):
 
 
 # Took LTLActorCritic and made it into a torch_ac's ACModel
-class CompositionalACModel(torch.nn.Module, torch_ac.ACModel):
+class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
 
     compositional = True
 
