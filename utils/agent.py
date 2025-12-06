@@ -42,6 +42,8 @@ class Agent:
         self.acmodel.to(self.device)
         self.acmodel.eval()
 
+        self.compositional = self.acmodel.compositional
+
 
     def get_actions(self, obss):
         preprocessed_obss = self.preprocess_obss(obss, device=self.device)
@@ -72,3 +74,8 @@ class Agent:
 
     def analyze_feedback(self, reward, done):
         return self.analyze_feedbacks([reward], [done])
+
+
+    def update_formula(self, formula):
+        assert self.acmodel.compositional
+        self.acmodel.update_formula(formula)

@@ -70,11 +70,18 @@ class Eval:
                       self.model_dir, self.ignoreLTL, self.progression_mode, self.gnn, self.recurrence, self.dumb_ac,
                       self.device, self.argmax, self.num_procs, False)
 
+        assert not agent.compositional or self.num_procs == 1
+        assert not agent.compositional or self.progression_mode == 'full'
+
         # Run agent
         start_time = time.time()
 
         obss = self.eval_env.reset()
         log_counter = 0
+
+        if agent.compositional:
+            goal = obss[0]['text']
+            agent.update_formula(goal)
 
         log_episode_return = torch.zeros(self.num_procs, device=self.device)
         log_episode_num_frames = torch.zeros(self.num_procs, device=self.device)
@@ -90,10 +97,15 @@ class Eval:
             log_episode_num_frames += torch.ones(self.num_procs, device=self.device)
 
             for i, done in enumerate(dones):
+
                 if done:
                     log_counter += 1
                     logs["return_per_episode"].append(log_episode_return[i].item())
                     logs["num_frames_per_episode"].append(int(log_episode_num_frames[i].item()))
+
+            if dones[0] and agent.compositional:
+                goal = obss[0]['text']
+                agent.update_formula(goal)
 
             mask = 1 - torch.tensor(dones, device=self.device, dtype=torch.float)
             log_episode_return *= mask
