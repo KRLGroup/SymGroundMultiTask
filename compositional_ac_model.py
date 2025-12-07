@@ -405,5 +405,5 @@ class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
     def forward(self, obs, masks):
         x = self.base(obs, masks)
         dist = self.actor(x)
-        value = self.critic_linear(x)
+        value = self.critic_linear(x).squeeze()
         return dist, value
