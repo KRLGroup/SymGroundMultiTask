@@ -11,7 +11,7 @@ def init(module, weight_init, bias_init, gain=1):
 # Categorical
 class FixedCategorical(torch.distributions.Categorical):
     def sample(self):
-        return super().sample().unsqueeze(-1)
+        return super().sample()
 
     def log_probs(self, actions):
         return (
@@ -19,7 +19,6 @@ class FixedCategorical(torch.distributions.Categorical):
             .log_prob(actions.squeeze(-1))
             .view(actions.size(0), -1)
             .sum(-1)
-            .unsqueeze(-1)
         )
 
     def mode(self):
@@ -29,7 +28,7 @@ class FixedCategorical(torch.distributions.Categorical):
 # Bernoulli
 class FixedBernoulli(torch.distributions.Bernoulli):
     def log_probs(self, actions):
-        return super().log_prob(actions).view(actions.size(0), -1).sum(-1).unsqueeze(-1)
+        return super().log_prob(actions).view(actions.size(0), -1).sum(-1)
 
     def entropy(self):
         return super().entropy().sum(-1)
