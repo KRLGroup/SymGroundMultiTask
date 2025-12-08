@@ -312,48 +312,48 @@ else:
     # Preconstructed Environments
 
     class ZonesEnv1(ZonesEnv_LTL2Action):
-        def __init__(self, state_type, grounder, obs_size):
+        def __init__(self, state_type, grounder, obs_size, max_num_steps):
             super().__init__(
                 state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size,
+                max_num_steps = max_num_steps,
                 zones = [zone.Red],
                 use_fixed_map = False,
-                max_num_steps = 1000
             )
 
 
     class ZonesEnv1Fixed(ZonesEnv_LTL2Action):
-        def __init__(self, state_type, grounder, obs_size):
+        def __init__(self, state_type, grounder, obs_size, max_num_steps):
             super().__init__(
                 state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size,
+                max_num_steps = max_num_steps,
                 zones = [zone.Red],
                 use_fixed_map = True,
-                max_num_steps = 1000
             )
 
 
     class ZonesEnv5(ZonesEnv_LTL2Action):
-        def __init__(self, state_type, grounder, obs_size):
+        def __init__(self, state_type, grounder, obs_size, max_num_steps):
             super().__init__(
                 state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size,
+                max_num_steps = max_num_steps,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = False,
-                max_num_steps = 1000
             )
 
 
     class ZonesEnv5Fixed(ZonesEnv_LTL2Action):
-        def __init__(self, state_type, grounder, obs_size):
+        def __init__(self, state_type, grounder, obs_size, max_num_steps):
             super().__init__(
                 state_type = state_type,
                 grounder = grounder,
                 obs_size = obs_size,
+                max_num_steps = max_num_steps,
                 zones = [zone.JetBlack, zone.JetBlack, zone.Red, zone.Red, zone.White, zone.White,  zone.Yellow, zone.Yellow],
                 use_fixed_map = True,
-                max_num_steps = 1000
             )

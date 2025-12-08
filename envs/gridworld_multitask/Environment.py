@@ -448,11 +448,12 @@ class GridWorldEnv_LTL2Action(GridWorldEnv_multitask):
 # Preconstructed Environments
 
 class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = True,
@@ -461,11 +462,12 @@ class GridWorldEnv_Base(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = False,
             wrap_around_map = True,
@@ -474,11 +476,12 @@ class GridWorldEnv_Base_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = True,
@@ -487,11 +490,12 @@ class GridWorldEnv_AgentCentric(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = False,
             wrap_around_map = True,
@@ -500,11 +504,12 @@ class GridWorldEnv_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
             randomize_loc = True,
             wrap_around_map = False,
@@ -513,11 +518,12 @@ class GridWorldEnv_NoWrapAround(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = False,
             wrap_around_map = False,
@@ -526,11 +532,12 @@ class GridWorldEnv_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_Base(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = True,
             wrap_around_map = True,
@@ -539,11 +546,12 @@ class GridWorldEnv_12_Base(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_Base_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = False,
             wrap_around_map = True,
@@ -552,11 +560,12 @@ class GridWorldEnv_12_Base_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_AgentCentric(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = True,
             wrap_around_map = True,
@@ -565,11 +574,12 @@ class GridWorldEnv_12_AgentCentric(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = False,
             wrap_around_map = True,
@@ -578,11 +588,12 @@ class GridWorldEnv_12_AgentCentric_FixedMap(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_NoWrapAround(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = True,
             wrap_around_map = False,
@@ -591,11 +602,12 @@ class GridWorldEnv_12_NoWrapAround(GridWorldEnv_LTL2Action):
 
 
 class GridWorldEnv_12_NoWrapAround_FixedMap(GridWorldEnv_LTL2Action):
-    def __init__(self, state_type, grounder, obs_size):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             state_type = state_type,
             grounder = grounder,
             obs_size = obs_size,
+            max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'],
             randomize_loc = False,
             wrap_around_map = False,

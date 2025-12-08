@@ -98,9 +98,8 @@ def train_grounder(args: Args, device: str = None):
     txt_logger.info("Initialization\n")
 
     # environment used for training
-    env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler,
-                         args.seed, 0, False, args.state_type, None, args.obs_size)
-    env.env.max_num_steps = args.max_num_steps
+    env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
+                         0, False, args.state_type, None, args.obs_size, args.max_num_steps)
 
     obs_shape = env.observation_space['features'].shape
     num_grounder_classes = len(env.propositions) + 1

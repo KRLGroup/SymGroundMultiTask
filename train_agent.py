@@ -30,6 +30,7 @@ class Args:
 
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
+    max_num_steps: int = None
     state_type: str = "image"
     obs_size: Tuple[int,int] = (56,56)
     ltl_sampler: str = "Dataset_e54"
@@ -194,7 +195,8 @@ def train_agent(args: Args, device: str = None):
 
     # load grounder algo environment
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
-                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
+                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size,
+                                       args.max_num_steps)
 
     obs_shape = grounder_algo_env.observation_space['features'].shape
     symbols = grounder_algo_env.propositions
@@ -208,7 +210,7 @@ def train_agent(args: Args, device: str = None):
     envs = []
     for i in range(args.procs):
         envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
-                                   args.noLTL, args.state_type, sym_grounder, args.obs_size))
+                                   args.noLTL, args.state_type, sym_grounder, args.obs_size, args.max_num_steps))
     assert envs[0].max_num_steps <= args.frames_per_proc
 
     txt_logger.info("-) Environments loaded.")

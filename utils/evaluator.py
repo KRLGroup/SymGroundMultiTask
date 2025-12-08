@@ -52,12 +52,9 @@ class Eval:
                 noLTL = False,
                 state_type = state_type,
                 grounder = grounder,
-                obs_size = obs_size
+                obs_size = obs_size,
+                max_num_steps = max_num_steps
             ))
-
-        if max_num_steps is not None:
-            for env in eval_envs:
-                env.env.max_num_steps = max_num_steps
 
         self.eval_envs = eval_envs
         self.eval_env = ParallelEnv(eval_envs)
