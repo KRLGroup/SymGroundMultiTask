@@ -360,7 +360,7 @@ class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
 
     compositional = True
 
-    def __init__(self, env, obs_space, action_space, symbols, device):
+    def __init__(self, env_name, obs_space, action_space, symbols, device):
         super(CompositionalACModel, self).__init__()
 
         self.symbols = symbols
@@ -368,7 +368,7 @@ class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
 
         # parameters from Kuo et al.
         args = Namespace(observation_space = np.array([obs_space]), recipe_path = None, baseline = False,
-                         lang_emb = False, alphabets = symbols, lang_emb_size = None, env_name = env,
+                         lang_emb = False, alphabets = symbols, lang_emb_size = None, env_name = env_name,
                          action_space = action_space, rnn_size = 64, rnn_depth = 1, image_emb_size = 64,
                          output_state_size = 32, device = device)
 

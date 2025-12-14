@@ -16,11 +16,15 @@ via the sampler (ltl_sampler) that is passed in (model_name).
 """
 class Eval:
 
-    def __init__(self, env, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
+    def __init__(self, env_name, model_dir, ltl_sampler, seed=0, device="cpu", state_type='image', grounder=None,
         obs_size=None, argmax=False, num_procs=1, ignoreLTL=False, progression_mode=True, gnn=None, recurrence=1,
-        dumb_ac=False, max_num_steps=None):
+        compositional=False, dumb_ac=False, max_num_steps=None):
 
-        self.env = env
+        assert not compositional or progression_mode == 'full'
+        assert not compositional or recurrence == 1
+        assert not compositional or num_procs == 1
+
+        self.env_name = env_name
         self.device = device
         self.argmax = argmax
         self.num_procs = num_procs
@@ -28,6 +32,7 @@ class Eval:
         self.progression_mode = progression_mode
         self.gnn = gnn
         self.recurrence = recurrence
+        self.compositional = compositional
         self.dumb_ac = dumb_ac
 
         self.model_dir = model_dir
@@ -44,7 +49,7 @@ class Eval:
         eval_envs = []
         for i in range(self.num_procs):
             eval_envs.append(make_env(
-                env_key = env,
+                env_key = env_name,
                 progression_mode = progression_mode,
                 ltl_sampler = ltl_sampler,
                 seed = seed,
@@ -56,6 +61,7 @@ class Eval:
                 max_num_steps = max_num_steps
             ))
 
+        self.symbols = eval_envs[0].propositions
         self.eval_envs = eval_envs
         self.eval_env = ParallelEnv(eval_envs)
 
@@ -63,12 +69,9 @@ class Eval:
     def eval(self, episodes=100):
 
         # Load agent
-        agent = Agent(self.eval_env.envs[0], self.eval_env.observation_space, self.eval_env.action_space,
-                      self.model_dir, self.ignoreLTL, self.progression_mode, self.gnn, self.recurrence, self.dumb_ac,
-                      self.device, self.argmax, self.num_procs, False)
-
-        assert not agent.compositional or self.num_procs == 1
-        assert not agent.compositional or self.progression_mode == 'full'
+        agent = Agent(self.eval_env.envs[0], self.env_name, self.symbols, self.eval_env.observation_space,
+                      self.eval_env.action_space, self.model_dir, self.ignoreLTL, self.progression_mode, self.gnn,
+                      self.recurrence, self.compositional, self.dumb_ac, self.device, self.argmax, self.num_procs, False)
 
         # Run agent
         start_time = time.time()
@@ -76,7 +79,7 @@ class Eval:
         obss = self.eval_env.reset()
         log_counter = 0
 
-        if agent.compositional:
+        if self.compositional:
             goal = obss[0]['text']
             agent.update_formula(goal)
 
@@ -100,7 +103,7 @@ class Eval:
                     logs["return_per_episode"].append(log_episode_return[i].item())
                     logs["num_frames_per_episode"].append(int(log_episode_num_frames[i].item()))
 
-            if dones[0] and agent.compositional:
+            if dones[0] and self.compositional:
                 goal = obss[0]['text']
                 agent.update_formula(goal)
 
