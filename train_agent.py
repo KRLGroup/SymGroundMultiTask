@@ -128,7 +128,6 @@ def train_agent(args: Args, device: str = None):
         assert args.recurrence == 1
         assert args.gnn_model is None
         assert args.grounder_model is None
-        assert args.eval_procs == 1
 
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
