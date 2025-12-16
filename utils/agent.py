@@ -49,7 +49,9 @@ class Agent:
         preprocessed_obss = self.preprocess_obss(obss, device=self.device)
 
         with torch.no_grad():
-            if self.acmodel.recurrent:
+            if self.acmodel.compositional:
+                dist, _ = self.acmodel(preprocessed_obss, torch.ones((self.num_envs,), device=self.device))
+            elif self.acmodel.recurrent:
                 dist, _, self.memories = self.acmodel(preprocessed_obss, self.memories)
             else:
                 dist, _ = self.acmodel(preprocessed_obss)
