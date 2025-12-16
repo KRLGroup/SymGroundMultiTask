@@ -233,6 +233,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", type=str, default="e54dup")
     parser.add_argument("--target", type=str, default="both", choices=["formulas", "automata", "both"])
+    parser.add_argument("--workers", type=int, defalut=8)
     args = parser.parse_args()
 
     dataset_path = Path(os.path.join(DATASETS_DIR, args.name))
@@ -242,9 +243,9 @@ if __name__ == "__main__":
     if target == 'formulas':
         dataset.save_formulas()
     elif target == 'automata':
-        dataset.save_automata()
+        dataset.save_automata(args.workers)
     elif target == 'both':
         dataset.save_formulas()
-        dataset.save_automata()
+        dataset.save_automata(args.workers)
     else:
         print(f"Unknown target {target}, expected 'formulas', 'automata' or 'both'.")
