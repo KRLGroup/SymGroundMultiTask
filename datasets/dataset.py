@@ -9,6 +9,20 @@ from dataclasses import dataclass
 from utils import ltl_ast2dfa, set_seed
 from ltl_samplers import getLTLSampler
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from importlib_metadata import version, PackageNotFoundError
+
+
+MAX_WORKERS = 8
+
+
+def has_multi_ltlf2dfa():
+    try:
+        version("multi-ltlf2dfa")
+        return True
+    except PackageNotFoundError:
+        return False
+
 
 def save_verbose(obj, path, name):
     with open(path, 'wb') as f:
@@ -110,12 +124,39 @@ class Dataset:
 
 
     def save_automata(self, pbar=True):
+        if has_multi_ltlf2dfa():
+            self.multi_process_save_automata(pbar)
+        else:
+            self.single_process_save_automata(pbar)
+
+
+    def single_process_save_automata(self, pbar=True):
         formulas = self.load_formulas()
         self.mkdir()
         check_existing(self.automata_path)
-
         print('Computing the DFA of each formula...')
         automata = []
         for formula in tqdm(formulas) if pbar else formulas:
             automata += [ltl_ast2dfa(formula, symbols=self.propositions)]
+        save_verbose(automata, self.automata_path, 'automata')
+
+
+    def multi_process_save_automata(self, pbar=True):
+        formulas = self.load_formulas()
+        self.mkdir()
+        check_existing(self.automata_path)
+        
+        print(f'Computing the DFA of each formula with up to {MAX_WORKERS} workers...')
+        
+        tasks = [(i, formula) for i, formula in enumerate(formulas)]
+        automata = [None] * len(formulas)  # placeholder list to preserve order
+        
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # Submit tasks individually
+            future_to_index = {executor.submit(ltl_ast2dfa, f, symbols=self.propositions): i for i, f in tasks}
+            
+            for future in tqdm(as_completed(future_to_index), total=len(formulas), disable=not pbar):
+                i = future_to_index[future]
+                automata[i] = future.result()  # store in correct order
+        
         save_verbose(automata, self.automata_path, 'automata')
