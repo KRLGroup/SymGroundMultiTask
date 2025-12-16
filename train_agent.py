@@ -10,6 +10,7 @@ import utils
 import torch_ac
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
+from compositional_ac_model import CompositionalACModel
 from grounder_algo import GrounderAlgo
 
 
@@ -29,6 +30,7 @@ class Args:
 
     # Environment parameters
     env: str = "GridWorld-fixed-v1"
+    max_num_steps: int = None
     state_type: str = "image"
     obs_size: Tuple[int,int] = (56,56)
     ltl_sampler: str = "Dataset_e54"
@@ -52,6 +54,7 @@ class Args:
     # Agent parameters
     dumb_ac: bool = False
     recurrence: int = 1
+    compositional: bool = False
 
     # Evaluation parameters
     eval: bool = False
@@ -120,6 +123,11 @@ def train_agent(args: Args, device: str = None):
         assert args.grounder_buffer_size >= args.grounder_buffer_start
     if train_grounder and args.grounder_use_early_stopping:
         assert args.grounder_patience > 0
+    if args.compositional:
+        assert args.progression_mode == "full"
+        assert args.recurrence == 1
+        assert args.gnn_model is None
+        assert args.grounder_model is None
 
     device = torch.device(device) or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -186,7 +194,8 @@ def train_agent(args: Args, device: str = None):
 
     # load grounder algo environment
     grounder_algo_env = utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed,
-                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size)
+                                       args.int_reward, args.noLTL, args.state_type, None, args.obs_size,
+                                       args.max_num_steps)
 
     obs_shape = grounder_algo_env.observation_space['features'].shape
     symbols = grounder_algo_env.propositions
@@ -200,7 +209,7 @@ def train_agent(args: Args, device: str = None):
     envs = []
     for i in range(args.procs):
         envs.append(utils.make_env(args.env, args.progression_mode, args.ltl_sampler, args.seed, args.int_reward,
-                                   args.noLTL, args.state_type, sym_grounder, args.obs_size))
+                                   args.noLTL, args.state_type, sym_grounder, args.obs_size, args.max_num_steps))
     assert envs[0].max_num_steps <= args.frames_per_proc
 
     txt_logger.info("-) Environments loaded.")
@@ -221,7 +230,9 @@ def train_agent(args: Args, device: str = None):
     txt_logger.info("-) Observations preprocessor loaded.")
 
     # create model
-    if use_mem:
+    if args.compositional:
+        acmodel = CompositionalACModel(args.env, obs_space, envs[0].action_space, symbols, device)
+    elif use_mem:
         acmodel = RecurrentACModel(envs[0].env, obs_space, envs[0].action_space, args.ignoreLTL,
                                    args.gnn_model, args.dumb_ac, args.freeze_gnn, device, False)
     else:
@@ -264,6 +275,10 @@ def train_agent(args: Args, device: str = None):
                                 args.optim_alpha, args.optim_eps, preprocess_obss, None)
     elif args.algo == "ppo":
         algo = torch_ac.PPOAlgo(envs, acmodel, device, args.frames_per_proc, args.discount, args.lr, args.gae_lambda,
+                                args.entropy_coef, args.value_loss_coef, args.max_grad_norm, args.recurrence,
+                                args.optim_eps, args.clip_eps, args.epochs, args.batch_size, preprocess_obss, None)
+    elif args.algo == "compositional_ppo":
+        algo = torch_ac.CompositionalPPOAlgo(envs, acmodel, device, args.frames_per_proc, args.discount, args.lr, args.gae_lambda,
                                 args.entropy_coef, args.value_loss_coef, args.max_grad_norm, args.recurrence,
                                 args.optim_eps, args.clip_eps, args.epochs, args.batch_size, preprocess_obss, None)
     else:
@@ -310,7 +325,7 @@ def train_agent(args: Args, device: str = None):
         for sampler, argmax in zip(eval_samplers, eval_argmaxs):
             evals.append(utils.Eval(eval_env, model_dir, sampler, args.seed, device, args.state_type, sym_grounder,
                                     args.obs_size, argmax, eval_procs, args.ignoreLTL, args.progression_mode,
-                                    args.gnn_model, args.recurrence, args.dumb_ac, None))
+                                    args.gnn_model, args.recurrence, args.compositional, args.dumb_ac, None))
 
         txt_logger.info("-) Evaluators loaded.")
 

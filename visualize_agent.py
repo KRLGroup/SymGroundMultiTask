@@ -35,7 +35,7 @@ status = utils.get_status(agent_dir, device)
 
 # build environment
 env = utils.make_env(config.env, config.progression_mode, args.ltl_sampler, args.seed, config.int_reward, config.noLTL,
-                     config.state_type, None, config.obs_size)
+                     config.state_type, None, config.obs_size, config.max_num_steps)
 
 obs_shape = env.observation_space['features'].shape
 num_grounder_classes = len(env.propositions) + 1

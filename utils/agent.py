@@ -3,7 +3,7 @@ from .storage import get_status, get_model_state
 from .format import get_obss_preprocessor
 from ac_model import ACModel
 from recurrent_ac_model import RecurrentACModel
-
+from compositional_ac_model import CompositionalACModel
 
 class Agent:
     """An agent.
@@ -12,8 +12,8 @@ class Agent:
     - to choose an action given an observation,
     - to analyze the feedback (i.e. reward and done state) of its action."""
 
-    def __init__(self, env, obs_space, action_space, model_dir, ignoreLTL, progression_mode, gnn,
-        recurrence=1, dumb_ac=False, device=None, argmax=False, num_envs=1, verbose=True):
+    def __init__(self, env, env_name, symbols, obs_space, action_space, model_dir, ignoreLTL, progression_mode, gnn,
+        recurrence=1, compositional=False, dumb_ac=False, device=None, argmax=False, num_envs=1, verbose=True):
 
         if verbose:
             print(model_dir)
@@ -23,12 +23,14 @@ class Agent:
         if status == None:
             status = {'num_frames': 0, 'update': 0}
 
-        using_gnn = (gnn != "GRU" and gnn != "LSTM")
+        using_gnn = (gnn != "GRU" and gnn != "LSTM" and gnn is not None)
         obs_space, self.preprocess_obss = get_obss_preprocessor(env, using_gnn, progression_mode)
         if 'vocab' in status and self.preprocess_obss.vocab is not None:
             self.preprocess_obss.vocab.load_vocab(status['vocab'])
 
-        if recurrence > 1:
+        if compositional:
+            self.acmodel = CompositionalACModel(env_name, obs_space, action_space, symbols, device)
+        elif recurrence > 1:
             self.acmodel = RecurrentACModel(env, obs_space, action_space, ignoreLTL, gnn, dumb_ac, True, verbose=verbose)
             self.memories = torch.zeros(num_envs, self.acmodel.memory_size, device=device)
         else:
@@ -47,7 +49,9 @@ class Agent:
         preprocessed_obss = self.preprocess_obss(obss, device=self.device)
 
         with torch.no_grad():
-            if self.acmodel.recurrent:
+            if self.acmodel.compositional:
+                dist, _ = self.acmodel(preprocessed_obss, torch.ones((self.num_envs,), device=self.device))
+            elif self.acmodel.recurrent:
                 dist, _, self.memories = self.acmodel(preprocessed_obss, self.memories)
             else:
                 dist, _ = self.acmodel(preprocessed_obss)
@@ -72,3 +76,8 @@ class Agent:
 
     def analyze_feedback(self, reward, done):
         return self.analyze_feedbacks([reward], [done])
+
+
+    def update_formula(self, formula):
+        assert self.acmodel.compositional
+        self.acmodel.update_formula(formula)

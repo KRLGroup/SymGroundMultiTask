@@ -1,38 +1,38 @@
 from train_agent import Args
 
 
-test_gridworld = Args(
+baseline_gridworld = Args(
 
     # General parameters
-    model_name = "agent",
-    algo = "ppo",
+    model_name = "baseline_compositional",
+    algo = "compositional_ppo",
     seed = 1,
-    log_interval = 10,
-    save_interval = 100,
+    log_interval = 1,
+    save_interval = 10,
     procs = 16,
-    frames_per_proc = 128,
+    frames_per_proc = 30,
     frames = 20000000,
     checkpoint_dir = None,
 
     # Environment parameters
     env = "GridWorld-v1",
-    max_num_steps = None,
+    max_num_steps = 15,
     state_type = 'image',
     obs_size = (56,56),
-    ltl_sampler = "Dataset_e54dup",
+    ltl_sampler = "Eventually_1_2_1_1",
     noLTL = False,
     progression_mode = "full",
     int_reward = 0.0,
 
     # GNN parameters
     ignoreLTL = False,
-    gnn_model = "RGCN_8x32_ROOT_SHARED",
-    use_pretrained_gnn = True,
-    gnn_pretrain = "final_gnn_pretrain_e",
-    freeze_gnn = True,
+    gnn_model = None,
+    use_pretrained_gnn = False,
+    gnn_pretrain = None,
+    freeze_gnn = False,
 
     # Grounder parameters
-    grounder_model = "ObjectCNN",
+    grounder_model = None,
     use_pretrained_grounder = False,
     grounder_pretrain = None,
     freeze_grounder = False,
@@ -40,23 +40,24 @@ test_gridworld = Args(
     # Agent parameters
     dumb_ac = False,
     recurrence = 1,
+    compositional = True,
 
     # Evaluation parameters
     eval = False,
     eval_env = "GridWorld-v1",
     eval_interval = 500,
-    eval_samplers = ['Dataset_e54duptest', 'Eventually_1_5_1_4'],
-    eval_episodes = [1000, 1000],
-    eval_argmaxs = [False, False],
-    eval_procs = 8,
+    eval_samplers = [],
+    eval_episodes = [],
+    eval_argmaxs = [],
+    eval_procs = 1,
 
     # Train parameters
     epochs = 4,
     batch_size = 256,
     discount = 0.94,
-    lr = 3e-4,
+    lr = 1e-4,
     gae_lambda = 0.95,
-    entropy_coef = 0.01,
+    entropy_coef = 0.1,
     value_loss_coef = 0.5,
     max_grad_norm = 0.5,
     optim_eps = 1e-8,

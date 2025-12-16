@@ -16,7 +16,8 @@ train_grounder_base = Args(
     # Environment parameters
     max_num_steps = 50,
     env = "GridWorld-v1",
-    ltl_sampler = "Dataset_e54",
+    state_type = "image",
+    ltl_sampler = "Dataset_e54dup",
     progression_mode = "full",
 
     # Training parameters

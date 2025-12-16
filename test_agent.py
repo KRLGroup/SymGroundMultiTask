@@ -46,7 +46,7 @@ print("\n---\n")
 # create evaluator
 evalu = utils.Eval(config.eval_env, agent_dir, args.ltl_sampler, args.seed, device, config.state_type, None,
                    config.obs_size, args.argmax, args.eval_procs, config.ignoreLTL, config.progression_mode,
-                   config.gnn_model, config.recurrence, config.dumb_ac, args.max_num_steps)
+                   config.gnn_model, config.recurrence, config.compositional, config.dumb_ac, args.max_num_steps)
 
 obs_shape = evalu.eval_env.envs[0]..observation_space['features'].shape
 num_grounder_classes = len(evalu.eval_env.envs[0]..propositions) + 1

@@ -19,7 +19,15 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
     sudo apt install -y mona
     ```
 
-3. (optional) Install Safety-Gym Environment (requires mujoco 2.1.0):
+3. (optional) Replace `LTLf2DFA` with its parallelizable version to create automata efficently:
+
+    ```bash
+    pip uninstall ltlf2dfa
+    git clone https://github.com/matteopannacci/multi-LTLf2DFA.git
+    pip install ./multi-LTLf2DFA
+    ```
+
+4. (optional) Install Safety-Gym Environment (requires mujoco 2.1.0):
 
     ```bash
     pip install -e envs/safety/safety-gym/
@@ -31,7 +39,7 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
 Create the datasets of formulas and automata needed for training the grounder:
 
 ```bash
-python -m datasets.create_datasets --path <dataset>
+python -m datasets.create_datasets --name <dataset>
 ```
 
 

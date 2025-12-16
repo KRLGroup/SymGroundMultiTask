@@ -29,7 +29,7 @@ print(f"\nConfig:\n{config}")
 
 # build environment
 env = utils.make_env(args.env, config.progression_mode, config.ltl_sampler, config.seed, 0, False, config.state_type,
-                     None, config.obs_size)
+                     None, config.obs_size, config.max_num_steps)
 
 obs_shape = env.observation_space['features'].shape
 num_grounder_classes = len(env.propositions) + 1
