@@ -221,6 +221,8 @@ def train_agent(args: Args, device: str = None):
         status = {'num_frames': 0, 'update': 0, 'grounder_early_stop': False}
         txt_logger.info("-) Previous status not found.")
     else:
+        tb_writer.close()
+        tb_writer = utils.reload_tb_logs(train_dir, status['update'])
         txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
@@ -391,7 +393,7 @@ def train_agent(args: Args, device: str = None):
                          or (save_condition and update != 1)
                          or (num_frames >= args.frames))
 
-        # Print logs (accumulated during the log_interval)
+        # Print Logs (accumulated during the log_interval)
 
         if log_condition:
 
@@ -443,7 +445,7 @@ def train_agent(args: Args, device: str = None):
             for field, value in zip(header, data):
                 tb_writer.add_scalar(field, value, num_frames)
 
-        # Save status
+        # Save Status
 
         if save_condition:
 
