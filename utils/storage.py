@@ -95,15 +95,19 @@ def save_config(model_dir, config):
 def reload_tb_logs(log_dir, last_step):
 
     os.makedirs(log_dir, exist_ok=True)
-    writer = tensorboardX.SummaryWriter(log_dir)
+    files = os.listdir(log_dir)
+    tb_writer = tensorboardX.SummaryWriter(log_dir)
 
-    for fname in os.listdir(input_logdir):
+    for fname in files:
         if fname.startswith("events.out.tfevents"):
-            acc = EventAccumulator(os.path.join(input_logdir, fname))
+            acc = EventAccumulator(os.path.join(log_dir, fname))
             acc.Reload()
-            for event in acc._generator.Load():
-                if event.step <= last_step:
-                    writer.add_event(event)
-            os.remove(os.path.join(log_dir, fname))
+            for tag in acc.Tags()["scalars"]:
+                for event in acc.Scalars(tag):
+                    if event.step <= last_step:
+                        tb_writer.add_scalar(tag, event.value, event.step)
 
-    return writer
+    for fname in files:
+        os.remove(os.path.join(log_dir, fname))
+
+    return tb_writer

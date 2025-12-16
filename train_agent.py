@@ -222,7 +222,7 @@ def train_agent(args: Args, device: str = None):
         txt_logger.info("-) Previous status not found.")
     else:
         tb_writer.close()
-        tb_writer = utils.reload_tb_logs(train_dir, status['update'])
+        tb_writer = utils.reload_tb_logs(train_dir, status['num_frames'])
         txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
