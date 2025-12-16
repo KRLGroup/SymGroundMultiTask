@@ -19,6 +19,7 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
     ```bash
     cd ./SymGroundMultiTask
     conda env create -f environment.yml
+    conda activate symgroundmultitask
     ```
 
 3. (optional) Install MONA if you need to create new automata:
