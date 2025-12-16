@@ -388,7 +388,7 @@ def train_agent(args: Args, device: str = None):
                           or (num_frames >= args.frames))
 
         log_condition = ((update % args.log_interval == 0)
-                         or (save_condition)
+                         or (save_condition and update != 1)
                          or (num_frames >= args.frames))
 
         # Print logs (accumulated during the log_interval)
