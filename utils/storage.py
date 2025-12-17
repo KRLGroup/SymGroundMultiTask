@@ -4,6 +4,8 @@ import torch
 import logging
 import sys
 import pickle
+import tensorboardX
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 
 def create_folders_if_necessary(path):
@@ -88,3 +90,24 @@ def save_config(model_dir, config):
     path = os.path.join(model_dir, "config.pickle")
     create_folders_if_necessary(path)
     pickle.dump(config, open(path, "wb"))
+
+
+def reload_tb_logs(log_dir, last_step):
+
+    os.makedirs(log_dir, exist_ok=True)
+    files = os.listdir(log_dir)
+    tb_writer = tensorboardX.SummaryWriter(log_dir)
+
+    for fname in files:
+        if fname.startswith("events.out.tfevents"):
+            acc = EventAccumulator(os.path.join(log_dir, fname))
+            acc.Reload()
+            for tag in acc.Tags()["scalars"]:
+                for event in acc.Scalars(tag):
+                    if event.step <= last_step:
+                        tb_writer.add_scalar(tag, event.value, event.step)
+
+    for fname in files:
+        os.remove(os.path.join(log_dir, fname))
+
+    return tb_writer

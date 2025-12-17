@@ -221,6 +221,8 @@ def train_agent(args: Args, device: str = None):
         status = {'num_frames': 0, 'update': 0, 'grounder_early_stop': False}
         txt_logger.info("-) Previous status not found.")
     else:
+        tb_writer.close()
+        tb_writer = utils.reload_tb_logs(train_dir, status['num_frames'])
         txt_logger.info("-) Previous status found.")
 
     # load observations preprocessor
@@ -379,9 +381,21 @@ def train_agent(args: Args, device: str = None):
 
         update_end_time = time.time()
 
-        # Print logs (accumulated during the log_interval)
+        eval_condition = ((args.eval and args.eval_interval > 0 and update % args.eval_interval == 0)
+                          or (args.eval and num_frames >= args.frames)
+                          or (args.eval and update == 1))
 
-        if (update % args.log_interval == 0) or (num_frames >= args.frames):
+        save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
+                          or (eval_condition)
+                          or (num_frames >= args.frames))
+
+        log_condition = ((update % args.log_interval == 0)
+                         or (save_condition and update != 1)
+                         or (num_frames >= args.frames))
+
+        # Print Logs (accumulated during the log_interval)
+
+        if log_condition:
 
             fps = logs1['num_frames']/(update_end_time - update_start_time)
             duration = int(time.time() - start_time)
@@ -431,15 +445,7 @@ def train_agent(args: Args, device: str = None):
             for field, value in zip(header, data):
                 tb_writer.add_scalar(field, value, num_frames)
 
-        eval_condition = ((args.eval and args.eval_interval > 0 and update % args.eval_interval == 0)
-                          or (args.eval and num_frames >= args.frames)
-                          or (args.eval and update == 1))
-
-        save_condition = ((args.save_interval > 0 and update % args.save_interval == 0)
-                          or (eval_condition)
-                          or (num_frames >= args.frames))
-
-        # Save status
+        # Save Status
 
         if save_condition:
 

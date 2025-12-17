@@ -13,9 +13,6 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib_metadata import version, PackageNotFoundError
 
 
-MAX_WORKERS = 8
-
-
 def has_multi_ltlf2dfa():
     try:
         version("multi-ltlf2dfa")
@@ -123,9 +120,9 @@ class Dataset:
         return automata
 
 
-    def save_automata(self, pbar=True):
+    def save_automata(self, pbar=True, num_workers=1):
         if has_multi_ltlf2dfa():
-            self.multi_process_save_automata(pbar)
+            self.multi_process_save_automata(pbar, num_workers)
         else:
             self.single_process_save_automata(pbar)
 
@@ -141,22 +138,16 @@ class Dataset:
         save_verbose(automata, self.automata_path, 'automata')
 
 
-    def multi_process_save_automata(self, pbar=True):
+    def multi_process_save_automata(self, pbar=True, num_workers=1):
         formulas = self.load_formulas()
         self.mkdir()
         check_existing(self.automata_path)
-        
-        print(f'Computing the DFA of each formula with up to {MAX_WORKERS} workers...')
-        
+        print(f'Computing the DFA of each formula with up to {num_workers} workers...')
         tasks = [(i, formula) for i, formula in enumerate(formulas)]
-        automata = [None] * len(formulas)  # placeholder list to preserve order
-        
-        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            # Submit tasks individually
+        automata = [None] * len(formulas)
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
             future_to_index = {executor.submit(ltl_ast2dfa, f, symbols=self.propositions): i for i, f in tasks}
-            
             for future in tqdm(as_completed(future_to_index), total=len(formulas), disable=not pbar):
                 i = future_to_index[future]
-                automata[i] = future.result()  # store in correct order
-        
+                automata[i] = future.result()
         save_verbose(automata, self.automata_path, 'automata')

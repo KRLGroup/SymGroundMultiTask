@@ -7,19 +7,28 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
 
 ## Installation
 
-1. Create a new conda environment with Python 3.7.16 and the dependencies specified in ```environment.yml``` and ```requirements.txt```:
+1. Clone the repository:
 
     ```bash
-    conda env create -f environment.yml
+    git clone https://github.com/KRLGroup/SymGroundMultiTask
     ```
 
-2. (optional) Install MONA if you need to create new automata:
+
+2. Create a new conda environment with Python 3.7.16 and the dependencies specified in ```environment.yml``` and ```requirements.txt```:
+
+    ```bash
+    cd ./SymGroundMultiTask
+    conda env create -f environment.yml
+    conda activate symgroundmultitask
+    ```
+
+3. (optional) Install MONA if you need to create new automata:
 
     ```bash
     sudo apt install -y mona
     ```
 
-3. (optional) Replace `LTLf2DFA` with its parallelizable version to create automata efficently:
+4. (optional) Replace `LTLf2DFA` with its parallelizable version to create automata more efficently:
 
     ```bash
     pip uninstall ltlf2dfa
@@ -27,7 +36,7 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
     pip install ./multi-LTLf2DFA
     ```
 
-4. (optional) Install Safety-Gym Environment (requires mujoco 2.1.0):
+5. (optional) Install Safety-Gym Environment (requires mujoco 2.1.0):
 
     ```bash
     pip install -e envs/safety/safety-gym/
@@ -39,7 +48,7 @@ This project extends the [LTL2Action](https://github.com/LTL2Action/LTL2Action) 
 Create the datasets of formulas and automata needed for training the grounder:
 
 ```bash
-python -m datasets.create_datasets --name <dataset>
+python -m datasets.create_datasets --name <dataset> --workers <num_workers>
 ```
 
 
