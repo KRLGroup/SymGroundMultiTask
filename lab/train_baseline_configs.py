@@ -1,7 +1,7 @@
 from train_agent import Args
 
 
-test_gridworld = Args(
+baseline_gridworld = Args(
 
     # General parameters
     model_name = "baseline_agent",
