@@ -75,7 +75,7 @@ class Args:
     value_loss_coef: float = 0.5
     max_grad_norm: float = 0.5  # gradient clipping
     optim_eps: float = 1e-8
-    optim_alpha: float = 0.99
+    optim_alpha: float = 0.99  # A2C alpha
     clip_eps: float = 0.2  # ppo clipping epsilon
 
     # Grounder training parameters
