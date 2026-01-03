@@ -79,7 +79,7 @@ class GridworldClassifier(nn.Module):
 
 class ObjectCNN(nn.Module):
 
-    def __init__(self, input_size=(64,64), num_symbols=2):
+    def __init__(self, input_size=(3,56,56), num_symbols=2):
         super(ObjectCNN, self).__init__()
 
         self.features = nn.Sequential(
@@ -105,7 +105,7 @@ class ObjectCNN(nn.Module):
         )
 
         with torch.no_grad():
-            dummy_input = torch.zeros((1, 3, input_size[0], input_size[1]))
+            dummy_input = torch.zeros((1, input_size[0], input_size[1], input_size[2]))
             dummy_output = self.features(dummy_input)
             self.flattened_size = dummy_output.view(1, -1).size(1)
 
