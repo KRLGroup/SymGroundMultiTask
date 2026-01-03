@@ -296,7 +296,7 @@ class GrounderAlgo():
                     self.env.reset()
 
                     step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
-                    step_real_syms = torch.tensor(step_real_syms, dtype=torch.int32)
+                    step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
                     real_syms.append(step_real_syms)
 
                     images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
@@ -324,8 +324,8 @@ class GrounderAlgo():
                         pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
                         pred_syms.append(pred_sym)
 
-                real_syms = torch.tensor(real_syms)
-                pred_syms = torch.tensor(pred_syms)
+                real_syms = torch.tensor(real_syms, device=self.device)
+                pred_syms = torch.tensor(pred_syms, device=self.device)
 
             else:
                 raise Exception("Environment's grounder evaluation not implemented")
