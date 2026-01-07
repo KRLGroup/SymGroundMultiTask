@@ -5,11 +5,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-import gymnasium
-import gymnasium.spaces as spaces
+import gym
+from gym import spaces
 
 import matplotlib.pyplot as plt
-from gymnasium.core import ActType, ObsType
 
 import cv2
 
@@ -22,7 +21,7 @@ class Circle:
     symbol: str
 
 
-class FlatWorld(gymnasium.Env):
+class FlatWorld(gym.Env):
 
     symbol_to_color = {
         'a':'red', 'b':'blue', 'c': 'green',
