@@ -33,7 +33,7 @@ class FlatWorld(gym.Env):
         'aqua': (0, 255, 255), 'magenta': (255, 0, 255), 'black': (0, 0, 0)
     }
 
-    def __init__(self, radius=0.8, delta_t=0.08, obs_size=(56,56), win_size=(896,896), max_num_steps=75,
+    def __init__(self, radius=0.7, delta_t=0.08, obs_size=(56,56), win_size=(896,896), max_num_steps=75,
         symbols=['a','b','c','d','e'], use_continuous_actions=True):
 
         self.dictionary_symbols = symbols + ['']
@@ -316,7 +316,7 @@ class FlatWorldEnv_Base(FlatWorld_LTL2Action):
             obs_size = obs_size,
             max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
-            radius = 0.8,
+            radius = 0.7,
             delta_t = 0.08
         )
 
