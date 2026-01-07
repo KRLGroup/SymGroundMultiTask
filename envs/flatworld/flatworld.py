@@ -150,7 +150,10 @@ class FlatWorld(gym.Env):
 
 
     def get_obs(self):
-        return self._render_frame(self.obs_size)
+        obs = self._render_frame(self.obs_size)
+        obs = obs.astype(np.float32) / 255.0
+        obs = np.transpose(obs, (2, 0, 1)) # from w*h*c to c*w*h
+        return obs
 
 
     def translate_formula(self, formula):
