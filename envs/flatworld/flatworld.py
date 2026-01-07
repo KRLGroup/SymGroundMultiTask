@@ -33,7 +33,7 @@ class FlatWorld(gym.Env):
         'aqua': (0, 255, 255), 'magenta': (255, 0, 255), 'black': (0, 0, 0)
     }
 
-    def __init__(self, radius=0.5, delta_t=0.08, obs_size=(56,56), win_size=(896,896), max_num_steps=75,
+    def __init__(self, radius=0.8, delta_t=0.08, obs_size=(56,56), win_size=(896,896), max_num_steps=75,
         symbols=['a','b','c','d','e'], use_continuous_actions=True):
 
         self.dictionary_symbols = symbols + ['']
@@ -236,12 +236,12 @@ class FlatWorld(gym.Env):
             color = self.color_to_rgb[color]
             overlay = canvas.copy()
             cv2.circle(overlay, (px, py), p_radius, color, -1, cv2.LINE_AA)
-            cv2.addWeighted(overlay, 0.5, canvas, 0.5, 0, canvas)
+            cv2.addWeighted(overlay, 0.75, canvas, 0.25, 0, canvas)
             cv2.circle(canvas, (px, py), p_radius, color, 2, cv2.LINE_AA)
 
         for circle in self.circles:
             draw_circle(circle.center, circle.radius, circle.color)
-        draw_circle(self.agent_location, self.radius/4, 'black')
+        draw_circle(self.agent_location, 0.1, 'black')
 
         return canvas
 
@@ -316,7 +316,7 @@ class FlatWorldEnv_Base(FlatWorld_LTL2Action):
             obs_size = obs_size,
             max_num_steps = max_num_steps,
             symbols = ['a', 'b', 'c', 'd', 'e'],
-            radius = 0.5,
+            radius = 0.8,
             delta_t = 0.08
         )
 
@@ -325,12 +325,6 @@ class FlatWorldEnv_Base(FlatWorld_LTL2Action):
 if __name__ == '__main__':
     env = FlatWorld(use_continuous_actions=False)
     obs = env.reset()
-    trajectory = [obs]
-    for i in range(300):
-        obs, reward, done, info = env.step(env.action_space.sample())
-        trajectory.append(obs)
-        if done:
-            break
     env.show()
     env.render()
     plt.show()
