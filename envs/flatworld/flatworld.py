@@ -63,7 +63,13 @@ class FlatWorld(gym.Env):
             8: np.array([0, 0])
         }
 
-        self.observation_space = spaces.Box(low=-2.0, high=2.0, shape=(2,), dtype=np.float64)
+        self.observation_space = spaces.Box(
+            low = np.float32(-np.inf),
+            high = np.float32(np.inf),
+            shape = (3, 56, 56),
+            dtype = np.float32
+        )
+
         if self.use_continuous_actions:
             self.action_space = spaces.Box(-1, 1, (2,), dtype=np.float64)
         else:
