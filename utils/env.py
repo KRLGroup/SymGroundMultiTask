@@ -13,13 +13,13 @@ from ltl_wrappers import LTLEnv, NoLTLWrapper, LTLGrounderEnv
 def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noLTL=False, 
     state_type='image', grounder=None, obs_size=None, max_num_steps=None):
 
-    if max_num_steps is None and "GridWorld" in env_key:
+    if max_num_steps is None and "GridWorld" in env_key or "FlatWorld" in env_key:
         max_num_steps = 75
     elif max_num_steps is None and "Zones" in env_key:
         max_num_steps = 1000
 
     kwargs = {}
-    if "GridWorld" in env_key or 'Zones' in env_key:
+    if "GridWorld" in env_key or 'Zones' in env_key or "FlatWorld" in env_key:
         kwargs = {
             "state_type": state_type,
             "grounder": grounder,
@@ -33,7 +33,7 @@ def make_env(env_key, progression_mode, ltl_sampler, seed=None, intrinsic=0, noL
     if (noLTL):
         wrapper = NoLTLWrapper(env)
 
-    elif "GridWorld" in env_key or 'Zones' in env_key:
+    elif "GridWorld" in env_key or 'Zones' in env_key or "FlatWorld" in env_key:
         wrapper = LTLGrounderEnv(
             env=env,
             progression_mode=progression_mode,

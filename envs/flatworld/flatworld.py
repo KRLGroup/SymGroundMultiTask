@@ -305,7 +305,7 @@ class FlatWorld_LTL2Action(FlatWorld):
 # Preconstructed Environments
 
 class FlatWorldEnv_Base(FlatWorld_LTL2Action):
-    def __init__(self, grounder, obs_size, max_num_steps):
+    def __init__(self, state_type, grounder, obs_size, max_num_steps):
         super().__init__(
             grounder = grounder,
             obs_size = obs_size,

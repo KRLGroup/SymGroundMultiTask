@@ -5,6 +5,7 @@ from envs.simple_ltl.simple_ltl_env import SimpleLTLEnv
 from envs.minigrid.minigrid_env import MinigridEnv
 from envs.gridworld_multitask.Environment import GridWorldEnv_LTL2Action
 from envs.safety.zones_env import ZonesEnv_LTL2Action
+from envs.flatworld.flatworld import FlatWorld_LTL2Action
 
 __all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action", "ZonesEnv_LTL2Action", "FlatWorld_LTL2Action"]
 
