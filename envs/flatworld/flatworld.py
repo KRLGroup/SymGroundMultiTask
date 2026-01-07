@@ -203,16 +203,16 @@ class FlatWorld(gym.Env):
 
 
     def _get_disjoint_position(self, radius):
-        pos = np.random.uniform(low=-2., high=2., size=(2,))
-        while self.check_disjoint_position(pos, radius) is False:
-            pos = np.random.uniform(low=-2., high=2., size=(2,))
+        pos = np.random.uniform(low=-2.0, high=2.0, size=(2,))
+        while self._check_disjoint_position(pos, radius) is False:
+            pos = np.random.uniform(low=-2.0, high=2.0, size=(2,))
         return pos
 
 
-    def check_disjoint_position(self, pos, radius):
+    def _check_disjoint_position(self, pos, radius):
         disjoint = True
         for circle in self.circles:
-            if np.linalg.norm(pos - circle.center) < circle.radius+radius:
+            if np.linalg.norm(pos - circle.center) <= (circle.radius + radius):
                 disjoint = False
                 break
         return disjoint
