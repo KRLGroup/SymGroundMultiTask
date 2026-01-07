@@ -141,12 +141,17 @@ class FlatWorld(gym.Env):
         return obs, reward, done, None
 
 
-    def get_active_propositions(self):
-        props = set()
+    def get_active_proposition(self):
+        props = []
         for circle in self.circles:
             if np.linalg.norm(self.agent_location - circle.center) < circle.radius:
-                props.add(circle.color)
-        return props
+                props.append(circle.color)
+        if len(props) > 1:
+            raise ValueError("Agent is in multiple circles!")
+        elif len(props) == 0:
+            return self.dictionary_symbols[-1]
+        else:
+            return props[0]
 
 
     def get_obs(self):
@@ -284,7 +289,7 @@ class FlatWorld_LTL2Action(FlatWorld):
 
 
     def get_real_events(self):
-        return self.get_active_propositions()
+        return self.get_active_proposition()
 
 
     def get_events(self):
