@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 import gym
 from gym import spaces
+import torch
 
 import matplotlib.pyplot as plt
 
@@ -200,6 +201,15 @@ class FlatWorld(gym.Env):
         hide_ticks(ax.yaxis)
         ax.set_xlim([-2.1, 2.1])
         ax.set_ylim([-2.1, 2.1])
+
+
+    def set_pos(self, pos):
+        pos = np.clip(np.array(pos), -2, 2)
+        self.agent_location = pos
+
+
+    def get_random_pos(self):
+        return np.random.uniform(low=-2.0, high=2.0, size=(2,))
 
 
     def _get_disjoint_position(self, radius):

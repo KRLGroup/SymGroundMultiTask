@@ -7,7 +7,7 @@ from torch_ac import DictList
 from replay_buffer import ReplayBuffer
 from deep_automa import MultiTaskProbabilisticAutoma
 
-from envs import GridWorldEnv_LTL2Action, ZonesEnv_LTL2Action
+from envs import *
 
 
 # class for training the grounder
@@ -307,7 +307,7 @@ class GrounderAlgo():
                 real_syms = torch.cat(real_syms, dim=0)
                 pred_syms = torch.cat(pred_syms, dim=0)
 
-            elif isinstance(self.env.env, ZonesEnv_LTL2Action):
+            elif isinstance(self.env.env, ZonesEnv_LTL2Action) or isinstance(self.env.env, FlatWorld_LTL2Action):
 
                 for _ in range(self.evaluate_steps):
                     self.env.reset()
