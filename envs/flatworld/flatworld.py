@@ -146,7 +146,7 @@ class FlatWorld(gym.Env):
         props = []
         for circle in self.circles:
             if np.linalg.norm(self.agent_location - circle.center) < circle.radius:
-                props.append(circle.color)
+                props.append(circle.symbol)
         if len(props) > 1:
             raise ValueError("Agent is in multiple circles!")
         elif len(props) == 0:

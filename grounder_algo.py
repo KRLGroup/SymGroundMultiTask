@@ -307,7 +307,7 @@ class GrounderAlgo():
                 real_syms = torch.cat(real_syms, dim=0)
                 pred_syms = torch.cat(pred_syms, dim=0)
 
-            elif isinstance(self.env.env, ZonesEnv_LTL2Action) or isinstance(self.env.env, FlatWorld_LTL2Action):
+            elif isinstance(self.env.env, ZonesEnv_LTL2Action):
 
                 for _ in range(self.evaluate_steps):
                     self.env.reset()
@@ -320,6 +320,26 @@ class GrounderAlgo():
                         real_syms.append(real_sym)
 
                         obs = self.env.env.obs()
+                        obs = torch.tensor(obs, device=self.device).unsqueeze(0)
+                        pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
+                        pred_syms.append(pred_sym)
+
+                real_syms = torch.tensor(real_syms, device=self.device)
+                pred_syms = torch.tensor(pred_syms, device=self.device)
+
+            elif isinstance(self.env.env, FlatWorld_LTL2Action):
+
+                for _ in range(self.evaluate_steps):
+                    self.env.reset()
+
+                    for i in range(100):
+                        self.env.set_pos(self.env.get_random_pos())
+
+                        real_sym = self.env.get_real_events()
+                        real_sym = self.env.dictionary_symbols.index(real_sym)
+                        real_syms.append(real_sym)
+
+                        obs = self.env.env.get_obs()
                         obs = torch.tensor(obs, device=self.device).unsqueeze(0)
                         pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
                         pred_syms.append(pred_sym)
