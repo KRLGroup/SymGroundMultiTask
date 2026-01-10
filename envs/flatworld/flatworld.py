@@ -72,7 +72,7 @@ class FlatWorld(gym.Env):
         )
 
         if self.use_continuous_actions:
-            self.action_space = spaces.Box(-1, 1, (2,), dtype=np.float64)
+            self.action_space = spaces.Box(np.float32(-1), np.float32(1), (2,), dtype=np.float32)
         else:
             self.action_space = spaces.Discrete(9)
 
