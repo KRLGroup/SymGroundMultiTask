@@ -207,7 +207,7 @@ class CompositionalPPOAlgo(BaseAlgo):
 
                 values.append(value)
                 entropies.append(dist.entropy())
-                log_probs.append(dist.log_probs(sb.action))
+                log_probs.append(dist.log_prob(sb.action))
 
             values = torch.cat(values)
             entropies = torch.cat(entropies)

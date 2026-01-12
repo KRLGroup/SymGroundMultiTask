@@ -370,6 +370,9 @@ class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
         elif args.action_space.__class__.__name__ == "Discrete":
             num_outputs = args.action_space.n
             self.actor = Categorical(args.rnn_size, num_outputs)
+        elif args.action_space.__class__.__name__ == "Box":
+            num_outputs = args.action_space.shape[0]
+            self.actor = DiagGaussian(args.rnn_size, num_outputs)
         else:
             raise NotImplementedError
 
