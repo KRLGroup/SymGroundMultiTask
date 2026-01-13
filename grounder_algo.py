@@ -7,7 +7,7 @@ from torch_ac import DictList
 from replay_buffer import ReplayBuffer
 from deep_automa import MultiTaskProbabilisticAutoma
 
-from envs import GridWorldEnv_LTL2Action, ZonesEnv_LTL2Action
+from envs import *
 
 
 # class for training the grounder
@@ -296,7 +296,7 @@ class GrounderAlgo():
                     self.env.reset()
 
                     step_real_syms = [self.env.env.loc_to_label[(r, c)] for (r, c) in coords]
-                    step_real_syms = torch.tensor(step_real_syms, dtype=torch.int32)
+                    step_real_syms = torch.tensor(step_real_syms, device=self.device, dtype=torch.int32)
                     real_syms.append(step_real_syms)
 
                     images = np.stack([self.env.env.loc_to_obs[(r, c)] for (r, c) in coords])
@@ -324,8 +324,28 @@ class GrounderAlgo():
                         pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
                         pred_syms.append(pred_sym)
 
-                real_syms = torch.tensor(real_syms)
-                pred_syms = torch.tensor(pred_syms)
+                real_syms = torch.tensor(real_syms, device=self.device)
+                pred_syms = torch.tensor(pred_syms, device=self.device)
+
+            elif isinstance(self.env.env, FlatWorld_LTL2Action):
+
+                for _ in range(self.evaluate_steps):
+                    self.env.reset()
+
+                    for i in range(100):
+                        self.env.set_pos(self.env.get_random_pos())
+
+                        real_sym = self.env.get_real_events()
+                        real_sym = self.env.dictionary_symbols.index(real_sym)
+                        real_syms.append(real_sym)
+
+                        obs = self.env.env.get_obs()
+                        obs = torch.tensor(obs, device=self.device).unsqueeze(0)
+                        pred_sym = torch.argmax(self.grounder(obs), dim=-1)[0]
+                        pred_syms.append(pred_sym)
+
+                real_syms = torch.tensor(real_syms, device=self.device)
+                pred_syms = torch.tensor(pred_syms, device=self.device)
 
             else:
                 raise Exception("Environment's grounder evaluation not implemented")

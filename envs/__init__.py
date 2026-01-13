@@ -5,8 +5,9 @@ from envs.simple_ltl.simple_ltl_env import SimpleLTLEnv
 from envs.minigrid.minigrid_env import MinigridEnv
 from envs.gridworld_multitask.Environment import GridWorldEnv_LTL2Action
 from envs.safety.zones_env import ZonesEnv_LTL2Action
+from envs.flatworld.flatworld import FlatWorld_LTL2Action
 
-__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action", "ZonesEnv_LTL2Action"]
+__all__ = ["LetterEnv", "SimpleLTLEnv", "MinigridEnv", "GridWorldEnv_LTL2Action", "ZonesEnv_LTL2Action", "FlatWorld_LTL2Action"]
 
 
 ### GridWorld multi-task Envs (5 symbols)
@@ -71,6 +72,14 @@ register(
 register(
     id='GridWorld-12-fixed-v2',
     entry_point='envs.gridworld_multitask.Environment:GridWorldEnv_12_NoWrapAround_FixedMap'
+)
+
+
+
+### FlatWorld Envs
+register(
+    id='FlatWorld-v0',
+    entry_point='envs.flatworld.flatworld:FlatWorldEnv_Base'
 )
 
 

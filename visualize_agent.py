@@ -2,6 +2,7 @@ import os
 import argparse
 import torch
 import time
+from gym import spaces
 
 import utils
 
@@ -51,8 +52,9 @@ sym_grounder.load_state_dict(status["grounder_state"]) if sym_grounder is not No
 sym_grounder.to(device) if sym_grounder is not None else None
 env.env.sym_grounder = sym_grounder
 
-agent = utils.Agent(env, env.observation_space, env.action_space, agent_dir, config.ignoreLTL, config.progression_mode,
-                    config.gnn_model, config.recurrence, config.dumb_ac, device, False, 1, False)
+agent = utils.Agent(env, config.env, env.propositions, env.observation_space, env.action_space, agent_dir,
+                    config.ignoreLTL, config.progression_mode, config.gnn_model, config.recurrence, config.compositional,
+                    config.dumb_ac, device, False, 1, False)
 
 
 # TEST
@@ -76,10 +78,11 @@ while not done:
     if env.real_ltl_goal != env.pred_ltl_goal:
         print("WRONG PREDICTED RESIDUAL FORMULA")
 
-    print("\nAction: ", end="")
+    action = agent.get_action(obs)
 
-    action = agent.get_action(obs).item()
-    print(action_to_str[action])
+    if isinstance(env.action_space, spaces.Discrete):
+        action = action.item()
+        print(f"\nAction: {action_to_str[action]}")
 
     obs, reward, done, info = env.step(action)
 

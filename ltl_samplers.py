@@ -390,7 +390,7 @@ class DatasetSampler(LTLSampler):
 
     def __init__(self, propositions, dataset_name, shuffle=True, ids=None):
 
-        dataset_folder = os.path.join(DATASETS_DIR, dataset_name)
+        self.dataset_folder = os.path.join(DATASETS_DIR, dataset_name)
 
         self.shuffle = shuffle
         self.ids = ids
@@ -402,19 +402,19 @@ class DatasetSampler(LTLSampler):
         self.current_automaton = None
 
         # load config
-        with open(os.path.join(dataset_folder, 'config.pkl'), 'rb') as f:
+        with open(os.path.join(self.dataset_folder, 'config.pkl'), 'rb') as f:
             self.config = pickle.load(f)
         assert self.config["propositions"] == self.propositions
         self.n_prop = len(self.propositions)
 
         # load formulas
-        with open(os.path.join(dataset_folder, 'formulas.pkl'), 'rb') as f:
+        with open(os.path.join(self.dataset_folder, 'formulas.pkl'), 'rb') as f:
             formulas = pickle.load(f)
         assert len(formulas) == self.config["n_formulas"]
 
         automata = [None] * self.config["n_formulas"]
 
-        automata_path = os.path.join(dataset_folder, 'automata.pkl')
+        automata_path = os.path.join(self.dataset_folder, 'automata.pkl')
         self.has_automata = os.path.exists(automata_path)
 
         if self.has_automata:
@@ -484,6 +484,13 @@ class DatasetSampler(LTLSampler):
 
     def get_automaton(self, index):
         return self.items[index]['automaton']
+
+
+    def get_true_automaton(self, index):
+        automata_path = os.path.join(self.dataset_folder, 'automata.pkl')
+        with open(automata_path, 'rb') as f:
+            automata = pickle.load(f)
+        return automata[index]
 
 
 

@@ -37,7 +37,7 @@ utils.pprint_ltl_formula(formula)
 if args.automaton:
 
     if args.mode == "sampler":
-        automaton = utils.ltl_ast2dfa(formula, args.symbols)
+        automaton = sampler.get_true_automaton(args.id)
 
     if args.mode == "manual":
         automaton = utils.ltl_ast2dfa(formula, args.symbols)

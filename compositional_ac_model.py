@@ -248,20 +248,6 @@ class LTLPolicy(nn.Module):
         self.parent_states = [None for _ in range(self.ltl_tree.size)]
 
 
-    def log_param(self, writer, iter):
-        for key in self._modules.keys():
-            print_key = key.replace('!', 'not').replace('&', 'and').replace('|', 'or')
-            for tag, value in self._modules[key].named_parameters():
-                tag = tag.replace('.', '/')
-                writer.add_histogram(print_key + '_' + tag, value.cpu().data.numpy(), iter)
-                if value.grad is not None:
-                    writer.add_histogram(print_key + '_' + tag+'/grad', value.grad.cpu().data.numpy(), iter)
-        if self.image_emb:
-            writer.add_image('image/conv1', make_filter_image(self.image_emb._conv1), iter)
-            writer.add_image('image/conv2', make_filter_image(self.image_emb._conv2, use_color=False), iter)
-            writer.add_image('image/conv3', make_filter_image(self.image_emb._conv3, use_color=False), iter)
-
-
     def forward_child(self, node, obs, args_obs, masks, no_hidden=False):
 
         values = node.value.split('_')
@@ -384,6 +370,9 @@ class CompositionalACModel(torch.nn.Module, torch_ac.CompositionalACModel):
         elif args.action_space.__class__.__name__ == "Discrete":
             num_outputs = args.action_space.n
             self.actor = Categorical(args.rnn_size, num_outputs)
+        elif args.action_space.__class__.__name__ == "Box":
+            num_outputs = args.action_space.shape[0]
+            self.actor = DiagGaussian(args.rnn_size, num_outputs)
         else:
             raise NotImplementedError
 

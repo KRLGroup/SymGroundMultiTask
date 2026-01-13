@@ -29,6 +29,9 @@ def getEnvModel(env, obs_space):
     elif isinstance(env, ZonesEnv_LTL2Action) and env.state_type == "image":
         return GridWorldImgEnvModel(obs_space)
 
+    elif isinstance(env, FlatWorld_LTL2Action):
+        return GridWorldImgEnvModel(obs_space)
+
     else:
         # no environment observations - SimpleLTLEnv uses this
         return EnvModel(obs_space)

@@ -23,7 +23,7 @@ def get_obss_preprocessor(env, gnn, progression_mode):
     if isinstance(env, LTLEnv): #LTLEnv Wrapped env
         env = env.unwrapped
 
-        if isinstance(env, GridWorldEnv_LTL2Action):
+        if isinstance(env, GridWorldEnv_LTL2Action) or isinstance(env, FlatWorld_LTL2Action):
 
             if progression_mode == "partial":
                 obs_space = {

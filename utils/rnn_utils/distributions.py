@@ -13,7 +13,7 @@ class FixedCategorical(torch.distributions.Categorical):
     def sample(self):
         return super().sample()
 
-    def log_probs(self, actions):
+    def log_prob(self, actions):
         return (
             super()
             .log_prob(actions.squeeze(-1))
@@ -27,7 +27,7 @@ class FixedCategorical(torch.distributions.Categorical):
 
 # Bernoulli
 class FixedBernoulli(torch.distributions.Bernoulli):
-    def log_probs(self, actions):
+    def log_prob(self, actions):
         return super().log_prob(actions).view(actions.size(0), -1).sum(-1)
 
     def entropy(self):
@@ -66,3 +66,19 @@ class Bernoulli(nn.Module):
     def forward(self, x):
         x = self.linear(x)
         return FixedBernoulli(logits=x)
+
+
+class DiagGaussian(nn.Module):
+    def __init__(self, num_inputs, num_outputs):
+        super(DiagGaussian, self).__init__()
+
+        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
+                               constant_(x, 0))
+
+        self.fc_mean = init_(nn.Linear(num_inputs, num_outputs))
+        self.logstd = nn.Parameter(torch.zeros(1, num_outputs))
+
+    def forward(self, x):
+        action_mean = self.fc_mean(x)
+        action_logstd = self.logstd.expand_as(action_mean)
+        return torch.distributions.Normal(action_mean, action_logstd.exp())
