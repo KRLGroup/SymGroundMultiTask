@@ -36,10 +36,10 @@ utils.pprint_ltl_formula(formula)
 
 if args.automaton:
 
-    if args.mode == "sampler":
+    if args.mode == "sampler" and "Dataset" in args.sampler:
         automaton = sampler.get_true_automaton(args.id)
 
-    if args.mode == "manual":
+    else:
         automaton = utils.ltl_ast2dfa(formula, args.symbols)
 
     automaton.write_dot_file(os.path.join(OUTPUT_DIR, "automaton.dot"))

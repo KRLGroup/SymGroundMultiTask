@@ -1,5 +1,5 @@
 # Code adapted from https://github.com/clvoloshin/RL-LTL/blob/main/envs/base_envs/flatworld.py
-# and https://github.com/clvoloshin/RL-LTL/blob/main/envs/base_envs/flatworld.py
+# and https://github.com/mathiasj33/deep-ltl/blob/main/src/envs/flatworld/flatworld_big.py
 
 from dataclasses import dataclass
 from typing import Any
