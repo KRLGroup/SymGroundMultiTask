@@ -105,6 +105,10 @@ class ObjectCNN(nn.Module):
         )
 
         with torch.no_grad():
+
+            if len(input_size) == 2:
+                input_size = (3, input_size[0], input_size[1])
+
             dummy_input = torch.zeros((1, input_size[0], input_size[1], input_size[2]))
             dummy_output = self.features(dummy_input)
             self.flattened_size = dummy_output.view(1, -1).size(1)
