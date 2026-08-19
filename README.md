@@ -1,4 +1,18 @@
-# SymGroundMultiTask
+<h1 align="center">SymGroundMultiTask</h1>
+<p align="center">
+    <a href="https://arxiv.org/abs/2602.09761"><img src="https://img.shields.io/badge/arXiv-2602.09761-b31b1b.svg" alt="Paper"></a>
+    <a href="https://github.com/KRLGroup/SymGroundMultiTask"><img src="https://img.shields.io/badge/-Github-grey?logo=github" alt="Github"></a>
+    <a href="https://rlj.cs.umass.edu/2026/papers/Paper149.html"><img src="https://img.shields.io/badge/Website-grey?logo=google-chrome&logoColor=white" alt="Website"></a>
+</p>
+
+
+This repository refers to the work [Grounding LTL Tasks in Sub-Symbolic RL Environments for Zero-Shot Generalization](https://arxiv.org/abs/2602.09761) presented at the main track of [Reinforcement Learning Conference (RLC) 2026](https://rl-conference.cc).
+
+
+## Abstract
+
+In this work we address the problem of training a Reinforcement Learning agent to follow multiple temporally-extended instructions expressed in Linear Temporal Logic in sub-symbolic environments. Previous multi-task work has mostly relied on knowledge of the mapping between raw observations and symbols appearing in the formulae. We drop this unrealistic assumption by jointly training a multi-task policy and a symbol grounder with the same experience. The symbol grounder is trained only from raw observations and sparse rewards via Neural Reward Machines in a semi-supervised fashion. Experiments on vision-based environments show that our method achieves performance comparable to using the true symbol grounding and significantly outperforms the only other previous method for multi-task learning that does not assume knowledge of the true symbol grounding.
+
 
 ## Summary
 
@@ -92,3 +106,15 @@ python -m datasets.create_datasets --name <dataset> --workers <num_workers>
     ```bash
     python visualize_agent.py --model_dir <model_name> --device <device>
     ```
+
+
+## Citation
+
+    @article{pannacci2026grounding,
+        title={Grounding LTL Tasks in Sub-Symbolic RL Environments for Zero-Shot Generalization},
+        author={Matteo Pannacci and Andrea Fanti and Elena Umili and Roberto Capobianco},
+        journal={Reinforcement Learning Journal},
+        volume={7},
+        pages={},
+        year={2026}
+    }
